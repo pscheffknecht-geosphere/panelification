@@ -1,0 +1,86 @@
+"OBJECTID","ID_0","ISO","NAME_0","ID_1","NAME_1","TYPE_1","ENGTYPE_1","NL_NAME_1","VARNAME_1"
+1,133,"MKD","Macedonia",1,"Štip","Opština","Municipality",NA,"Ishtip|Istib ete"
+2,133,"MKD","Macedonia",2,"Šuto Orizari","Opština","Municipality",NA,"Šutka| Shutka"
+3,133,"MKD","Macedonia",3,"Želino","Opština","Municipality",NA,NA
+4,133,"MKD","Macedonia",4,"Aerodrom","Opština","Municipality",NA,NA
+5,133,"MKD","Macedonia",5,"Caška","Opština","Municipality",NA,"Caska"
+6,133,"MKD","Macedonia",6,"Cair","Opština","Municipality",NA,NA
+7,133,"MKD","Macedonia",7,"Cešinovo-Obleševo","Opština","Municipality",NA,NA
+8,133,"MKD","Macedonia",8,"Cucer Sandevo","Opština","Municipality",NA,"Cucer Sandevo"
+9,133,"MKD","Macedonia",9,"Aracinovo","Opština","Municipality",NA,NA
+10,133,"MKD","Macedonia",10,"Berovo","Opština","Municipality",NA,NA
+11,133,"MKD","Macedonia",11,"Bitola","Opština","Municipality",NA,"Bitolia|Monastir"
+12,133,"MKD","Macedonia",12,"Bogdanci","Opština","Municipality",NA,NA
+13,133,"MKD","Macedonia",13,"Bogovinje","Opština","Municipality",NA,NA
+14,133,"MKD","Macedonia",14,"Bosilovo","Opština","Municipality",NA,NA
+15,133,"MKD","Macedonia",15,"Brvenica","Opština","Municipality",NA,NA
+16,133,"MKD","Macedonia",16,"Butel","Opština","Municipality",NA,NA
+17,133,"MKD","Macedonia",17,"Centar župa","Opština","Municipality",NA,"Centar Zupa"
+18,133,"MKD","Macedonia",18,"Centar","Opština","Municipality",NA,NA
+19,133,"MKD","Macedonia",19,"Debarca","Opština","Municipality",NA,"Debartsa"
+20,133,"MKD","Macedonia",20,"Debar","Opština","Municipality",NA,NA
+21,133,"MKD","Macedonia",21,"Delcevo","Opština","Municipality",NA,"Delcevo"
+22,133,"MKD","Macedonia",22,"Demir Hisar","Opština","Municipality",NA,"Murgaševo"
+23,133,"MKD","Macedonia",23,"Demir Kapija","Opština","Municipality",NA,NA
+24,133,"MKD","Macedonia",24,"Dolneni","Opština","Municipality",NA,NA
+25,133,"MKD","Macedonia",25,"Drugovo","Opština","Municipality",NA,NA
+26,133,"MKD","Macedonia",26,"Gazi Baba","Opština","Municipality",NA,NA
+27,133,"MKD","Macedonia",27,"Gevgelija","Opština","Municipality",NA,"Djevdjelija"
+28,133,"MKD","Macedonia",28,"Gjorce Petrov","Opština","Municipality",NA,"Gjorce Petrov"
+29,133,"MKD","Macedonia",29,"Gostivar","Opština","Municipality",NA,"Kostovo"
+30,133,"MKD","Macedonia",30,"Gradsko","Opština","Municipality",NA,NA
+31,133,"MKD","Macedonia",31,"Ilinden","Opština","Municipality",NA,NA
+32,133,"MKD","Macedonia",32,"Jegunovtse","Opština","Municipality",NA,NA
+33,133,"MKD","Macedonia",33,"Karbinci","Opština","Municipality",NA,NA
+34,133,"MKD","Macedonia",34,"Karpoš","Opština","Municipality",NA,NA
+35,133,"MKD","Macedonia",35,"Kavadartsi","Opština","Municipality",NA,NA
+36,133,"MKD","Macedonia",36,"Kicevo","Opština","Municipality",NA,"Kicevo"
+37,133,"MKD","Macedonia",37,"Kisela Voda","Opština","Municipality",NA,NA
+38,133,"MKD","Macedonia",38,"Kocani","Opština","Municipality",NA,"Kocani"
+39,133,"MKD","Macedonia",39,"Konce","Opština","Municipality",NA,"Konce"
+40,133,"MKD","Macedonia",40,"Kratovo","Opština","Municipality",NA,NA
+41,133,"MKD","Macedonia",41,"Kriva Palanka","Opština","Municipality",NA,NA
+42,133,"MKD","Macedonia",42,"Krivogaštani","Opština","Municipality",NA,NA
+43,133,"MKD","Macedonia",43,"Kruševo","Opština","Municipality",NA,NA
+44,133,"MKD","Macedonia",44,"Kumanovo","Opština","Municipality",NA,NA
+45,133,"MKD","Macedonia",45,"Lake Ohrid","Water body","Water body",NA,NA
+46,133,"MKD","Macedonia",46,"Lipkovo","Opština","Municipality",NA,NA
+47,133,"MKD","Macedonia",47,"Lozovo","Opština","Municipality",NA,NA
+48,133,"MKD","Macedonia",48,"Makedonska Kamenica","Opština","Municipality",NA,NA
+49,133,"MKD","Macedonia",49,"Makedonski Brod","Opština","Municipality",NA,"Makedonska Brod"
+50,133,"MKD","Macedonia",50,"Mavrovo and Rostuša","Opština","Municipality",NA,"Mavrovo and Rostusa"
+51,133,"MKD","Macedonia",51,"Mogila","Opština","Municipality",NA,NA
+52,133,"MKD","Macedonia",52,"Negotino","Opština","Municipality",NA,NA
+53,133,"MKD","Macedonia",53,"Novatsi","Opština","Municipality",NA,NA
+54,133,"MKD","Macedonia",54,"Novo Selo","Opština","Municipality",NA,NA
+55,133,"MKD","Macedonia",55,"Ohrid","Opština","Municipality",NA,"Ochrida|Okhrida"
+56,133,"MKD","Macedonia",56,"Oslomej","Opština","Municipality",NA,NA
+57,133,"MKD","Macedonia",57,"Pehcevo","Opština","Municipality",NA,"Phecevo"
+58,133,"MKD","Macedonia",58,"Petrovec","Opština","Municipality",NA,NA
+59,133,"MKD","Macedonia",59,"Plasnica","Opština","Municipality",NA,NA
+60,133,"MKD","Macedonia",60,"Prilep","Opština","Municipality",NA,NA
+61,133,"MKD","Macedonia",61,"Probištip","Opština","Municipality",NA,"Probistip"
+62,133,"MKD","Macedonia",62,"Radoviš","Opština","Municipality",NA,"Radovis"
+63,133,"MKD","Macedonia",63,"Rankovce","Opština","Municipality",NA,NA
+64,133,"MKD","Macedonia",64,"Resen","Opština","Municipality",NA,NA
+65,133,"MKD","Macedonia",65,"Rosoman","Opština","Municipality",NA,NA
+66,133,"MKD","Macedonia",66,"Saraj","Opština","Municipality",NA,NA
+67,133,"MKD","Macedonia",67,"Sopište","Opština","Municipality",NA,"Sopiste"
+68,133,"MKD","Macedonia",68,"Star Dojran","Opština","Municipality",NA,"Dojran"
+69,133,"MKD","Macedonia",69,"Staro Nagoricane","Opština","Municipality",NA,"Staro Nagoricane"
+70,133,"MKD","Macedonia",70,"Struga","Opština","Municipality",NA,NA
+71,133,"MKD","Macedonia",71,"Strumitsa","Opština","Municipality",NA,NA
+72,133,"MKD","Macedonia",72,"Studenicani","Opština","Municipality",NA,"Studenicani"
+73,133,"MKD","Macedonia",73,"Sveti Nikole","Opština","Municipality",NA,NA
+74,133,"MKD","Macedonia",74,"Tearce","Opština","Municipality",NA,NA
+75,133,"MKD","Macedonia",75,"Tetovo","Opština","Municipality",NA,NA
+76,133,"MKD","Macedonia",76,"Valandovo","Opština","Municipality",NA,NA
+77,133,"MKD","Macedonia",77,"Vasilevo","Opština","Municipality",NA,NA
+78,133,"MKD","Macedonia",78,"Veles","Opština","Municipality",NA,NA
+79,133,"MKD","Macedonia",79,"Vevcani","Opština","Municipality",NA,"Vevcani"
+80,133,"MKD","Macedonia",80,"Vinitsa","Opština","Municipality",NA,NA
+81,133,"MKD","Macedonia",81,"Vraneštica","Opština","Municipality",NA,NA
+82,133,"MKD","Macedonia",82,"Vrapcište","Opština","Municipality",NA,NA
+83,133,"MKD","Macedonia",83,"Zajas","Opština","Municipality",NA,NA
+84,133,"MKD","Macedonia",84,"Zelenikovo","Opština","Municipality",NA,NA
+85,133,"MKD","Macedonia",85,"Zrnovci","Opština","Municipality",NA,NA

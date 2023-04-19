@@ -1,0 +1,217 @@
+# make map plots and panel them nicely to compare multiple simulations
+#
+import pyresample
+from datetime import datetime
+from datetime import timedelta as dt
+from misc import loop_datetime, str2bool
+import argparse
+from joblib import Parallel, delayed
+import numpy as np
+import os
+from model_parameters import *
+import scoring
+import inca_functions as inca
+import read_opera as opera
+import obs_from_db as obs
+import panel_plotter
+import data_io
+import data_from_dcmdb
+import scan_obs
+import prepare_for_web
+
+# try avoiding hanging during parallelized portions of the program
+os.environ['MKL_NUM_THREADS'] = '1'
+os.environ['OMP_NUM_THREADS'] = '1'
+os.environ['MKL_DYNAMIC'] = 'FALSE'
+
+global args, start_date, end_date
+start_date = datetime(2019,8,12,15,0,0)
+end_date = datetime(2019,8,12,18,0,0)
+
+
+def parse_arguments():
+    global args
+    parser = argparse.ArgumentParser(conflict_handler="resolve")
+    parser.add_argument('--parameter', '-p', type=str, default='precip',
+        help = 'parameter to verify/plot')
+    parser.add_argument('--precip_verif_dataset', type=str, default = 'INCA',
+        help = """select precip data set:
+            INCA ... INCA analysis over Austria
+            OPERA .. OPERA analysis over Europ (MUST be in ../OBS!!)""")
+    parser.add_argument('--name', '-n', type=str, default='',
+        help = 'name of the panels, if desired')
+    parser.add_argument('--start', '-s', type=str, default=None,
+        help = 'starting date as YYYYMMDDHH')
+    parser.add_argument('--duration', '-d', type=int, default=1,
+        help = 'accumulation duration in hours')
+    parser.add_argument('--lead', '-l', type=int, default=[12], nargs='+',
+        help = 'maximum lead time up to starting time in hours')
+    parser.add_argument('--subdomains', '-u', type=str, default=[], nargs='+',
+        help = """ Select subdomains, available:
+            Auto (default)
+            Vienna
+            Lower Austria
+            Upper Austria
+            Tyrol
+            Eastern Tyrol
+            Vorarlberg
+            Carinthia
+            Salzburg
+            Styria
+            Burgenland
+            Austria
+            Custom""")
+    parser.add_argument('--draw_subdomain', nargs='?', default=True, const=True, type=str2bool,
+        help = "Draw a rectangle to show the verification subdomain")
+    parser.add_argument('--resample_target', type=str, default="OBS",
+        help = 'OBS to resample models to observation grid or MODEL to resample observations to model grid')
+    parser.add_argument('--cases', '-c', type=str, nargs='+', default="austria_2022",
+        help = "Select case to verify")
+    parser.add_argument('--experiments', type=str, nargs='+',
+        default = ['None'],
+        help = """select experiments, if left empty/None it will select all available""")
+    parser.add_argument('--output_format', type=str, default='png',
+        help = "Desired output format (png, jpg, pdf, eps, ...)")
+    parser.add_argument('--lonlat_limits', type=float, nargs='+',
+        default = None,
+        help = """Select custom corner points of verification subdomain:
+            LonMin, LonMax, LatMin, LatMax)""")
+    parser.add_argument('--draw', nargs='?', default=False, const=True, type=str2bool,
+        help = 'draw panels if average rain is above 5 mm or maximum rain is above 100 mm')
+    parser.add_argument('--forcedraw', nargs='?', default=False, const=True, type=str2bool,
+        help = 'draw panels for all subdomains, no matter how much rain was observed')
+    parser.add_argument('--cmap', type=str, default="mycolors",
+        help = 'color map selection')
+    parser.add_argument('--forcescore', nargs='?', default=False, const=True, type=str2bool,
+        help = 'draw panels for all subdomains, no matter how much rain was observed')
+    parser.add_argument('--draw_p90', nargs='?', default=False, const=True, type=str2bool,
+        help = 'draw panels for all subdomains, no matter how much rain was observed')
+    parser.add_argument('--clean', nargs='?', default=False, const=True, type=str2bool,
+        help = 'do not draw/write verification metrics on the panels')
+    parser.add_argument('--mode', default='None', type=str,
+        help = """ Drawing mode:\n
+            'None' (default) ... Draw rain contours\n
+            'diff' ............. Draw interpolated rain field difference to INCA analysis\n
+            'resampled' ........ Draw model data interpolated to INCA grid for verification""")
+    parser.add_argument('--save', nargs='?', default=False, const=True, type=str2bool)
+    parser.add_argument('--save_full_fss', nargs='?', default=False, const=True, type=str2bool)
+    parser.add_argument('--hidden', nargs='?', default=False, const=True, type=str2bool,
+        help = 'clean panels, with names hidden and numbers used instead')
+    parser.add_argument('--time_series', nargs='?', default=False, const=True, type=str2bool,
+        help = 'add panel with domain-averaged precipitation values')
+    parser.add_argument('--fast', nargs='?', default=False, const=True, type=str2bool,
+        help = 'faster drawing using pcolormesh')
+    parser.add_argument('--intranet_update', nargs='?', default=False, const=True, type=str2bool,
+        help = 'update panels on the intranet website')
+    args = parser.parse_args()
+    if not args.intranet_update:  # ignore these conditions if only updating intranet
+        if args.subdomains == "Custom" and args.lonlat_limits is None:
+            print("""The subdomain is set to "Custom", then its limits need to be set!
+                Use the command line argument:
+                  --lonlat_limits LonMin LonMax LatMin LatMax
+
+                exiting...""")
+            exit(1)
+        if len(args.lead) > 2 and len(args.lead) != 2*len(args.configs):
+            print("""--lead must have one of the following:
+               1 value 
+                 maximum lead time before accumulation start period
+               2 values
+                 minimum and maximum lead time before accumulation start period
+               2*len(--config) values
+                 minimum and maximum lead time for each config
+
+               exiting...""")
+            exit(1)
+        if len(args.name) > 0:
+            if args.name[-1] != '_':
+                args.name += '_' 
+        # hidden forces clean too:
+        args.clean = True if args.hidden else args.clean
+
+
+def get_lead_limits(args):
+    lead_limits = args.lead
+    if len(lead_limits) == 2:
+        min_lead = lead_limits[0]
+        max_lead = lead_limits[1]
+    elif len(lead_limits) == 1:
+        min_lead = 0
+        max_lead = lead_limits[0]
+    elif len(lead_limits) > 2:
+        min_lead = lead_limits[::2]
+        max_lead = lead_limits[1::2]
+    return min_lead, max_lead
+
+
+def print_some_basics(start_date, end_date, min_lead, max_lead):
+    print("Checking precipitation for the {:d} hours from {:s} to {:s}.".format(
+        int((end_date - start_date).total_seconds()/3600),
+        start_date.strftime("%Y-%m-%d %H UTC"),
+        end_date.strftime("%Y-%m-%d %H UTC")))
+    if type(max_lead) == int:
+        print("Limiting models to lead times between {:d} and {:d} hours before {:s}.".format(
+            min_lead, max_lead, start_date.strftime("%Y-%m-%d %H UTC")))
+    else:
+        for mil, mal in zip(min_lead, max_lead):
+            print("Limiting models to lead times between {:d} and {:d} hours before {:s}.".format(
+                mil, mal, start_date.strftime("%Y-%m-%d %H UTC")))
+
+
+def print_min_max_avg(data_list):
+    for sim in data_list:
+        print("ORIGINAL:  {:s}: min={:.4f}, avg={:.4f}, max={:.4f}, sum={:.2f}".format(
+            sim['name'], sim['precip_data'].min(), sim['precip_data'].mean(), sim['precip_data'].max(), sim['precip_data'].sum()))
+        print("RESAMPLED: {:s}: min={:.4f}, avg={:.4f}, max={:.4f}".format(
+            sim['name'], sim['sim_param_resampled'].min(), sim['sim_param_resampled'].mean(), sim['sim_param_resampled'].max()))
+
+def main():
+    parse_arguments()
+    min_lead, max_lead = get_lead_limits(args)
+    start_date = datetime.strptime(args.start, "%Y%m%d%H")
+    end_date = start_date + dt(hours=args.duration)
+    print_some_basics(start_date, end_date, min_lead, max_lead)
+    # generate a list of available simulations and add data, observations and scores
+    print(dir(data_from_dcmdb))
+    data_list = data_from_dcmdb.get_sim_and_file_list(args)
+    # data_list = data_io.get_sims_and_file_list(start_date, end_date, min_lead, max_lead, simdf, args)
+    #data_list = data_from_dcmdb.read_data(data_list, args)
+    if args.parameter in ['precip', 'sunshine']:
+        if args.precip_verif_dataset == "INCA":
+            data_list = inca.read_INCA(data_list, start_date, end_date, args)
+        else:
+            data_list = opera.read_OPERA(data_list, start_date, end_date, args)
+    elif args.parameter == 'hail':
+        data_list = obs.read_hail(data_list, start_date, end_date)
+    elif args.parameter == 'lightning':
+        data_list = obs.read_lightning(data_list, start_date, end_date)
+    else:
+        print("Parameter {:s} unknown, accepted parameters: precip, sunshine, hail, lightning".format(
+            args.parameter))
+        exit(1)
+    df_subdomain_details = scan_obs.get_interesting_subdomains(data_list[0], args)
+    for _, dom in df_subdomain_details.iterrows():
+        verification_subdomain = dom['name']
+        if dom['score'] or dom['draw'] or args.save:
+            data_list = inca.resample_data(data_list, verification_subdomain, args)
+            print_min_max_avg(data_list)
+            data_list = Parallel(n_jobs=6,backend='threading')(delayed(scoring.calc_scores)(sim, args) for ii, sim in enumerate(data_list))
+            data_list = scoring.rank_scores(data_list)
+            data_list = scoring.total_fss_rankings(data_list)
+        else:
+            print("Skipping "+dom['name']+", nothing is requested.")
+        if dom['score']:
+            scoring.write_scores_to_csv(data_list, start_date, end_date, args, verification_subdomain)
+        if dom['draw']:
+            plot_start = datetime.now()
+            panel_plotter.draw_panels(data_list, start_date, end_date, verification_subdomain, args, mode=args.mode)
+            plot_duration = datetime.now() - plot_start
+            print("Plotting "+str(len(data_list))+"panels took "+str(plot_duration))
+        if args.save:
+            data_io.save_data(data_list, verification_subdomain, start_date, end_date, args)
+        if args.save_full_fss:
+            data_io.save_fss(data_list, verification_subdomain, start_date, end_date, args)
+
+
+if __name__ == '__main__':
+    main()
