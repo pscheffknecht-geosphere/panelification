@@ -63,10 +63,10 @@ def add_scores(ax, sim, rank_colors):
         ax.text(0.2, 0.67, "D$_{{90}}$: {:.1f} km ({})".format(sim['d90'], sim['rank_d90']), va='top', ha='left',
                 rotation='horizontal', rotation_mode='anchor',
                 transform=ax.transAxes,size='x-small', backgroundcolor=rank_colors[sim['rank_d90']])
-    ax.text(1.00, 1.03, "AVG Rank: {:.2f} ({})".format(sim['average_rank'], sim['rank_average_rank']), va='top', ha='right',
-            rotation='horizontal', rotation_mode='anchor',
-            transform=ax.transAxes,size='large', 
-            bbox=dict(boxstyle='round', fc=rank_colors[sim['rank_average_rank']], ec='black', pad=0.2))
+    # ax.text(1.00, 1.03, "AVG Rank: {:.2f} ({})".format(sim['average_rank'], sim['rank_average_rank']), va='top', ha='right',
+    #         rotation='horizontal', rotation_mode='anchor',
+    #         transform=ax.transAxes,size='large', 
+    #         bbox=dict(boxstyle='round', fc=rank_colors[sim['rank_average_rank']], ec='black', pad=0.2))
     return ax
 
 
@@ -150,7 +150,7 @@ def draw_single_figure(sim, obs, jj, crs_data, crs_plot, levels, cmap, norm, mod
     print("Plotting "+sim['name'])
     crs_plot, crs_data = prep_projections()
     crs_plot = crs_data if args.fast else crs_plot
-    fig, ax = plt.subplots(1,1, figsize=(5.4, 3.5), dpi=120, subplot_kw={'projection': crs_plot})
+    fig, ax = plt.subplots(1,1, figsize=(6.4, 4.0), dpi=120, subplot_kw={'projection': crs_plot})
     precip_data, lon, lat = prep_plot_data(sim, obs, mode)
     extend = 'both' if args.mode == 'diff' else 'max'
     precip_data = np.where(precip_data == np.nan, 0., precip_data)
@@ -188,7 +188,7 @@ def draw_single_figure(sim, obs, jj, crs_data, crs_plot, levels, cmap, norm, mod
     else:
         # ax.set_extent([3.,23.,43.,55.])
         ax.set_extent([9.,17.5,46.,49.5])
-    ax.set_extent([15.0, 35.0, 58.00, 63.0])
+    ax.set_extent([16.0, 31.0, 58.00, 63.0])
     add_borders(ax,crs_data)
     gl = ax.gridlines(color='black',alpha=0.3)
     if verification_subdomain == 'Custom':
@@ -214,7 +214,7 @@ def draw_single_figure(sim, obs, jj, crs_data, crs_plot, levels, cmap, norm, mod
         panel_title_fc = rank_colors[sim['rank_fss_total_abs_score']]
     ax.text(0.0, 1.03, panel_title, va='top', ha='left',
         rotation='horizontal', rotation_mode='anchor',
-        transform=ax.transAxes,size='x-large',
+        transform=ax.transAxes,size='large',
         bbox=dict(boxstyle='round', fc=panel_title_fc, ec='black', pad=0.2))
     if jj > 0 and not args.clean:
         little_ax = add_fss_rank_plot(ax, sim, max_rank, jj, args)
