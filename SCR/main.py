@@ -38,6 +38,8 @@ def parse_arguments():
         help = """select precip data set:
             INCA ... INCA analysis over Austria
             OPERA .. OPERA analysis over Europ (MUST be in ../OBS!!)""")
+    parser.add_argument('--region', type=str, default='Europe',
+        help = 'select region for plot')
     parser.add_argument('--name', '-n', type=str, default='',
         help = 'name of the panels, if desired')
     parser.add_argument('--start', '-s', type=str, default=None,
