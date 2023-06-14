@@ -3,9 +3,8 @@ import datetime as dt
 import os
 import glob
 import cartopy.crs as ccrs
-import cartopy.io.shapereader as shpreader
+import cartopy.feature as cfeature
 import matplotlib as mpl
-mpl.use('Agg')
 from matplotlib.colors import BoundaryNorm as bnorm
 import matplotlib.colors as mplcolors
 import matplotlib.cm as cm
@@ -23,27 +22,12 @@ import pickle
 import scipy.ndimage as ndimage
 
 
-
-
-def add_borders(axis,crs_data):
-    """
-    This function adds national borders to an ax object, the borders
-    are taken from the shapefiles subdirectory. By default, Austria and all
-    its neighbors are added for nicer plots.
-    """
-
-    # list of countrie abbrevieations used in the shapefiles
-    countries=["CHE","CZE","DEU","HUN","ITA","LIE","SVK","SVN","HRV", "EST", "FIN", "LTU", "LVA", "NOR", "RUS", "SWE"]
-    for country in countries:
-        shp_file="shapefiles/"+country+"_adm0.shp"
-        shp_shapes=list(shpreader.Reader(shp_file).geometries())
-        axis.add_geometries(shp_shapes, crs_data, edgecolor='black', facecolor='None', alpha=1.0, linewidth=1.0)
-
-    # add Austria including states
-    country="AUT"
-    shp_file="shapefiles/AUT_adm1.shp"
-    shp_shapes=list(shpreader.Reader(shp_file).geometries())
-    axis.add_geometries(shp_shapes, crs_data, edgecolor='black', facecolor='None', alpha=1.0, linewidth=0.5)
+def add_borders(axis):
+    borders = cfeature.NaturalEarthFeature(
+    category='cultural', name='admin_0_boundary_lines_land',
+    scale='10m', facecolor='none')
+    axis.add_feature(borders, edgecolor='black', lw=0.5)
+    axis.add_feature(cfeature.COASTLINE)
 
 
 def add_scores(ax, sim, rank_colors):
@@ -167,10 +151,6 @@ def draw_single_figure(sim, obs, jj, crs_data, crs_plot, levels, cmap, norm, mod
         c = ax.contourf(lon, lat, precip_data_smooth,
                         levels,cmap=cmap,transform=crs_data,
                         norm=norm, extend=extend)
-    print(precip_data.max(), precip_data.min())
-    # except:
-    #     c = ax.contourf(precip_data)
-    #     raise
     c.cmap.set_over('orange')
     if extend == 'both':
         c.cmap.set_under('pink')
@@ -189,7 +169,7 @@ def draw_single_figure(sim, obs, jj, crs_data, crs_plot, levels, cmap, norm, mod
         # ax.set_extent([3.,23.,43.,55.])
         ax.set_extent([9.,17.5,46.,49.5])
     ax.set_extent([16.0, 31.0, 58.00, 63.0])
-    add_borders(ax,crs_data)
+    add_borders(ax)
     gl = ax.gridlines(color='black',alpha=0.3)
     if verification_subdomain == 'Custom':
         subdom_lon_lat_limits = args.lonlat_limits
