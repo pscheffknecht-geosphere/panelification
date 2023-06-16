@@ -301,7 +301,7 @@ verification_subdomains = {
     'Untere_Donau': [13.074, 16.611, 47.367, 49.020],
     # OTHER
     'Hallein': [12.1, 14.1, 47.20, 48.20],
-    'Finland': [20.0, 29.0, 59.00, 62.50],
+    'Finland': [23.0, 28.0, 59.00, 61.50],
     'Custom' : [None, None, None, None]
 }
 subdomain_precip_thresholds = {

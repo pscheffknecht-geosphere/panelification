@@ -11,15 +11,15 @@ logger = logging.getLogger(__name__)
 def process_case_and_exp_selection(args):
     """ Process cases and experiments from command line arguments, format the selection for 
     DCMDB's Cases() class"""
-    if len(args.cases) > 1:
+    if len(args.case) > 1:
         logger.critical("Multiple Cases not supported :-(")
         exit()
     if args.experiments == ["None"]:
-        if len(args.cases) == 1:
-            return args.cases
+        if len(args.case) == 1:
+            return args.case
     else:
-        if len(args.cases) == 1:
-            return {args.cases[0]: args.experiments}
+        if len(args.case) == 1:
+            return {args.case[0]: args.experiments}
 
 
 def get_ft(fts):
@@ -152,7 +152,7 @@ def get_sim_and_file_list(args):
         max_lead = exp_lead + args.duration
         exp_init_date = dt.datetime.strptime(args.start, "%Y%m%d%H") - dt.timedelta(hours=exp_lead)
         # exp_end_date = start_date + dt.timedelta(hours=args.duration)
-        case_selection = args.cases #process_case_and_exp_selection(args)
+        case_selection = args.case #process_case_and_exp_selection(args)
         logger.info(case_selection)
         cases = Cases(selection=case_selection, printlev=0, path="dcmdb/cases")
         for exp_name in cases.cases.runs.keys():
@@ -169,12 +169,12 @@ def get_sim_and_file_list(args):
                 sim_OK = check_file_paths(exp_name, exp_init_date, [start_file_path, end_file_path], all_experiment_files)
                 if sim_OK:
                     sim = {
-                        "case" : args.cases[0],
+                        "case" : args.case[0],
                         "exp" : exp_name,
                         "conf" : exp_name, # old code wants this, for now
                         "init" : exp_init_date,
                         "name" : "{:s} {:s} {:s}".format(
-                            args.cases[0], exp_name, exp_init_date.strftime("%Y-%d-%m %H")),
+                            args.case[0], exp_name, exp_init_date.strftime("%Y-%d-%m %H")),
                         "start_file" : start_file_path, 
                         "end_file" : end_file_path}
                     data_list.append(sim)

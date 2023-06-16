@@ -14,7 +14,7 @@ regions = {
     "Finland": {
         "central_longitude": 24.5,
         "central_latitude" : 61.,
-        "extent": [16.0, 31.0, 58.00, 63.0]}
+        "extent": [20.0, 30.0, 58.50, 62.0]}
     }
 
 class Region():

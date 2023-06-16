@@ -18,7 +18,6 @@ import panel_plotter
 import data_io
 import data_from_dcmdb
 import scan_obs
-import prepare_for_web
 
 # try avoiding hanging during parallelized portions of the program
 os.environ['MKL_NUM_THREADS'] = '1'
@@ -40,8 +39,8 @@ def translate_logging_levels(lvlstr):
 def parse_arguments():
     global args
     parser = argparse.ArgumentParser(conflict_handler="resolve")
-    # parser.add_argument('--parameter', '-p', type=str, default='precip',
-    #     help = 'parameter to verify/plot')
+    parser.add_argument('--parameter', '-p', type=str, default='precip',
+        help = 'parameter to verify/plot')
     parser.add_argument('--precip_verif_dataset', type=str, default = 'INCA',
         help = """select precip data set:
             INCA ... INCA analysis over Austria
@@ -75,13 +74,13 @@ def parse_arguments():
         help = "Draw a rectangle to show the verification subdomain")
     parser.add_argument('--resample_target', type=str, default="OBS",
         help = 'OBS to resample models to observation grid or MODEL to resample observations to model grid')
-    parser.add_argument('--cases', '-c', type=str, nargs='+', default="austria_2022",
+    parser.add_argument('--case', '-c', type=str, nargs='+', default="austria_2022",
         help = "Select case to verify")
-    parser.add_argument('--experiments', type=str, nargs='+',
+    parser.add_argument('--experiments', '-e', type=str, nargs='+',
         default = ['None'],
         help = """select experiments, if left empty/None it will select all available""")
-    parser.add_argument('--output_format', type=str, default='png',
-        help = "Desired output format (png, jpg, pdf, eps, ...)")
+    # parser.add_argument('--output_format', type=str, default='png',
+    #     help = "Desired output format (png, jpg, pdf, eps, ...)")
     parser.add_argument('--lonlat_limits', type=float, nargs='+',
         default = None,
         help = """Select custom corner points of verification subdomain:
@@ -216,7 +215,7 @@ def main():
             scoring.write_scores_to_csv(data_list, start_date, end_date, args, verification_subdomain)
         if dom['draw']:
             plot_start = datetime.now()
-            panel_plotter.draw_panels(data_list, start_date, end_date, verification_subdomain, args, mode=args.mode)
+            panel_plotter.draw_panels(data_list, start_date, end_date, verification_subdomain, args) #, mode=args.mode)
             plot_duration = datetime.now() - plot_start
             logging.info("Plotting "+str(len(data_list))+"panels took "+str(plot_duration))
         if args.save:

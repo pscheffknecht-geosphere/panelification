@@ -12,8 +12,8 @@ def get_rain_mean_max(lon_o, lat_o, RR_obs, limits):
         idx_max = np.where(dists_max==dists_max.min())
         logger.debug(idx_min)
         logger.debug(idx_max)
-        logger.debug(idx_min[0][0], idx_max[0][0], idx_min[1][0], idx_max[1][0])
-        logger.debug(idx_min[0][0], idx_max[0][0], idx_min[1][0], idx_max[1][0])
+        logger.debug((idx_min[0][0], idx_max[0][0], idx_min[1][0], idx_max[1][0]))
+        logger.debug((idx_min[0][0], idx_max[0][0], idx_min[1][0], idx_max[1][0]))
         RR_obs_subdomain_mean = np.mean(RR_obs[idx_min[0][0]:idx_max[0][0],idx_min[1][0]:idx_max[1][0]])
         RR_obs_subdomain_max = np.max(RR_obs[idx_min[0][0]:idx_max[0][0],idx_min[1][0]:idx_max[1][0]])
         return RR_obs_subdomain_mean, RR_obs_subdomain_max

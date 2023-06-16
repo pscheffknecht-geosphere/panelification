@@ -23,8 +23,8 @@ import scipy.ndimage as ndimage
 from regions import Region
 
 import logging
-logging.getLogger(__name__)
-
+logger = logging.getLogger(__name__)
+logging.getLogger('matplotlib').setLevel(logging.WARNING)
 
 def add_borders(axis):
     borders = cfeature.NaturalEarthFeature(
@@ -105,11 +105,15 @@ def draw_solo_colorbar(levels, cmap, norm, tmp_string, args):
     plt.savefig('../TMP/'+tmp_string+'/cbar.png')
 
 
-def arrange_subplots(r):
+def arrange_subplots(r, clean=False):
     total_height = 4.80
-    total_width = 2. + 4. / r + 0.80
+    if clean:
+        total_width = 4. / r + 0.80
+        map_left = .40 / total_width
+    else:
+        total_width = 2. + 4. / r + 0.80
+        map_left = 2.40 / total_width
     map_bottom = 0.40 / total_height
-    map_left = 2.40 / total_width
     map_height = 4. / total_height
     map_width = 4. / r / total_width
     small_left = 0.40 / total_width
@@ -124,13 +128,16 @@ def arrange_subplots(r):
 
 def draw_single_figure(sim, obs, region, r, jj, levels, cmap, norm, mode, verification_subdomain, rank_colors, max_rank, args, tmp_string):
     logger.info("Plotting "+sim['name'])
-    total_width, total_height, map_coords, score_coords, fss_coords = arrange_subplots(r)
+    total_width, total_height, map_coords, score_coords, fss_coords = arrange_subplots(r, clean=args.clean)
     fig = plt.figure(dpi=150, figsize=(total_width, total_height))
     ax = fig.add_axes(map_coords, projection=region.plot_projection)
-    ax_scores = fig.add_axes(score_coords)
-    ax_scores.axis('off')
-    ax_fss = fig.add_axes(fss_coords)
-    if jj == 0:
+    if args.clean:
+        ax_scores = ax_fss = None
+    else:
+        ax_scores = fig.add_axes(score_coords)
+        ax_scores.axis('off')
+        ax_fss = fig.add_axes(fss_coords)
+    if jj == 0 and not args.clean:
         ax_fss.axis('off')
     #fig, ax = plt.subplots(1,1, figsize=(6.4, 4.0), dpi=120, subplot_kw={'projection': region.plot_projection})
     precip_data, lon, lat = prep_plot_data(sim, obs, mode)
@@ -213,8 +220,8 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args, mo
     rank_colors[1:3] = ['gold', 'silver', 'darkorange']
     # init projections
     suptit = "'"+parameter_settings.title_part[args.parameter] + " from "+start_date.strftime("%Y%m%d %H")+" to "+end_date.strftime("%Y%m%d %H UTC")+"'"
-    name_part = '' if args.mode == 'None' else args.mode+'_'
-    outfilename = "../PLOTS/"+args.name+"_"+args.parameter+"_"+name_part+"panel_"+start_date.strftime("%Y%m%d_%HUTC_")+'{:02d}h_acc_'.format(args.duration)+verification_subdomain+'.'+args.output_format
+    name_part = '' #if args.mode == 'None' else args.mode+'_'
+    outfilename = "../PLOTS/"+args.name+"_"+args.parameter+"_"+name_part+"panel_"+start_date.strftime("%Y%m%d_%HUTC_")+'{:02d}h_acc_'.format(args.duration)+verification_subdomain+'.png' #+args.output_format
     tmp_string = dt.datetime.now().strftime("%Y%m%d%H%M%S")+str(np.random.randint(1000000000)).zfill(9)
     # generate figure and axes objects for loop and go
     os.system('mkdir ../TMP/'+tmp_string)

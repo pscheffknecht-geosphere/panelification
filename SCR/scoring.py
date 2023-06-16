@@ -163,7 +163,7 @@ def write_scores_to_csv(data_list, start_date, end_date, args, verification_subd
     # sim['fss'] = fss
     # sim['fss_ranks'] = fss
     import csv
-    name_part = '' if args.mode == 'None' else args.mode+'_'
+    name_part = '' # if args.mode == 'None' else args.mode+'_'
     csv_file = "../SCORES/"+args.name+"RR_"+name_part+"score_"+start_date.strftime("%Y%m%d_%HUTC_")+'{:02d}h_acc_'.format(args.duration)+verification_subdomain+'.csv'
     tmp_file = "../SCORES/"+args.name+"RR_"+name_part+"score_"+start_date.strftime("%Y%m%d_%HUTC_")+'{:02d}h_acc_'.format(args.duration)+verification_subdomain+'.tmp'
     score_table = []
