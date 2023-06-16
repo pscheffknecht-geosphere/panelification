@@ -328,6 +328,7 @@ subdomain_precip_thresholds = {
     'Untere_Donau':   { 'draw_avg' : 5., 'draw_max' : 100., 'score_avg' : 1., 'score_max' : 5. },
     'Hallein':        { 'draw_avg' : 5., 'draw_max' : 100., 'score_avg' : 1., 'score_max' : 5. },
     'Finland':        { 'draw_avg' : 5., 'draw_max' : 100., 'score_avg' : 1., 'score_max' : 5. },
+    'Default':        { 'draw_avg' : 5., 'draw_max' : 100., 'score_avg' : 1., 'score_max' : 5. },
     'Custom' :        { 'draw_avg' : 5., 'draw_max' : 100., 'score_avg' : 1., 'score_max' : 5. }
 }
 

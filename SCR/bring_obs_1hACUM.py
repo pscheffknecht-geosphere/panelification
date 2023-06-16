@@ -3,6 +3,9 @@ from shutil import copyfile
 import os
 from model_parameters import inca_ana_paths
 
+import logging
+logger = logging.getLogger(__name__)
+
 #------------------  INCA Variables -------------------------*/
 imin=20    # INCA grid western boundary index */
 imax=720    # INCA grid eastern boundary index */
@@ -15,16 +18,11 @@ def read(file):
     RR=np.zeros([NI*NJ])
     f=open(file,"r")
     i=0 
-    #print "Starting %i" %i_t_M
     for line in f:
         line = line.strip()
         columns = line.split()
         n_elements=np.size(columns)
-        #print n_elements
-        #print np.shape(columns)
-        #print np.shape(RR_nowc[i:i+n_elements,i_t_M])
         RR[i:i+n_elements]=columns
-        #print np.shape(RR[i:i+n_elements])
         i=i+n_elements
     f.close()
     RR=np.reshape(RR, [NJ,NI])
@@ -38,7 +36,7 @@ def bring(date, inca_file=None):
         file_OBS=DIR_OBS+date[:4]+'/'+date[4:6]+'/'+date[6:8]+'/INCA_RR-'+date[8:10]+'.asc.gz'
     else:
         file_OBS = inca_file
-    print("reading: {:s}".format(file_OBS))
+    logger.info("reading: {:s}".format(file_OBS))
 
     file_TMP=DIR_TMP+'INCA_OBS'+'%05d' %((np.random.rand(1)*10000).astype(int))+'.gz'
 

@@ -4,12 +4,15 @@ import pygrib
 import traceback
 from dcmdb.cases import Cases
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 def process_case_and_exp_selection(args):
     """ Process cases and experiments from command line arguments, format the selection for 
     DCMDB's Cases() class"""
     if len(args.cases) > 1:
-        print("Multiple Cases not supported :-(")
+        logger.critical("Multiple Cases not supported :-(")
         exit()
     if args.experiments == ["None"]:
         if len(args.cases) == 1:
@@ -77,7 +80,7 @@ def ecp_experiment_data(data_list):
     for epath, path in full_file_dict.items():
         if path:
             if not os.path.isfile(path):
-                print(f"Copying {epath}\n to -----> {path}")
+                logger.info(f"Copying {epath}\n to -----> {path}")
                 os.system(f"ecp {epath} {path}")
     return data_list
 
@@ -99,11 +102,11 @@ GRIB_shortNames = ["twatp", "tsnowp"]
 def get_fields(f, get_lonlat_data=False):
     first = True
     handle = check_fields(f)
-    print("Handle is:")
-    print(handle)
+    logger.debug("Handle is:")
+    logger.debug(handle)
     if "shortnames" in handle.keys():
         for sn in GRIB_shortNames:
-            print(f"reading {sn} from file")
+            logger.debug(f"reading {sn} from file")
             if first:
                 tmp_data = f.select(shortName=sn)[0]
             else:
@@ -122,9 +125,11 @@ def get_fields(f, get_lonlat_data=False):
 
 def read_data(data_list):
     for sim in data_list:
+        logging.info("Reading "+sim["end_scratch"])
         with pygrib.open(sim["end_scratch"]) as f:
             lon, lat, tmp_data = get_fields(f, get_lonlat_data=True)
         if sim["start_scratch"]:
+            logging.info("Reading "+sim["start_scratch"])
             with pygrib.open(sim["start_scratch"]) as f:
                 tmp_data -= get_fields(f)
         sim["precip_data"] = tmp_data
@@ -148,7 +153,7 @@ def get_sim_and_file_list(args):
         exp_init_date = dt.datetime.strptime(args.start, "%Y%m%d%H") - dt.timedelta(hours=exp_lead)
         # exp_end_date = start_date + dt.timedelta(hours=args.duration)
         case_selection = args.cases #process_case_and_exp_selection(args)
-        print(case_selection)
+        logger.info(case_selection)
         cases = Cases(selection=case_selection, printlev=0, path="dcmdb/cases")
         for exp_name in cases.cases.runs.keys():
             if exp_name in args.experiments:
@@ -174,7 +179,5 @@ def get_sim_and_file_list(args):
                         "end_file" : end_file_path}
                     data_list.append(sim)
     ecp_experiment_data(data_list)
-    print(data_list)
     read_data(data_list)
-    print(data_list)
     return data_list

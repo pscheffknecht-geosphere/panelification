@@ -4,6 +4,9 @@ import pyproj
 import datetime as dt
 from misc import loop_datetime
 
+import logging
+logger = logging.getLogger(__name__)
+
 # returns data field in units from ODIM HDF5
 # OPERA GRID
 #     LL_lat = 31.746215319325056
@@ -30,14 +33,6 @@ def OPERA_grid():
     Y=np.arange(NY)*2000.
     XX,YY=np.meshgrid(X,Y)
     lon_OPERA,lat_OPERA=myproj(XX,YY,inverse=True)
-    print("############################################################################")
-    print(lon_OPERA)
-    print(lon_OPERA.min())
-    print(lon_OPERA.max())
-    print(lat_OPERA)
-    print(lat_OPERA.min())
-    print(lat_OPERA.max())
-    print("############################################################################")
     return lon_OPERA,lat_OPERA
 
 
@@ -68,14 +63,14 @@ def read_OPERA(data_list, start_date, end_date, args):
     read_dt = dt.timedelta(minutes=60)
     for read_opera_date in loop_datetime(start_date + dt.timedelta(minutes=0), end_date, read_dt):
         opera_file_name = "../OBS/OPERA/ODC.LAM_{:s}_000100.h5".format(read_opera_date.strftime("%Y%m%d%H%M"))
-        print("reading OPERA for {:s} ".format(read_opera_date.strftime("%Y-%m-%d %H:%M")))
+        logger.info("reading OPERA for {:s} ".format(read_opera_date.strftime("%Y-%m-%d %H:%M")))
         data[idx, :, :] = read_from_hdf(opera_file_name)
         idx += 1
     lon, lat = OPERA_grid()
     tmp_precip = np.nansum(data, 0)
     tmp_precip = np.where(tmp_precip>2000., np.nan, tmp_precip)
     tmp_precip = np.flip(tmp_precip, 0)
-    print("OPERA max precip: {:f}".format(
+    logger.info("OPERA max precip: {:f}".format(
         np.nanmax(tmp_precip)))
     data_list.insert(0,{
         'conf' : 'OPERA',

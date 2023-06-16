@@ -5,6 +5,7 @@ from datetime import datetime
 from datetime import timedelta as dt
 from misc import loop_datetime, str2bool
 import argparse
+import logging
 from joblib import Parallel, delayed
 import numpy as np
 import os
@@ -12,7 +13,7 @@ from model_parameters import *
 import scoring
 import inca_functions as inca
 import read_opera as opera
-import obs_from_db as obs
+#import obs_from_db as obs
 import panel_plotter
 import data_io
 import data_from_dcmdb
@@ -28,12 +29,19 @@ global args, start_date, end_date
 start_date = datetime(2019,8,12,15,0,0)
 end_date = datetime(2019,8,12,18,0,0)
 
+def translate_logging_levels(lvlstr):
+    lvlstr = lvlstr.lower()
+    level = logging.INFO #default
+    if lvlstr == 'debug': level = logging.DEBUG
+    if lvlstr == 'warning': level = logging.WARNING
+    if lvlstr == 'error': level = logging.ERROR
+    return level
 
 def parse_arguments():
     global args
     parser = argparse.ArgumentParser(conflict_handler="resolve")
-    parser.add_argument('--parameter', '-p', type=str, default='precip',
-        help = 'parameter to verify/plot')
+    # parser.add_argument('--parameter', '-p', type=str, default='precip',
+    #     help = 'parameter to verify/plot')
     parser.add_argument('--precip_verif_dataset', type=str, default = 'INCA',
         help = """select precip data set:
             INCA ... INCA analysis over Austria
@@ -41,7 +49,7 @@ def parse_arguments():
     parser.add_argument('--region', type=str, default='Europe',
         help = 'select region for plot')
     parser.add_argument('--name', '-n', type=str, default='',
-        help = 'name of the panels, if desired')
+        help = 'name of the panels, if desired, will be used as prefix in the names of the saved files')
     parser.add_argument('--start', '-s', type=str, default=None,
         help = 'starting date as YYYYMMDDHH')
     parser.add_argument('--duration', '-d', type=int, default=1,
@@ -90,46 +98,53 @@ def parse_arguments():
         help = 'draw panels for all subdomains, no matter how much rain was observed')
     parser.add_argument('--clean', nargs='?', default=False, const=True, type=str2bool,
         help = 'do not draw/write verification metrics on the panels')
-    parser.add_argument('--mode', default='None', type=str,
-        help = """ Drawing mode:\n
-            'None' (default) ... Draw rain contours\n
-            'diff' ............. Draw interpolated rain field difference to INCA analysis\n
-            'resampled' ........ Draw model data interpolated to INCA grid for verification""")
-    parser.add_argument('--save', nargs='?', default=False, const=True, type=str2bool)
-    parser.add_argument('--save_full_fss', nargs='?', default=False, const=True, type=str2bool)
+    # parser.add_argument('--mode', default='None', type=str,
+    #     help = """ Drawing mode:\n
+    #         'None' (default) ... Draw rain contours\n
+    #         'diff' ............. Draw interpolated rain field difference to INCA analysis\n
+    #         'resampled' ........ Draw model data interpolated to INCA grid for verification""")
+    parser.add_argument('--save', nargs='?', default=False, const=True, type=str2bool,
+        help = 'save full fields to pickle files')
+    parser.add_argument('--save_full_fss', nargs='?', default=False, const=True, type=str2bool,
+        help = 'save full FSS, including numerator and denominator')
     parser.add_argument('--hidden', nargs='?', default=False, const=True, type=str2bool,
         help = 'clean panels, with names hidden and numbers used instead')
-    parser.add_argument('--time_series', nargs='?', default=False, const=True, type=str2bool,
-        help = 'add panel with domain-averaged precipitation values')
-    parser.add_argument('--fast', nargs='?', default=False, const=True, type=str2bool,
-        help = 'faster drawing using pcolormesh')
-    parser.add_argument('--intranet_update', nargs='?', default=False, const=True, type=str2bool,
-        help = 'update panels on the intranet website')
+    # parser.add_argument('--fast', nargs='?', default=False, const=True, type=str2bool,
+    #     help = 'faster drawing using pcolormesh')
+    parser.add_argument('--logfile', type=str, default=None, help='Name of logfile')
+    parser.add_argument('--loglevel', type=str, default='info',
+        help = """Logging level:
+          debug, info, warning, error""")
     args = parser.parse_args()
-    if not args.intranet_update:  # ignore these conditions if only updating intranet
-        if args.subdomains == "Custom" and args.lonlat_limits is None:
-            print("""The subdomain is set to "Custom", then its limits need to be set!
-                Use the command line argument:
-                  --lonlat_limits LonMin LonMax LatMin LatMax
+    if args.subdomains == "Custom" and args.lonlat_limits is None:
+        logging.critical("""The subdomain is set to "Custom", then its limits need to be set!
+            Use the command line argument:
+              --lonlat_limits LonMin LonMax LatMin LatMax
 
-                exiting...""")
-            exit(1)
-        if len(args.lead) > 2 and len(args.lead) != 2*len(args.configs):
-            print("""--lead must have one of the following:
-               1 value 
-                 maximum lead time before accumulation start period
-               2 values
-                 minimum and maximum lead time before accumulation start period
-               2*len(--config) values
-                 minimum and maximum lead time for each config
+            exiting...""")
+        exit(1)
+    if len(args.lead) > 2 and len(args.lead) != 2*len(args.configs):
+        logging.critical("""--lead must have one of the following:
+           1 value 
+             maximum lead time before accumulation start period
+           2 values
+             minimum and maximum lead time before accumulation start period
+           2*len(--config) values
+             minimum and maximum lead time for each config
 
-               exiting...""")
-            exit(1)
-        if len(args.name) > 0:
-            if args.name[-1] != '_':
-                args.name += '_' 
-        # hidden forces clean too:
-        args.clean = True if args.hidden else args.clean
+           exiting...""")
+        exit(1)
+    if len(args.name) > 0:
+        if args.name[-1] != '_':
+            args.name += '_' 
+    # hidden forces clean too:
+    args.clean = True if args.hidden else args.clean
+
+def init_logging(args):
+    if args.logfile:
+        logging.basicConfig(filename=args.logfile, level=translate_logging_levels(args.loglevel))
+    else:
+        logging.basicConfig(level=translate_logging_levels(args.loglevel))
 
 
 def get_lead_limits(args):
@@ -147,68 +162,63 @@ def get_lead_limits(args):
 
 
 def print_some_basics(start_date, end_date, min_lead, max_lead):
-    print("Checking precipitation for the {:d} hours from {:s} to {:s}.".format(
+    logging.info("Checking precipitation for the {:d} hours from {:s} to {:s}.".format(
         int((end_date - start_date).total_seconds()/3600),
         start_date.strftime("%Y-%m-%d %H UTC"),
         end_date.strftime("%Y-%m-%d %H UTC")))
     if type(max_lead) == int:
-        print("Limiting models to lead times between {:d} and {:d} hours before {:s}.".format(
+        logging.info("Limiting models to lead times between {:d} and {:d} hours before {:s}.".format(
             min_lead, max_lead, start_date.strftime("%Y-%m-%d %H UTC")))
     else:
         for mil, mal in zip(min_lead, max_lead):
-            print("Limiting models to lead times between {:d} and {:d} hours before {:s}.".format(
+            logging.info("Limiting models to lead times between {:d} and {:d} hours before {:s}.".format(
                 mil, mal, start_date.strftime("%Y-%m-%d %H UTC")))
 
 
-def print_min_max_avg(data_list):
-    for sim in data_list:
-        print("ORIGINAL:  {:s}: min={:.4f}, avg={:.4f}, max={:.4f}, sum={:.2f}".format(
-            sim['name'], sim['precip_data'].min(), sim['precip_data'].mean(), sim['precip_data'].max(), sim['precip_data'].sum()))
-        print("RESAMPLED: {:s}: min={:.4f}, avg={:.4f}, max={:.4f}".format(
-            sim['name'], sim['sim_param_resampled'].min(), sim['sim_param_resampled'].mean(), sim['sim_param_resampled'].max()))
-
 def main():
     parse_arguments()
+    init_logging(args)
     min_lead, max_lead = get_lead_limits(args)
     start_date = datetime.strptime(args.start, "%Y%m%d%H")
     end_date = start_date + dt(hours=args.duration)
     print_some_basics(start_date, end_date, min_lead, max_lead)
     # generate a list of available simulations and add data, observations and scores
-    print(dir(data_from_dcmdb))
     data_list = data_from_dcmdb.get_sim_and_file_list(args)
     # data_list = data_io.get_sims_and_file_list(start_date, end_date, min_lead, max_lead, simdf, args)
     #data_list = data_from_dcmdb.read_data(data_list, args)
-    if args.parameter in ['precip', 'sunshine']:
-        if args.precip_verif_dataset == "INCA":
-            data_list = inca.read_INCA(data_list, start_date, end_date, args)
-        else:
-            data_list = opera.read_OPERA(data_list, start_date, end_date, args)
-    elif args.parameter == 'hail':
-        data_list = obs.read_hail(data_list, start_date, end_date)
-    elif args.parameter == 'lightning':
-        data_list = obs.read_lightning(data_list, start_date, end_date)
+    # if args.parameter in ['precip', 'sunshine']:
+    if args.precip_verif_dataset == "INCA":
+        data_list = inca.read_INCA(data_list, start_date, end_date, args)
+    elif args.precip_verif_dataset == "OPERA":
+        data_list = opera.read_OPERA(data_list, start_date, end_date, args)
     else:
-        print("Parameter {:s} unknown, accepted parameters: precip, sunshine, hail, lightning".format(
-            args.parameter))
-        exit(1)
+        logging.critical("Unknown verification data set: {:s}, exiting...".format(
+            args.precip_verif_dataset))
+    # elif args.parameter == 'hail':
+    #     data_list = obs.read_hail(data_list, start_date, end_date)
+    # elif args.parameter == 'lightning':
+    #     data_list = obs.read_lightning(data_list, start_date, end_date)
+    # else:
+    #     logging.critical("Parameter {:s} unknown, accepted parameters: precip, sunshine, hail, lightning".format(
+    #         args.parameter))
+    #     exit(1)
     df_subdomain_details = scan_obs.get_interesting_subdomains(data_list[0], args)
     for _, dom in df_subdomain_details.iterrows():
         verification_subdomain = dom['name']
         if dom['score'] or dom['draw'] or args.save:
             data_list = inca.resample_data(data_list, verification_subdomain, args)
-            print_min_max_avg(data_list)
             data_list = Parallel(n_jobs=6,backend='threading')(delayed(scoring.calc_scores)(sim, args) for ii, sim in enumerate(data_list))
             data_list = scoring.rank_scores(data_list)
             data_list = scoring.total_fss_rankings(data_list)
         else:
-            print("Skipping "+dom['name']+", nothing is requested.")
+            logging.info("Skipping "+dom['name']+", nothing is requested.")
         if dom['score']:
             scoring.write_scores_to_csv(data_list, start_date, end_date, args, verification_subdomain)
         if dom['draw']:
             plot_start = datetime.now()
             panel_plotter.draw_panels(data_list, start_date, end_date, verification_subdomain, args, mode=args.mode)
             plot_duration = datetime.now() - plot_start
-            print("Plotting "+str(len(data_list))+"panels took "+str(plot_duration))
+            logging.info("Plotting "+str(len(data_list))+"panels took "+str(plot_duration))
         if args.save:
             data_io.save_data(data_list, verification_subdomain, start_date, end_date, args)
         if args.save_full_fss:

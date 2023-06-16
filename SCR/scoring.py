@@ -4,6 +4,8 @@ import pandas as pd
 import fss_functions
 import parameter_settings
 
+import logging
+logger = logging.getLogger(__name__)
 
 def rank_array(a,t):
     """
@@ -23,8 +25,6 @@ def rank_array(a,t):
 
     Ranks 3 and higher are valid ranks
     """
-    # print("Threshold is {:7.5f} Array to rank:".format(t))
-    # print(a)
     ranks = np.zeros(len(a))
     for ii in range(len(a)):
         # sort out missing vlaues (-> black)
@@ -42,8 +42,6 @@ def rank_array(a,t):
         if a.max() > -88.:
             idx = np.argmax(a)
             if a[idx] > -88.:
-                # deal with perfect ranks first (-> green)
-                # print("a[{}] is {}".format(idx, a[idx]))
                 if a[idx] == 1.:
                     ranks[idx] = 2.
                     jj += 1.
@@ -64,8 +62,6 @@ def rank_array(a,t):
                     a[idx] = -88.
         else:
             break
-    # for ii, rank in enumerate(ranks):
-        # print("{}: {} is ranked at {}".format(ii, b[ii], rank))
     return ranks
 
 
@@ -103,7 +99,7 @@ def rank_scores(data_list):
     CORRELATION ... highest is best
     """
     namelist = [d['name'] for d in data_list]
-    print("ranking")
+    logging.info("Ranking")
     for metric in ['mae', 'bias', 'rms', 'corr', 'd90']:
         rank=1
         rank_name='rank_'+metric
@@ -133,13 +129,10 @@ def rank_scores(data_list):
     for ii in range(fss.shape[1]):
         for jj in range(fss.shape[2]):
             fss_order[:,ii,jj] = rank_array(fss[:,ii,jj], sim['fssf_thresholds'][ii])
-    #print fss_order
     bogus_fss = np.empty((fss.shape[1],fss.shape[2]))
     bogus_fss[:,:] = -999
     sim['fss_ranks'] = bogus_fss
     data_list[0]['max_rank'] = np.max(fss_order)
-    #print("maximum rank is {}".format(np.max))
-    # print(len(data_list))
     for idx in range(1, fss.shape[0]+1):
         data_list[idx]['fss_ranks'] = fss_order[idx-1,:,:]
     return data_list
@@ -160,11 +153,8 @@ def fss_overall_values(fss_ranks):
 
 def total_fss_rankings(data_list):
     for sim in data_list[1::]:
-        # print(fss_overall_values(sim['fss_ranks']))
         sim['fss_total_abs_score'], sim['fss_total_rel_score'], sim['fss_success_rate_abs'], sim['fss_success_rate_rel'] = fss_overall_values(sim['fss_ranks'])
     data_list = rank_fss_all(data_list)
-    # for sim in data_list[1::]:
-    #     print(sim['fss_total_abs_score'], sim['rank_fss_total_abs_score'])
     return data_list
     
 
@@ -200,9 +190,6 @@ def write_scores_to_csv(data_list, start_date, end_date, args, verification_subd
             score_table2.append([
                 "{:.3f}".format(fss_total_abs_score), "{:.3f}".format(fss_success_rate_abs), "{:.3f}".format(fss_total_rel_score), "{:.3f}".format(fss_success_rate_rel)])
             row_labels.append(sim['name'])
-    # column -t -s , ../SCORES/RR_score_20170710_12UTC_06h_acc_Austria.csv > ../SCORES/tmp && mv ../SCORES/tmp ../SCORES/RR_score_20170710_12UTC_06h_acc_Austria.csv
-    #os.system("sleep 1")
-    # print("column -t -s , "+csv_file+" > "+tmp_file+" && mv "+tmp_file+" "+csv_file)
     os.system("column -t -s , "+csv_file+" > "+tmp_file+" && mv "+tmp_file+" "+csv_file)
     return score_table, score_table2, col_labels2, col_labels3, row_labels
 
@@ -214,7 +201,7 @@ def calc_scores(sim, args):
     INCA is perfect, so it gets assinged really bad values manually to exclude it from
     the ranking later on
     """
-    print('Calculating scores for '+sim['name'])
+    logger.info('Calculating scores for '+sim['name'])
     percs=[25, 50, 75, 90, 95]
     levels = parameter_settings.get_fss_thresholds(args)
     windows=[10,20,30,40,60,80,100,120,140,160,180,200]
@@ -290,20 +277,20 @@ def fss_d90(rrm, rro):
     rro_s = np.maximum(rro-rrm, 0)
     rrm_s = np.maximum(rrm-rro, 0)
     if np.sum(rrm) == 0:
-        print("No precipitation in model array, returning no d90!")
+        logger.warning("No precipitation in model array, returning no d90!")
         return np.nan
     overlap = float(np.sum(rro*rrm))/float(np.sum(rrm))
     arr = fss_functions.fss_strip(rro_s, rrm_s, windows, levels).values.flatten()
     for ii in range(1,len(arr)):
         if arr[ii] - arr[ii-1] < 0:
-            print("non-monotonous array in argument, returning no d90!")
+            logger.info("non-monotonous array in argument, returning no d90!")
             return 9999.
     # find where the array exceeds 0.5 and interpolate the window size (km equivalent)
     ii = 0
     while arr[ii] < 0.5:
         ii += 1
         if ii == len(arr)-1:
-            print("all elements of argument are <0.5, returning no d90!")
+            logger.info("all elements of argument are <0.5, returning no d90!")
             return 9999.
     t = (0.5-arr[ii-1])/(arr[ii]-arr[ii-1])
     d = windows[ii-1]+t*float(windows[ii]-windows[ii-1])

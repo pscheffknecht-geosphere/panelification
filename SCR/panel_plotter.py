@@ -22,6 +22,9 @@ import pickle
 import scipy.ndimage as ndimage
 from regions import Region
 
+import logging
+logging.getLogger(__name__)
+
 
 def add_borders(axis):
     borders = cfeature.NaturalEarthFeature(
@@ -32,20 +35,20 @@ def add_borders(axis):
 
 
 def add_scores(ax, sim, rank_colors):
-    ax.text(0., 0.95, "BIAS: {:.3f} ({})".format(sim['bias_real'], sim['rank_bias']), va='top', ha='left',
+    ax.text(0.1, 0.9, "BIAS: {:.3f} ({})".format(sim['bias_real'], sim['rank_bias']), va='top', ha='left',
             rotation='horizontal', rotation_mode='anchor',
             transform=ax.transAxes,size='medium', backgroundcolor=rank_colors[sim['rank_bias']])
-    ax.text(0., 0.8, "MAE: {:.3f} ({})".format(sim['mae'], sim['rank_mae']), va='top', ha='left',
+    ax.text(0.1, 0.75, "MAE: {:.3f} ({})".format(sim['mae'], sim['rank_mae']), va='top', ha='left',
             rotation='horizontal', rotation_mode='anchor',
             transform=ax.transAxes,size='medium', backgroundcolor=rank_colors[sim['rank_mae']])
-    ax.text(0., 0.65, "RMSE: {:.3f} ({})".format(sim['rms'], sim['rank_rms']), va='top', ha='left',
+    ax.text(0.1, 0.60, "RMSE: {:.3f} ({})".format(sim['rms'], sim['rank_rms']), va='top', ha='left',
             rotation='horizontal', rotation_mode='anchor',
             transform=ax.transAxes,size='medium', backgroundcolor=rank_colors[sim['rank_rms']])
-    ax.text(0., 0.5, "R$_{{pearson}}$: {:.3f} ({})".format(sim['corr'], sim['rank_corr']), va='top', ha='left',
+    ax.text(0.1, 0.45, "R$_{{pearson}}$: {:.3f} ({})".format(sim['corr'], sim['rank_corr']), va='top', ha='left',
             rotation='horizontal', rotation_mode='anchor',
             transform=ax.transAxes,size='medium', backgroundcolor=rank_colors[sim['rank_corr']])
     if sim['d90'] < 9999.:
-        ax.text(0., 0.35, "D$_{{90}}$: {:.1f} km ({})".format(sim['d90'], sim['rank_d90']), va='top', ha='left',
+        ax.text(0.1, 0.30, "D$_{{90}}$: {:.1f} km ({})".format(sim['d90'], sim['rank_d90']), va='top', ha='left',
                 rotation='horizontal', rotation_mode='anchor',
                 transform=ax.transAxes,size='medium', backgroundcolor=rank_colors[sim['rank_d90']])
     # ax.text(1.00, 1.03, "AVG Rank: {:.2f} ({})".format(sim['average_rank'], sim['rank_average_rank']), va='top', ha='right',
@@ -67,14 +70,12 @@ def make_fss_rank_plot_axes(little_ax, args):
     ylabels = [yticks[i] if t not in ydict.keys() else ydict[t] for i,t in enumerate(yticks)]
     little_ax.set_xticklabels(xlabels, rotation='vertical')
     little_ax.set_yticklabels(ylabels)
-    little_ax.tick_params(axis='both', which='major', labelsize=5)
+    # little_ax.tick_params(axis='both', which='major', labelsize=5)
     return little_ax
 
 def add_fss_rank_plot(ax, sim, rank_vmax, jj, args):
     fss_rank_cols = ['white']*rank_vmax
-    # print("max rank is {} and color table has {} colors".format(data_list[0]['max_rank'], len(fss_rank_cols)))
     fss_rank_cols[0:5] = ['black', 'red', 'limegreen', 'gold', 'silver', 'darkorange']
-    # print fss_rank_cols
     fss_cmap = mplcolors.ListedColormap(fss_rank_cols)
     # add rank diagram for FSS
     extent = (0, sim['fss_ranks'].shape[1], sim['fss_ranks'].shape[0], 0)
@@ -105,16 +106,16 @@ def draw_solo_colorbar(levels, cmap, norm, tmp_string, args):
 
 
 def arrange_subplots(r):
-    total_height = 4.75
-    total_width = 2. + 4. / r + 0.75
-    map_bottom = 0.25 / total_height
-    map_left = 2.25 / total_width
+    total_height = 4.80
+    total_width = 2. + 4. / r + 0.80
+    map_bottom = 0.40 / total_height
+    map_left = 2.40 / total_width
     map_height = 4. / total_height
     map_width = 4. / r / total_width
-    small_left = 0.25 / total_width
+    small_left = 0.40 / total_width
     small_width = 2. / total_width
     small_height = 2. / total_height
-    score_bottom = 2.5 / total_height
+    score_bottom = 2.4 / total_height
     fss_bottom = map_bottom
     map_coords = [map_left, map_bottom, map_width, map_height]
     score_coords = [small_left, score_bottom, small_width, small_height]
@@ -122,13 +123,15 @@ def arrange_subplots(r):
     return total_width, total_height, map_coords, score_coords, fss_coords
 
 def draw_single_figure(sim, obs, region, r, jj, levels, cmap, norm, mode, verification_subdomain, rank_colors, max_rank, args, tmp_string):
-    print("Plotting "+sim['name'])
+    logger.info("Plotting "+sim['name'])
     total_width, total_height, map_coords, score_coords, fss_coords = arrange_subplots(r)
     fig = plt.figure(dpi=150, figsize=(total_width, total_height))
     ax = fig.add_axes(map_coords, projection=region.plot_projection)
     ax_scores = fig.add_axes(score_coords)
     ax_scores.axis('off')
     ax_fss = fig.add_axes(fss_coords)
+    if jj == 0:
+        ax_fss.axis('off')
     #fig, ax = plt.subplots(1,1, figsize=(6.4, 4.0), dpi=120, subplot_kw={'projection': region.plot_projection})
     precip_data, lon, lat = prep_plot_data(sim, obs, mode)
     precip_data = np.where(precip_data == np.nan, 0., precip_data)
@@ -176,7 +179,9 @@ def draw_single_figure(sim, obs, region, r, jj, levels, cmap, norm, mode, verifi
     if jj > 0 and not args.clean:
         little_ax = add_fss_rank_plot(ax_fss, sim, max_rank, jj, args)
         ax_scores = add_scores(ax_scores, sim, rank_colors)
-    plt.tight_layout()
+    gl = ax.gridlines(crs=region.data_projection, draw_labels=False, dms=True, x_inline=False, y_inline=False)
+    gl.left_labels=False
+    gl.top_labels=False
     plt.savefig('../TMP/'+tmp_string+'/'+str(jj).zfill(3)+".png")
     plt.close('all')
     if sim['conf'] == 'INCA' or sim['conf'] == 'OPERA':
@@ -192,15 +197,15 @@ def define_panel_and_plot_dimensions(data_list, region):
     lins = int(np.floor(np.sqrt(float(len(data_list)))))
     if cols*lins < len(data_list):
         lins = lins + 1
-    print("PLOT ASPECT: {:.2f}".format(r))
+    logger.debug("PLOT ASPECT: {:.2f}".format(r))
     return r, cols, lins
 
 
 def draw_panels(data_list,start_date, end_date, verification_subdomain, args, mode='None'):
     region = Region(region_name=args.region)
-    print(region.extent)
+    logger.debug(region.extent)
     r, cols, lins = define_panel_and_plot_dimensions(data_list, region)
-    print("generating a panel plot with {} lines and {} columns".format(lins, cols))
+    logger.info("generating a panel plot with {} lines and {} columns".format(lins, cols))
     levels, cmap, norm = parameter_settings.get_cmap_and_levels(mode, args)
     # levels, cmap, norm = get_cmap_and_levels(mode, args)
     # check which mode is being used an adjust levels and color map
@@ -213,14 +218,14 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args, mo
     tmp_string = dt.datetime.now().strftime("%Y%m%d%H%M%S")+str(np.random.randint(1000000000)).zfill(9)
     # generate figure and axes objects for loop and go
     os.system('mkdir ../TMP/'+tmp_string)
-    print('mkdir ../TMP/'+tmp_string)
+    logger.debug('mkdir ../TMP/'+tmp_string)
     for jj, sim in enumerate(data_list):
         pickle.dump([sim, data_list[0], region, r, jj, levels, cmap,
             norm, mode, verification_subdomain, rank_colors, data_list[0]['max_rank'], args, tmp_string], 
             open('../TMP/'+tmp_string+'/'+str(jj).zfill(3)+".p", 'wb'))
     cmd_list = ['python panel_plotter.py -p '+pickle_file for pickle_file in glob.glob('../TMP/'+tmp_string+'/???.p')]
     Parallel(n_jobs=6)(delayed(os.system)(cmd) for cmd in cmd_list)
-    print('montage ../TMP/{:s}/???.png -geometry +0+0 -tile {:d}x{:d} -title {:s} ../TMP/{:s}/999.png'.format(
+    logger.debug('montage ../TMP/{:s}/???.png -geometry +0+0 -tile {:d}x{:d} -title {:s} ../TMP/{:s}/999.png'.format(
         tmp_string, lins, cols, suptit, tmp_string))
     os.system('montage ../TMP/{:s}/???.png -geometry +0+0 -tile {:d}x{:d} -title {:s} ../TMP/{:s}/999.png'.format(
         tmp_string, lins, cols, suptit, tmp_string))
