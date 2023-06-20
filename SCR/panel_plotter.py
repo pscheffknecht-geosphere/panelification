@@ -35,6 +35,10 @@ def add_borders(axis):
 
 
 def add_scores(ax, sim, rank_colors):
+    """Adds text to a subplot axis that prints the scores
+    ax ......... axis object from plt.subplots
+    sim ........ dictionary for the corresponding model
+    color ...... list of colors for each rank"""
     ax.text(0.1, 0.9, "BIAS: {:.3f} ({})".format(sim['bias_real'], sim['rank_bias']), va='top', ha='left',
             rotation='horizontal', rotation_mode='anchor',
             transform=ax.transAxes,size='medium', backgroundcolor=rank_colors[sim['rank_bias']])
@@ -59,6 +63,9 @@ def add_scores(ax, sim, rank_colors):
 
 
 def make_fss_rank_plot_axes(little_ax, args):
+    """ Add tick labels to the FFS rank plot
+    little_ax ...... axes object from pyplot.subplots
+    args ........... parsed command line arguments"""
     all_ticks = parameter_settings.get_axes_for_fss_rank_plot(args)
     xticks = all_ticks['xticks']
     yticks = all_ticks['yticks']
@@ -74,6 +81,13 @@ def make_fss_rank_plot_axes(little_ax, args):
     return little_ax
 
 def add_fss_rank_plot(ax, sim, rank_vmax, jj, args):
+    """ Generate the FSS rank plot
+    ax .......... axes object from pyplot.subplots
+    sim ......... dictionary for the correspondign model
+    rank_vmax ... maximum rank (corresponds to the number of simulations that
+                  are being compared
+    jj .......... integer, plot index within the panel
+    args ........ command line arguments"""
     fss_rank_cols = ['white']*rank_vmax
     fss_rank_cols[0:5] = ['black', 'red', 'limegreen', 'gold', 'silver', 'darkorange']
     fss_cmap = mplcolors.ListedColormap(fss_rank_cols)
@@ -84,6 +98,10 @@ def add_fss_rank_plot(ax, sim, rank_vmax, jj, args):
     ax = make_fss_rank_plot_axes(ax, args)
 
 def prep_plot_data(sim, obs, mode):
+    """ Select the correct data for plotting
+    sim ........ dictionary for the model
+    obs ........ dictionary for the observations
+    mode ....... string, select whether to plot original or resampled fields"""
     if mode == 'None':
         precip_data = sim['precip_data']
         lon = sim['lon']
@@ -96,6 +114,12 @@ def prep_plot_data(sim, obs, mode):
 
 
 def draw_solo_colorbar(levels, cmap, norm, tmp_string, args):
+    """ Draw a colorbar to be used for the panel
+    levels ......... np.array with cntour levels
+    cmap ........... matplotlib colormap
+    norm ........... matplotlib norm for use of non-linear contours
+    tmp_string ..... temporary path
+    args ........... command line arguments"""
     fig = plt.figure(figsize=(17,1), dpi=120)
     ax = fig.add_axes([0.1,0.8,0.8,0.1])
     cb = mpl.colorbar.ColorbarBase(ax, cmap=cmap, norm=norm, 
@@ -106,6 +130,14 @@ def draw_solo_colorbar(levels, cmap, norm, tmp_string, args):
 
 
 def arrange_subplots(r, clean=False):
+    """ Calculate size and position of the subplots and the panel
+    for a single simulation using the aspect ratio of the map
+    that is being drawn. Height of the figure is constant, width and height
+    of the two smaller panels (scores, FSS) is also constant, total width
+    is adjusted depending on the aspect ratio of the map.
+    r .......... float, aspect ratio of the map plot
+    clean ...... boolean, omit the smaller panels if no scores are desired
+    Returns: 4 lists with the positions and sizes of the subplots"""
     total_height = 4.80
     if clean:
         total_width = 4. / r + 0.80
@@ -127,6 +159,23 @@ def arrange_subplots(r, clean=False):
     return total_width, total_height, map_coords, score_coords, fss_coords
 
 def draw_single_figure(sim, obs, region, r, jj, levels, cmap, norm, mode, verification_subdomain, rank_colors, max_rank, args, tmp_string):
+    """ Draw a panel plot with the contours of precipitation, scores, and FSS ranks
+    sim ......... dictionary .. model data
+    obs ......... dictionary .. obs data
+    r ........... float ....... aspect ratio of the map in the largest panel
+    jj .......... integer ..... index of the subplot within the panel
+    levels ...... np.array .... contour levels
+    cmap ........ mpl cmape ... color map
+    norm ........ mpl norm .... for irregular conour levels
+    mode ........ string ...... mode (draw original or resampled fields
+    verification_subdomain .... (str) subdomain for verif, used to draw rectangle
+    rank_colors . list ........ list of colors to be used in the FSS rank plto
+    max_rank .... int ......... highest rank that occurs
+    args ...................... command line arguments
+    tmp_string .. string ...... temperary path string
+
+    Draws a plt.subplot with 3 panels (scores, FSS, map) with constant height and saves it
+    into ../TMP/tmp_string/*.png for later use"""
     logger.info("Plotting "+sim['name'])
     total_width, total_height, map_coords, score_coords, fss_coords = arrange_subplots(r, clean=args.clean)
     fig = plt.figure(dpi=150, figsize=(total_width, total_height))
@@ -196,6 +245,13 @@ def draw_single_figure(sim, obs, region, r, jj, levels, cmap, norm, mode, verifi
 
 
 def define_panel_and_plot_dimensions(data_list, region):
+    """ Make a dummy map to obtain the aspect ratio, calculate lines
+    and columns. This happens in the same function to make use of
+    the aspect ratio when determining the cols/lins (not implemented
+    yet)
+    data_list ...... list of all model data
+    region ......... instance of Region class, contains info on the map
+                     that is being drawn"""
     ax = plt.axes(projection=region.plot_projection)
     ax.set_extent(region.extent)
     r = ax.get_data_ratio()
@@ -209,6 +265,16 @@ def define_panel_and_plot_dimensions(data_list, region):
 
 
 def draw_panels(data_list,start_date, end_date, verification_subdomain, args, mode='None'):
+    """ Draw all data onto panels. This function separates the data into pickle files,
+    one for each model, then uses the command line to call this modul as __main__, thsi will
+    execote draw_sing_figure() and allows it to run in parallel. Matplotlib is not thread safe
+    so normal parallelization will not work.
+    data_list ........ list with all dictionaries holding the model and obs data
+    start_date ....... start_date of the period
+    end_date ......... end_date of the period
+    verification_subdomain ... info on verificatino subdoamin, used for rectangle
+    args ............. command line arguments
+    mode ............. string, resampled or original data to be drawn"""
     region = Region(region_name=args.region)
     logger.debug(region.extent)
     r, cols, lins = define_panel_and_plot_dimensions(data_list, region)
@@ -222,26 +288,35 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args, mo
     suptit = "'"+parameter_settings.title_part[args.parameter] + " from "+start_date.strftime("%Y%m%d %H")+" to "+end_date.strftime("%Y%m%d %H UTC")+"'"
     name_part = '' #if args.mode == 'None' else args.mode+'_'
     outfilename = "../PLOTS/"+args.name+"_"+args.parameter+"_"+name_part+"panel_"+start_date.strftime("%Y%m%d_%HUTC_")+'{:02d}h_acc_'.format(args.duration)+verification_subdomain+'.png' #+args.output_format
+    # generate a random subdirectory within TMP to avoid collisions if multiple instances of panelification are
+    # run at the same time
     tmp_string = dt.datetime.now().strftime("%Y%m%d%H%M%S")+str(np.random.randint(1000000000)).zfill(9)
     # generate figure and axes objects for loop and go
     os.system('mkdir ../TMP/'+tmp_string)
     logger.debug('mkdir ../TMP/'+tmp_string)
+    # dump data for each model into a single pickle file
     for jj, sim in enumerate(data_list):
         pickle.dump([sim, data_list[0], region, r, jj, levels, cmap,
             norm, mode, verification_subdomain, rank_colors, data_list[0]['max_rank'], args, tmp_string], 
             open('../TMP/'+tmp_string+'/'+str(jj).zfill(3)+".p", 'wb'))
+    # generate a list of commands, one for each model, these will call panel_plotter.py to draw a single model
     cmd_list = ['python panel_plotter.py -p '+pickle_file for pickle_file in glob.glob('../TMP/'+tmp_string+'/???.p')]
+    # execute the commands in parallel
     Parallel(n_jobs=6)(delayed(os.system)(cmd) for cmd in cmd_list)
     logger.debug('montage ../TMP/{:s}/???.png -geometry +0+0 -tile {:d}x{:d} -title {:s} ../TMP/{:s}/999.png'.format(
         tmp_string, lins, cols, suptit, tmp_string))
+    # use the individual panels and combine them into one large plot using imagemagick
     os.system('montage ../TMP/{:s}/???.png -geometry +0+0 -tile {:d}x{:d} -title {:s} ../TMP/{:s}/999.png'.format(
         tmp_string, lins, cols, suptit, tmp_string))
+    # add the color bar using imagemagick
     os.system('convert ../TMP/'+tmp_string+'/999.png ../TMP/'+tmp_string+'/cbar.png -gravity center -append '+outfilename)
     # os.system('rm ../TMP/'+tmp_string+'/???.p ../TMP/'+tmp_string+'/*.png')
+    # clear temporary data directory
     os.system('rm -R ../TMP/'+tmp_string)
 
 
 def main():
+    """ used when called directly, this will draw a single model from a given pickle file"""
     parser = argparse.ArgumentParser()
     parser.add_argument("--pickle_file", "-p", type=str, default='None')
     args = parser.parse_args()

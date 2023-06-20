@@ -5,6 +5,12 @@ import numpy as np
 from matplotlib.colors import BoundaryNorm as bnorm
 import matplotlib.colors as mplcolors
 
+""" MOSTLY LOCAL GEOSPHERE SETTINGS 
+
+Users may add their own subdomains for verification.
+See documentation for details. This will be cleaned up in
+a future version."""
+
 model_archive_paths = {
     'precip': {
         'arome' : "/lus/h2resw01/scratch/kmek/panelification/MODEL/arome/{:s}/AROMEaut+00{:02d}.grb",

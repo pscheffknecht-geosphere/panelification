@@ -1,6 +1,12 @@
 # DEFINE REGIONS FOR PLOTTING
 import cartopy.crs as ccrs
 
+# ADD YOUR REGION HERE
+# example:
+# "My Country": {
+#     "central_longitude": float: center of projection,
+#     "central_latitude": float, center of projection,
+#     "extent": floats [lon_min, lon_max, lat_min, lat_max]
 regions = {
     "Europe": {
         "central_longitude": 15.,

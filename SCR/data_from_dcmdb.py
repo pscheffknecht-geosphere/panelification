@@ -23,7 +23,7 @@ def process_case_and_exp_selection(args):
 
 
 def get_ft(fts):
-    # takes a list of file templates (strings) and looks for commonly used naming conventions for grib output
+    """ takes a list of file templates (strings) and looks for commonly used naming conventions for grib output """
     for ft in fts:
         if "grb" in ft or "grib" in ft and not "sfx" in ft:
             return(ft)

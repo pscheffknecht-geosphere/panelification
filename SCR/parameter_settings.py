@@ -4,14 +4,23 @@ import matplotlib.cm as cm
 import matplotlib.colors as mplcolors
 #import more_color_maps
 
+""" THIS FILE CONTAINS A RANGE OF OPTIONS FOR THE PLOTS
 
+For each parameter, this file contains the color maps, contour
+levels, titles, and other settings. This is partly cosmectic
+and partly necessary for the correct function of Panelification.
 
+MODIFY AT YOUR OWN RISK!!!
+"""
+
+# string for use in the title of the entire panel
 title_part = {
     'precip': 'Acc. Precip. [mm]',
     'sunshine': 'Acc. Sunshine Duration [h]',
     'lightning': 'lightning strikes [km$^{-2}$]',
     'hail': 'Hail [??]'
 }
+# label for the color bar
 colorbar_label = {
     'precip': 'accumulated precipitation [mm]',
     'sunshine': 'sunshine duration [h]',
@@ -19,7 +28,7 @@ colorbar_label = {
     'hail': 'hail [??]'
 }
 
-
+# thresholds for the calculation of the FSS depending on the parameter
 def get_fss_thresholds(args):
     thresholds_for_fss = {
         'precip' : [0.1,1.,5.,10.,25.,35.,50.,75.,100., 99999.],
@@ -30,7 +39,7 @@ def get_fss_thresholds(args):
     }
     return thresholds_for_fss[args.parameter]
 
-
+# customize the tick labels for each parameter
 def make_fss_axis_sunshine(args):
     ydict = {}
     for idx, val in enumerate(get_fss_thresholds(args)[:-1]):
@@ -85,7 +94,7 @@ def get_axes_for_fss_rank_plot(args):
     }
     return ax_ticks[args.parameter]
         
-
+# RGB tuples for custom color maps
 warn_colors = [
     (255, 255, 255),  
     (255, 255, 212), 
@@ -183,7 +192,9 @@ def precip_cmap_and_levels(mode, args):
         norm = bnorm(levels,ncolors=cm.get_cmap(cmap).N)
     return levels, cmap, norm
 
-
+# function to decide which function to call for each param
+# dirty and primitive but it works, but a good candidate
+# for refactoring
 def get_cmap_and_levels(mode, args):
     if args.parameter == 'precip':
         return precip_cmap_and_levels(mode, args)
