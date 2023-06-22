@@ -54,7 +54,7 @@ verification_subdomains = {
 
 # use this value for all domains, specify other values if desired
 subdomain_precip_thresholds = {
-    'Default':        { 'draw_avg' : 5., 'draw_max' : 100., 'score_avg' : 1., 'score_max' : 5. }
+    'Default':        { 'draw_avg' : 2., 'draw_max' : 25., 'score_avg' : 1., 'score_max' : 5. }
 }
 
 default_subdomains = ["Austria", "Styria"]
