@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 import os
 import pandas as pd
 import fss_functions
@@ -7,7 +8,27 @@ import parameter_settings
 import logging
 logger = logging.getLogger(__name__)
 
-def rank_array(a,t):
+def array_minus_avg(a, t):
+    """
+    calculate the average value of an array and subtract it from all
+    elements, ignore and keep NaNs, respect fss skill/use thresholds
+    a ....... 1d array containing all fss values for one window/threshold
+    t ....... float, skillful/useful threshold for the FSS derived from OBS
+
+    Returns:
+    np.array (1D) with
+    10. ......................... if a was a NaN
+    -10. ........................ if a was below useful
+    original value - AVG  ....... otherwise
+    """
+    a_filtered = np.where(a > t, a, np.nan)
+    avg_filtered = np.nanmean(a_filtered)
+    a_normed = a - avg_filtered
+    a_normed = np.where(a < t, -10., a_normed)
+    a_normed = np.where(np.isnan(a), 10., a_normed)
+    return a_normed
+
+def rank_array(a_in,t):
     """
     dirty and cumbersome ranking funktion for a 1d numpy array
 
@@ -21,10 +42,11 @@ def rank_array(a,t):
        - Rank 5 ..... bronze
        - Rank 6+ .... white
     5. equal values get the same rank
-    6. if N values are equal, the next N-1 tanks are skipped
+    6. if N values are equal, the next N-1 ranks are skipped
 
     Ranks 3 and higher are valid ranks
     """
+    a = copy.copy(a_in)
     ranks = np.zeros(len(a))
     for ii in range(len(a)):
         # sort out missing vlaues (-> black)
@@ -126,15 +148,18 @@ def rank_scores(data_list):
         fss_list.append(np.asarray(sim['fssf'].values, dtype=float))
     fss = np.asarray(fss_list, dtype=float)
     fss_order = np.zeros(fss.shape, dtype = int)
+    fss_rel = np.zeros(fss.shape, dtype = float) 
     for ii in range(fss.shape[1]):
         for jj in range(fss.shape[2]):
             fss_order[:,ii,jj] = rank_array(fss[:,ii,jj], sim['fssf_thresholds'][ii])
+            fss_rel[:,ii,jj] = array_minus_avg(fss[:,ii,jj], sim['fssf_thresholds'][ii])
     bogus_fss = np.empty((fss.shape[1],fss.shape[2]))
     bogus_fss[:,:] = -999
     sim['fss_ranks'] = bogus_fss
     data_list[0]['max_rank'] = np.max(fss_order)
     for idx in range(1, fss.shape[0]+1):
         data_list[idx]['fss_ranks'] = fss_order[idx-1,:,:]
+        data_list[idx]['fss_rel'] = fss_rel[idx-1,:,:]
     return data_list
 
 

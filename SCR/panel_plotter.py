@@ -6,6 +6,7 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import matplotlib as mpl
 from matplotlib.colors import BoundaryNorm as bnorm
+from matplotlib.colors import Colormap
 import matplotlib.colors as mplcolors
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
@@ -62,27 +63,29 @@ def add_scores(ax, sim, rank_colors):
     return ax
 
 
-def make_fss_rank_plot_axes(little_ax, args):
+def make_fss_rank_plot_axes(ax, args):
     """ Add tick labels to the FFS rank plot
-    little_ax ...... axes object from pyplot.subplots
+    ax ............. axes object from pyplot.add_axes
     args ........... parsed command line arguments"""
     all_ticks = parameter_settings.get_axes_for_fss_rank_plot(args)
     xticks = all_ticks['xticks']
     yticks = all_ticks['yticks']
-    little_ax.set_xticks(xticks)
-    little_ax.set_yticks(yticks)
+    ax.set_xticks(xticks)
+    ax.set_yticks(yticks)
     xdict = all_ticks['xdict']
     ydict = all_ticks['ydict']
     xlabels = [xticks[i] if t not in xdict.keys() else xdict[t] for i,t in enumerate(xticks)]
     ylabels = [yticks[i] if t not in ydict.keys() else ydict[t] for i,t in enumerate(yticks)]
-    little_ax.set_xticklabels(xlabels, rotation='vertical')
-    little_ax.set_yticklabels(ylabels)
-    # little_ax.tick_params(axis='both', which='major', labelsize=5)
-    return little_ax
+    # use ha and va to place labels between tickmarks
+    ax.set_xticklabels(xlabels, rotation='vertical', ha='left')
+    ax.set_yticklabels(ylabels, va='top')
+    # ax.tick_params(axis='both', which='major', labelsize=5)
+    # return ax
 
-def add_fss_rank_plot(ax, sim, rank_vmax, jj, args):
+
+def add_fss_plot(ax, sim, rank_vmax, jj, args):
     """ Generate the FSS rank plot
-    ax .......... axes object from pyplot.subplots
+    ax .......... axes object from pyplot.add_axes
     sim ......... dictionary for the correspondign model
     rank_vmax ... maximum rank (corresponds to the number of simulations that
                   are being compared
@@ -93,7 +96,14 @@ def add_fss_rank_plot(ax, sim, rank_vmax, jj, args):
     fss_cmap = mplcolors.ListedColormap(fss_rank_cols)
     # add rank diagram for FSS
     extent = (0, sim['fss_ranks'].shape[1], sim['fss_ranks'].shape[0], 0)
-    ax.imshow(sim['fss_ranks'], cmap = fss_cmap, extent=extent, vmin = 0., vmax=rank_vmax)
+    if args.fss_mode == "ranks":
+        ax.imshow(sim['fss_ranks'], cmap = fss_cmap, extent=extent, vmin = 0., vmax=rank_vmax)
+    elif args.fss_mode == "relative":
+        low_mask = np.where(sim['fss_rel'] < -5., 0., np.nan)
+        high_mask = np.where(sim['fss_rel'] > 5., 0., np.nan)
+        ax.imshow(sim['fss_rel'], cmap = "RdYlBu", vmin = -0.05, vmax=0.05, extent=extent)
+        ax.imshow(low_mask, cmap="Greys", vmin=-0.3, vmax=1., extent=extent)
+        ax.imshow(high_mask, cmap="Greys", vmin=-1., vmax=0., extent=extent)
     ax.grid(color='w', linewidth=0.5)
     ax = make_fss_rank_plot_axes(ax, args)
 
@@ -120,9 +130,18 @@ def draw_solo_colorbar(levels, cmap, norm, tmp_string, args):
     norm ........... matplotlib norm for use of non-linear contours
     tmp_string ..... temporary path
     args ........... command line arguments"""
-    fig = plt.figure(figsize=(17,1), dpi=120)
-    ax = fig.add_axes([0.1,0.8,0.8,0.1])
-    cb = mpl.colorbar.ColorbarBase(ax, cmap=cmap, norm=norm, 
+    fig = plt.figure(figsize=(12, 0.9), dpi=150)
+    if args.fss_mode == "relative":
+        ax_rr = fig.add_axes([0.325,0.8,0.650,0.1])
+        ax_rel = fig.add_axes([0.025,0.8,0.275,0.1])
+        rel_norm = bnorm(np.arange(-0.05, 0.0501, 0.0025), ncolors=mpl.cm.get_cmap('RdYlBu').N)
+        ticks = np.arange(-0.05, 0.0501, 0.025)
+        cb_rel = mpl.colorbar.ColorbarBase(ax_rel, cmap="RdYlBu", ticks=ticks,
+            orientation='horizontal', extend='both', norm=rel_norm)
+        cb_rel.set_label("Deviation from mean useful FSS value")
+    else:
+        ax_rr = fig.add_axes([0.1,0.8,0.8,0.1])
+    cb = mpl.colorbar.ColorbarBase(ax_rr, cmap=cmap, norm=norm, 
         orientation='horizontal', ticks=levels, extend='max')
     cb.cmap.set_over('orange')
     cb.set_label(parameter_settings.colorbar_label[args.parameter])
@@ -233,8 +252,8 @@ def draw_single_figure(sim, obs, region, r, jj, levels, cmap, norm, mode, verifi
         transform=ax.transAxes,size='large',
         bbox=dict(boxstyle='round', fc=panel_title_fc, ec='black', pad=0.2))
     if jj > 0 and not args.clean:
-        little_ax = add_fss_rank_plot(ax_fss, sim, max_rank, jj, args)
-        ax_scores = add_scores(ax_scores, sim, rank_colors)
+        add_fss_plot(ax_fss, sim, max_rank, jj, args)
+        add_scores(ax_scores, sim, rank_colors)
     gl = ax.gridlines(crs=region.data_projection, draw_labels=False, dms=True, x_inline=False, y_inline=False)
     gl.left_labels=False
     gl.top_labels=False

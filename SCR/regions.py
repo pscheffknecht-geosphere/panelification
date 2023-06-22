@@ -12,14 +12,15 @@ regions = {
     "Europe": {
         "central_longitude": 15.,
         "central_latitude": 45.,
-        "extent": [-10., 40., 35., 70.]},
+        "extent": [-10., 40., 35., 70.],
         "verification_subdomains": {
             "Default": [-5, 35., 35., 65.]
         }
+    },
     "Austria": {
         "central_longitude": 15.,
         "central_latitude": 48.3,
-        "extent": [9., 17.5, 45.5, 51.]},
+        "extent": [9., 17.5, 45.5, 51.],
         "verification_subdomains": {
             "Default": [9.33, 17.33, 46.2, 49.2],
             "Vienna" : [16., 16.66, 48., 48.4],
@@ -36,15 +37,17 @@ regions = {
             "Nockberge" : [13.85, 14.51, 46.75, 47,21],
             "Kitzbuehel" : [12.10, 12.76, 47.24, 47.70],
         }
+    },
     # for the Finland 2017 case, south of Finland only
     "Finland": {
         "central_longitude": 24.5,
         "central_latitude" : 61.,
-        "extent": [20.0, 30.0, 58.50, 62.0]},
+        "extent": [20.0, 30.0, 58.50, 62.0],
         "verification_subdomains": {
             "Default": [23.0, 28.0, 59.00, 61.50]
         }
     }
+}
 
 class Region():
     def __init__(self, region_name="Europe"):
@@ -52,6 +55,7 @@ class Region():
         self.data_projection = ccrs.PlateCarree()
         self.plot_rojection = None
         self.set_projection(region_name)
+        print(regions[region_name])
         self.verification_subdomains = regions[region_name]['verification_subdomains']
 
     def set_projection(self, region_name="Europe"):

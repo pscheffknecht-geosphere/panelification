@@ -104,6 +104,7 @@ def parse_arguments():
     #         'resampled' ........ Draw model data interpolated to INCA grid for verification""")
     parser.add_argument('--save', nargs='?', default=False, const=True, type=str2bool,
         help = 'save full fields to pickle files')
+    parser.add_argument('--fss_mode', type=str, default='ranks')
     parser.add_argument('--save_full_fss', nargs='?', default=False, const=True, type=str2bool,
         help = 'save full FSS, including numerator and denominator')
     parser.add_argument('--hidden', nargs='?', default=False, const=True, type=str2bool,
