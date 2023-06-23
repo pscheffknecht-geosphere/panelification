@@ -9,15 +9,16 @@ import logging
 from joblib import Parallel, delayed
 import numpy as np
 import os
+
 from model_parameters import *
 import scoring
 import inca_functions as inca
 import read_opera as opera
-#import obs_from_db as obs
 import panel_plotter
 import data_io
 import data_from_dcmdb
 import scan_obs
+from regions import Region
 
 # try avoiding hanging during parallelized portions of the program
 os.environ['MKL_NUM_THREADS'] = '1'
@@ -72,8 +73,6 @@ def parse_arguments():
             Custom""")
     parser.add_argument('--draw_subdomain', nargs='?', default=True, const=True, type=str2bool,
         help = "Draw a rectangle to show the verification subdomain")
-    parser.add_argument('--resample_target', type=str, default="OBS",
-        help = 'OBS to resample models to observation grid or MODEL to resample observations to model grid')
     parser.add_argument('--case', '-c', type=str, nargs='+', default="austria_2022",
         help = "Select case to verify")
     parser.add_argument('--experiments', '-e', type=str, nargs='+',
@@ -97,11 +96,13 @@ def parse_arguments():
         help = 'draw panels for all subdomains, no matter how much rain was observed')
     parser.add_argument('--clean', nargs='?', default=False, const=True, type=str2bool,
         help = 'do not draw/write verification metrics on the panels')
-    # parser.add_argument('--mode', default='None', type=str,
-    #     help = """ Drawing mode:\n
-    #         'None' (default) ... Draw rain contours\n
+    parser.add_argument('--mode', default='None', type=str,
+        help = """ Drawing mode:\n
+            'None' (default) ... Draw rain contours\n
+            'resampled' ........ Draw model data interpolated to INCA grid for verification""")
     #         'diff' ............. Draw interpolated rain field difference to INCA analysis\n
-    #         'resampled' ........ Draw model data interpolated to INCA grid for verification""")
+    parser.add_argument('--fix_nans', nargs='?', default=False, const=True, type=str2bool,
+        help = 'Fix NaNs in OBS and Model fields by setting them to 0.')
     parser.add_argument('--save', nargs='?', default=False, const=True, type=str2bool,
         help = 'save full fields to pickle files')
     parser.add_argument('--fss_mode', type=str, default='ranks')
@@ -116,6 +117,8 @@ def parse_arguments():
         help = """Logging level:
           debug, info, warning, error""")
     args = parser.parse_args()
+    # replace the string object with a proper instance of Region
+    args.region = Region(args.region, args.subdomains)
     if args.subdomains == "Custom" and args.lonlat_limits is None:
         logging.critical("""The subdomain is set to "Custom", then its limits need to be set!
             Use the command line argument:
@@ -177,6 +180,7 @@ def print_some_basics(start_date, end_date, min_lead, max_lead):
 
 def main():
     parse_arguments()
+    region = args.region
     init_logging(args)
     min_lead, max_lead = get_lead_limits(args)
     start_date = datetime.strptime(args.start, "%Y%m%d%H")
@@ -204,25 +208,29 @@ def main():
     #     exit(1)
     df_subdomain_details = scan_obs.get_interesting_subdomains(data_list[0], args)
     for _, dom in df_subdomain_details.iterrows():
-        verification_subdomain = dom['name']
+        subdomain_name = dom['name']
         if dom['score'] or dom['draw'] or args.save:
-            data_list = inca.resample_data(data_list, verification_subdomain, args)
-            data_list = Parallel(n_jobs=6,backend='threading')(delayed(scoring.calc_scores)(sim, args) for ii, sim in enumerate(data_list))
-            data_list = scoring.rank_scores(data_list)
-            data_list = scoring.total_fss_rankings(data_list)
+            for sim in data_list:
+                _data, _lon, _lat = region.resample_to_subdomain(sim["precip_data"], sim["lon"], sim["lat"], subdomain_name, fix_nans=args.fix_nans)
+                sim["lon_resampled"] = _lon
+                sim["lat_resampled"] = _lat
+                sim["precip_data_resampled"] = _data
+            Parallel(n_jobs=6,backend='threading')(delayed(scoring.calc_scores)(sim, data_list[0], args) for ii, sim in enumerate(data_list))
+            scoring.rank_scores(data_list)
+            scoring.total_fss_rankings(data_list)
         else:
             logging.info("Skipping "+dom['name']+", nothing is requested.")
         if dom['score']:
-            scoring.write_scores_to_csv(data_list, start_date, end_date, args, verification_subdomain)
+            scoring.write_scores_to_csv(data_list, start_date, end_date, args, subdomain_name)
         if dom['draw']:
             plot_start = datetime.now()
-            panel_plotter.draw_panels(data_list, start_date, end_date, verification_subdomain, args) #, mode=args.mode)
+            panel_plotter.draw_panels(data_list, start_date, end_date, subdomain_name, args) #, mode=args.mode)
             plot_duration = datetime.now() - plot_start
             logging.info("Plotting "+str(len(data_list))+"panels took "+str(plot_duration))
         if args.save:
-            data_io.save_data(data_list, verification_subdomain, start_date, end_date, args)
+            data_io.save_data(data_list, subdomain_name, start_date, end_date, args)
         if args.save_full_fss:
-            data_io.save_fss(data_list, verification_subdomain, start_date, end_date, args)
+            data_io.save_fss(data_list, subdomain_name, start_date, end_date, args)
 
 
 if __name__ == '__main__':

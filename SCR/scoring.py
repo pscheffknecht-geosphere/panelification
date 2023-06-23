@@ -219,7 +219,7 @@ def write_scores_to_csv(data_list, start_date, end_date, args, verification_subd
     return score_table, score_table2, col_labels2, col_labels3, row_labels
 
 
-def calc_scores(sim, args):
+def calc_scores(sim, obs, args):
     """
     calculate verification metrics MAE, RMSE, BIAS and CORRELATION COEFFICIENT
 
@@ -252,22 +252,22 @@ def calc_scores(sim, args):
         thresholds = []
         thresholds_percs = []
         for level in levels:
-            thresholds.append(0.5*(1+float((sim['obs_param_resampled'] > level).sum())/float(sim['obs_param_resampled'].size)))
+            thresholds.append(0.5*(1+float((obs["precip_data_resampled"] > level).sum())/float(obs["precip_data_resampled"].size)))
         for perc in percs:
             thresholds_percs.append(0.5*(1+0.01*(100/perc)))
         sim['fss_thresholds'] = thresholds
         sim['fss_thresholds_percs'] = thresholds_percs
         sim['fssf_thresholds'] = thresholds + thresholds_percs
-        bias = np.mean(sim['sim_param_resampled']-sim['obs_param_resampled'])
-        mae = np.mean(np.abs(sim['sim_param_resampled']-sim['obs_param_resampled']))
-        rms = np.sqrt(np.mean(np.square(sim['sim_param_resampled']-sim['obs_param_resampled'])))
-        corr = np.corrcoef(sim['sim_param_resampled'].flatten(),sim['obs_param_resampled'].flatten())[0,1]
-        fss_num, fss_den, fss = fss_functions.fss_frame(sim['sim_param_resampled'],sim['obs_param_resampled'],windows,levels,percentiles=False)
+        bias = np.mean(sim["precip_data_resampled"]-obs["precip_data_resampled"])
+        mae = np.mean(np.abs(sim["precip_data_resampled"]-obs["precip_data_resampled"]))
+        rms = np.sqrt(np.mean(np.square(sim["precip_data_resampled"]-obs["precip_data_resampled"])))
+        corr = np.corrcoef(sim["precip_data_resampled"].flatten(),obs["precip_data_resampled"].flatten())[0,1]
+        fss_num, fss_den, fss = fss_functions.fss_frame(sim["precip_data_resampled"],obs["precip_data_resampled"],windows,levels,percentiles=False)
         fssp_num, fssp_den, fssp = fss_functions.fss_frame(
-                np.copy(sim['sim_param_resampled']),
-                np.copy(sim['obs_param_resampled']),
+                np.copy(sim["precip_data_resampled"]),
+                np.copy(obs["precip_data_resampled"]),
                 windows,percs,percentiles=True) # circumvent numpy issue #21524
-        #fssp_num, fssp_den, fssp = fss_functions.fss_frame(sim['sim_param_resampled'],sim['obs_param_resampled'],windows,percs,percentiles=True)
+        #fssp_num, fssp_den, fssp = fss_functions.fss_frame(sim["precip_data_resampled"],obs["precip_data_resampled"],windows,percs,percentiles=True)
         fssf = pd.concat((fss, fssp), axis=0)
         sim['bias'] = np.abs(bias)
         sim['bias_real'] = bias
@@ -281,7 +281,7 @@ def calc_scores(sim, args):
         sim['fss_den'] = fss_den
         sim['fssp_den'] = fssp_den
         sim['fssf'] = fssf
-        sim['d90'] = fss_d90(sim['sim_param_resampled'], sim['obs_param_resampled'])
+        sim['d90'] = fss_d90(sim["precip_data_resampled"], obs["precip_data_resampled"])
     return(sim)
 
 
@@ -296,15 +296,15 @@ def fss_d90(rrm, rro):
     # consistency check
     windows = [1, 3, 5, 7, 11, 21, 31, 41, 51, 61, 81, 101, 121, 141, 181, 251, 351, 501, 701]
     levels = [0.5]
-    rro = np.where(rro > np.percentile(rro, 90), 1, 0)
+    _rro = np.where(rro > np.percentile(np.copy(rro), 90), 1, 0)
     rrm = np.where(rrm > np.percentile(np.copy(rrm), 90), 1, 0) # circumvent numpy issue #21524
     #rrm = np.where(rrm > np.percentile(rrm, 90), 1, 0)
-    rro_s = np.maximum(rro-rrm, 0)
-    rrm_s = np.maximum(rrm-rro, 0)
+    rro_s = np.maximum(_rro-rrm, 0)
+    rrm_s = np.maximum(rrm-_rro, 0)
     if np.sum(rrm) == 0:
         logger.warning("No precipitation in model array, returning no d90!")
         return np.nan
-    overlap = float(np.sum(rro*rrm))/float(np.sum(rrm))
+    overlap = float(np.sum(_rro*rrm))/float(np.sum(rrm))
     arr = fss_functions.fss_strip(rro_s, rrm_s, windows, levels).values.flatten()
     for ii in range(1,len(arr)):
         if arr[ii] - arr[ii-1] < 0:
