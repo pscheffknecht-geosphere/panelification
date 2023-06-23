@@ -5,49 +5,30 @@ from model_parameters import verification_subdomains, default_subdomains, subdom
 import logging
 logger = logging.getLogger(__name__)
 
-def get_rain_mean_max(lon_o, lat_o, RR_obs, limits):
-        dists_min = (lon_o - limits[0])**2 + (lat_o - limits[2])**2
-        dists_max = (lon_o - limits[1])**2 + (lat_o - limits[3])**2
-        idx_min = np.where(dists_min==dists_min.min())
-        idx_max = np.where(dists_max==dists_max.min())
-        logger.debug(idx_min)
-        logger.debug(idx_max)
-        logger.debug((idx_min[0][0], idx_max[0][0], idx_min[1][0], idx_max[1][0]))
-        logger.debug((idx_min[0][0], idx_max[0][0], idx_min[1][0], idx_max[1][0]))
-        RR_obs_subdomain_mean = np.mean(RR_obs[idx_min[0][0]:idx_max[0][0],idx_min[1][0]:idx_max[1][0]])
-        RR_obs_subdomain_max = np.max(RR_obs[idx_min[0][0]:idx_max[0][0],idx_min[1][0]:idx_max[1][0]])
-        return RR_obs_subdomain_mean, RR_obs_subdomain_max
-
-
-def get_interesting_subdomains(inca_data, args):
+def get_interesting_subdomains(obs_data, args):
     """ check all subdomains and get the 3 with the highest precipitation """
-    lon_o = inca_data['lon']
-    lat_o = inca_data['lat']
-    RR_obs = inca_data['precip_data']
+    lon_o = obs_data['lon']
+    lat_o = obs_data['lat']
+    RR_obs = obs_data['precip_data']
     RR_means, RR_maxes, RR_names, RR_draw, RR_score = ([] for _ in range(5))
-    loop_subdomains = args.subdomains if args.subdomains else default_subdomains
     logger.debug(args.subdomains)
-    logger.debug(default_subdomains)
-    logger.debug(loop_subdomains)
-    for name in loop_subdomains:
-        if not name in subdomain_precip_thresholds.keys():
-            logger.warning("Subdomain {:s} has no precipitation thresholds, using default values")
-            threshold_name = 'Default'
-        else:
-            threshold_name = name
-
-        draw_avg = subdomain_precip_thresholds[threshold_name]['draw_avg']
-        draw_max = subdomain_precip_thresholds[threshold_name]['draw_max']
-        score_avg = subdomain_precip_thresholds[threshold_name]['score_avg']
-        score_max = subdomain_precip_thresholds[threshold_name]['score_max']
-        if name == 'Custom':
-            limits = args.lonlat_limits
-        else:
-            limits = verification_subdomains[name]
-        RR_obs_subdomain_mean, RR_obs_subdomain_max = get_rain_mean_max(lon_o, lat_o, RR_obs, limits)
+    for subdomain_name, subdomain_data in args.region.subdomains.items():
+    # loop_subdomains = args.subdomains if args.subdomains else default_subdomains
+    # for name in loop_subdomains:
+        draw_avg = subdomain_data["thresholds"]["draw_avg"]
+        draw_max = subdomain_data["thresholds"]["draw_max"]
+        score_avg = subdomain_data["thresholds"]["score_avg"]
+        score_max = subdomain_data["thresholds"]["score_max"]
+        # if name == 'Custom':
+        #     limits = args.lonlat_limits
+        # else:
+        #     limits = verification_subdomains[name]
+        RR_obs_subdomain = args.region.resample_to_subdomain(RR_obs, lon_o, lat_o, subdomain_name, fix_nans=args.fix_nans)
+        RR_obs_subdomain_mean = np.mean(RR_obs_subdomain)
+        RR_obs_subdomain_max = np.max(RR_obs_subdomain)
         RR_means.append(RR_obs_subdomain_mean)
         RR_maxes.append(RR_obs_subdomain_max)
-        RR_names.append(name)
+        RR_names.append(subdomain_name)
         if ((RR_obs_subdomain_mean >  draw_avg or RR_obs_subdomain_max > draw_max) and args.draw) or args.forcedraw:
             RR_draw.append(True)
         else:

@@ -131,7 +131,7 @@ warn_colors = [
 
 
 
-def lightning_cmap_and_levels(mode, args):
+def lightning_cmap_and_levels(args):
     levels = [0.1*x for x in [0., 1. , 2. ,  5.,  10.,  20.,  30.,  50.,  75., 100.]]
     mycolors =  warn_colors
          #  [(255.,255.,255.),(0,254,150),(0,254,200),(0,254,254),(0,200,254),(0,150,254),
@@ -143,7 +143,7 @@ def lightning_cmap_and_levels(mode, args):
     return levels, cmap, norm
 
 
-def hail_cmap_and_levels(mode, args):
+def hail_cmap_and_levels(args):
     levels = [0., 1. , 3. ,  5.,  10.,  15.,  20.,  30.,  40.,  50.,  60.,  80., 100., 150.,  200., 250.]
     mycolors = warn_colors 
          #  [(255.,255.,255.),(0,254,150),(0,254,200),(0,254,254),(0,200,254),(0,150,254),
@@ -155,7 +155,7 @@ def hail_cmap_and_levels(mode, args):
     return levels, cmap, norm
 
 
-def sunshine_cmap_and_levels(mode, args):
+def sunshine_cmap_and_levels(args):
     levels = [x/3.*float(args.duration) for x in [0., 0.4, 0.8, 1.2, 1.6, 2., 2.4, 2.8, 3.]]
     mycolors = [(96, 96, 91), (149, 150, 128), (190, 192, 139), (216, 218, 138), (232, 231, 116),
         (242, 240, 96), (251, 250, 65), (255, 255, 0)]
@@ -169,9 +169,9 @@ def sunshine_cmap_and_levels(mode, args):
 
 
 
-def precip_cmap_and_levels(mode, args):
+def precip_cmap_and_levels(args):
     mycolors = None # only change if required
-    if mode == 'None' or mode == 'resampled':
+    if args.mode == 'None' or args.mode == 'resampled':
         if args.duration >= 24:
             levels = [0., 1. , 3. ,  5.,  10.,  15.,  20.,  30.,  40.,  50.,  60.,  80., 100., 150.,  200., 250.]
         else:
@@ -186,7 +186,7 @@ def precip_cmap_and_levels(mode, args):
         else:
             norm = bnorm(levels,ncolors=cm.get_cmap(args.cmap).N)
             cmap = args.cmap
-    elif mode == 'diff':
+    elif args.mode == 'diff':
         levels = [-100.,-50.,-45.,-40,-35.,-30.,-25.,-20.,-15.,-10.,-5.,-1.,-0.5,-0.2,-0.1,0.,0.1,0.2,0.5,1.,5.,10.,15.,20.,25.,30.,35.,40.,45.,50.,100.]
         cmap = 'NCV_jaisnd'
         norm = bnorm(levels,ncolors=cm.get_cmap(cmap).N)
@@ -195,15 +195,15 @@ def precip_cmap_and_levels(mode, args):
 # function to decide which function to call for each param
 # dirty and primitive but it works, but a good candidate
 # for refactoring
-def get_cmap_and_levels(mode, args):
+def get_cmap_and_levels(args):
     if args.parameter == 'precip':
-        return precip_cmap_and_levels(mode, args)
+        return precip_cmap_and_levels(args)
     elif args.parameter == 'hail':
-        return hail_cmap_and_levels(mode, args)
+        return hail_cmap_and_levels(args)
     elif args.parameter == 'lightning':
-        return lightning_cmap_and_levels(mode, args)
+        return lightning_cmap_and_levels(args)
     elif args.parameter == 'sunshine':
-        return sunshine_cmap_and_levels(mode, args)
+        return sunshine_cmap_and_levels(args)
 
 
 

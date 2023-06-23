@@ -21,11 +21,19 @@ from joblib import Parallel, delayed
 from multiprocessing import Pool
 import pickle
 import scipy.ndimage as ndimage
-from regions import Region
 
 import logging
 logger = logging.getLogger(__name__)
 logging.getLogger('matplotlib').setLevel(logging.WARNING)
+
+def get_array_edge(arr):
+    nx, ny = np.shape(arr)
+    e1 = arr[0     , :]
+    e2 = arr[1::, ny-1]
+    e3 = arr[nx-1, 0:ny-1][::-1]
+    e4 = arr[:-1, 0][::-1]
+    return np.concatenate((e1, e2, e3, e4), axis=0)
+
 
 def add_borders(axis):
     borders = cfeature.NaturalEarthFeature(
@@ -117,9 +125,9 @@ def prep_plot_data(sim, obs, mode):
         lon = sim['lon']
         lat = sim['lat']
     elif mode == 'resampled':
-        precip_data = sim['sim_param_resampled']
-        lon = sim['lon_subdomain']
-        lat = sim['lat_subdomain']
+        precip_data = sim['precip_data_resampled']
+        lon = sim['lon_resampled']
+        lat = sim['lat_resampled']
     return precip_data, lon, lat
 
 
@@ -144,6 +152,7 @@ def draw_solo_colorbar(levels, cmap, norm, tmp_string, args):
     cb = mpl.colorbar.ColorbarBase(ax_rr, cmap=cmap, norm=norm, 
         orientation='horizontal', ticks=levels, extend='max')
     cb.cmap.set_over('orange')
+    cb.cmap.set_bad('gray')
     cb.set_label(parameter_settings.colorbar_label[args.parameter])
     plt.savefig('../TMP/'+tmp_string+'/cbar.png')
 
@@ -177,7 +186,7 @@ def arrange_subplots(r, clean=False):
     fss_coords = [small_left, fss_bottom, small_width, small_height]
     return total_width, total_height, map_coords, score_coords, fss_coords
 
-def draw_single_figure(sim, obs, region, r, jj, levels, cmap, norm, mode, verification_subdomain, rank_colors, max_rank, args, tmp_string):
+def draw_single_figure(sim, obs, r, jj, levels, cmap, norm, verification_subdomain, rank_colors, max_rank, args, tmp_string):
     """ Draw a panel plot with the contours of precipitation, scores, and FSS ranks
     sim ......... dictionary .. model data
     obs ......... dictionary .. obs data
@@ -186,7 +195,6 @@ def draw_single_figure(sim, obs, region, r, jj, levels, cmap, norm, mode, verifi
     levels ...... np.array .... contour levels
     cmap ........ mpl cmape ... color map
     norm ........ mpl norm .... for irregular conour levels
-    mode ........ string ...... mode (draw original or resampled fields
     verification_subdomain .... (str) subdomain for verif, used to draw rectangle
     rank_colors . list ........ list of colors to be used in the FSS rank plto
     max_rank .... int ......... highest rank that occurs
@@ -198,7 +206,7 @@ def draw_single_figure(sim, obs, region, r, jj, levels, cmap, norm, mode, verifi
     logger.info("Plotting "+sim['name'])
     total_width, total_height, map_coords, score_coords, fss_coords = arrange_subplots(r, clean=args.clean)
     fig = plt.figure(dpi=150, figsize=(total_width, total_height))
-    ax = fig.add_axes(map_coords, projection=region.plot_projection)
+    ax = fig.add_axes(map_coords, projection=args.region.plot_projection)
     if args.clean:
         ax_scores = ax_fss = None
     else:
@@ -208,36 +216,27 @@ def draw_single_figure(sim, obs, region, r, jj, levels, cmap, norm, mode, verifi
     if jj == 0 and not args.clean:
         ax_fss.axis('off')
     #fig, ax = plt.subplots(1,1, figsize=(6.4, 4.0), dpi=120, subplot_kw={'projection': region.plot_projection})
-    precip_data, lon, lat = prep_plot_data(sim, obs, mode)
+    precip_data, lon, lat = prep_plot_data(sim, obs, args.mode)
     precip_data = np.where(precip_data == np.nan, 0., precip_data)
     precip_data = np.where(precip_data <0., 0., precip_data)
     precip_data_smooth = precip_data #ndimage.gaussian_filter(precip_data, sigma=1., order=0)
     c = ax.contourf(lon, lat, precip_data_smooth,
-                    levels,cmap=cmap,transform=region.data_projection,
+                    levels,cmap=cmap,transform=args.region.data_projection,
                     norm=norm, extend='max')
     c.cmap.set_over('orange')
     if args.draw_p90:
         mpl.rcParams['hatch.linewidth']=0.5
         plt.rcParams.update({'hatch.color': sim['p90_color']})
-        ax.contourf(sim['lon_subdomain'], sim['lat_subdomain'], sim['rr90'], 
-            levels=[0.5, 1.5], transform=region.data_projection, colors='none', hatches=['/////'])
-        ax.contour(sim['lon_subdomain'], sim['lat_subdomain'], sim['rr90'], 
-            linewidths = 0.5, levels=[0.5], transform=region.data_projection, colors=[sim['p90_color']])
+        ax.contourf(sim['lon_resampled'], sim['lat_resampled'], sim['rr90'], 
+            levels=[0.5, 1.5], transform=args.region.data_projection, colors='none', hatches=['/////'])
+        ax.contour(sim['lon_resampled'], sim['lat_resampled'], sim['rr90'], 
+            linewidths = 0.5, levels=[0.5], transform=args.region.data_projection, colors=[sim['p90_color']])
     # limit drawn area, make the plot nicer and add some info
-    ax.set_extent(region.extent)
+    ax.set_extent(args.region.extent)
     add_borders(ax)
-    if verification_subdomain == 'Custom':
-        subdom_lon_lat_limits = args.lonlat_limits
-    else:
-        subdom_lon_lat_limits = verification_subdomains[verification_subdomain]
     if args.draw_subdomain:
-        ax.add_patch(mpatches.Rectangle(xy=[subdom_lon_lat_limits[0], subdom_lon_lat_limits[2]],
-            width = subdom_lon_lat_limits[1] - subdom_lon_lat_limits[0],
-            height = subdom_lon_lat_limits[3] - subdom_lon_lat_limits[2],
-            facecolor = 'None',
-            edgecolor = 'black',
-            alpha = 1.,
-            transform = region.data_projection))
+        ax.plot(get_array_edge(sim['lon_resampled']), get_array_edge(sim['lat_resampled']), 'k',
+                transform = args.region.data_projection)
     if args.hidden:
         panel_title = str(jj) if jj > 0 else sim['name']
         panel_title_fc = 'white'
@@ -254,7 +253,7 @@ def draw_single_figure(sim, obs, region, r, jj, levels, cmap, norm, mode, verifi
     if jj > 0 and not args.clean:
         add_fss_plot(ax_fss, sim, max_rank, jj, args)
         add_scores(ax_scores, sim, rank_colors)
-    gl = ax.gridlines(crs=region.data_projection, draw_labels=False, dms=True, x_inline=False, y_inline=False)
+    gl = ax.gridlines(crs=args.region.data_projection, draw_labels=False, dms=True, x_inline=False, y_inline=False)
     gl.left_labels=False
     gl.top_labels=False
     plt.savefig('../TMP/'+tmp_string+'/'+str(jj).zfill(3)+".png")
@@ -263,16 +262,16 @@ def draw_single_figure(sim, obs, region, r, jj, levels, cmap, norm, mode, verifi
         draw_solo_colorbar(levels, cmap, norm, tmp_string, args)
 
 
-def define_panel_and_plot_dimensions(data_list, region):
+def define_panel_and_plot_dimensions(data_list, args):
     """ Make a dummy map to obtain the aspect ratio, calculate lines
     and columns. This happens in the same function to make use of
     the aspect ratio when determining the cols/lins (not implemented
     yet)
     data_list ...... list of all model data
-    region ......... instance of Region class, contains info on the map
+    args.region .....instance of Region class, contains info on the map
                      that is being drawn"""
-    ax = plt.axes(projection=region.plot_projection)
-    ax.set_extent(region.extent)
+    ax = plt.axes(projection=args.region.plot_projection)
+    ax.set_extent(args.region.extent)
     r = ax.get_data_ratio()
     # Automatically determine necessary size of the panel plot
     cols = int(np.ceil(np.sqrt(float(len(data_list)))))
@@ -283,7 +282,7 @@ def define_panel_and_plot_dimensions(data_list, region):
     return r, cols, lins
 
 
-def draw_panels(data_list,start_date, end_date, verification_subdomain, args, mode='None'):
+def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
     """ Draw all data onto panels. This function separates the data into pickle files,
     one for each model, then uses the command line to call this modul as __main__, thsi will
     execote draw_sing_figure() and allows it to run in parallel. Matplotlib is not thread safe
@@ -294,13 +293,10 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args, mo
     verification_subdomain ... info on verificatino subdoamin, used for rectangle
     args ............. command line arguments
     mode ............. string, resampled or original data to be drawn"""
-    region = Region(region_name=args.region)
-    logger.debug(region.extent)
-    r, cols, lins = define_panel_and_plot_dimensions(data_list, region)
+    logger.debug(args.region.extent)
+    r, cols, lins = define_panel_and_plot_dimensions(data_list, args)
     logger.info("generating a panel plot with {} lines and {} columns".format(lins, cols))
-    levels, cmap, norm = parameter_settings.get_cmap_and_levels(mode, args)
-    # levels, cmap, norm = get_cmap_and_levels(mode, args)
-    # check which mode is being used an adjust levels and color map
+    levels, cmap, norm = parameter_settings.get_cmap_and_levels(args)
     rank_colors = 500*['white']
     rank_colors[1:3] = ['gold', 'silver', 'darkorange']
     # init projections
@@ -315,8 +311,8 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args, mo
     logger.debug('mkdir ../TMP/'+tmp_string)
     # dump data for each model into a single pickle file
     for jj, sim in enumerate(data_list):
-        pickle.dump([sim, data_list[0], region, r, jj, levels, cmap,
-            norm, mode, verification_subdomain, rank_colors, data_list[0]['max_rank'], args, tmp_string], 
+        pickle.dump([sim, data_list[0], r, jj, levels, cmap,
+            norm, verification_subdomain, rank_colors, data_list[0]['max_rank'], args, tmp_string], 
             open('../TMP/'+tmp_string+'/'+str(jj).zfill(3)+".p", 'wb'))
     # generate a list of commands, one for each model, these will call panel_plotter.py to draw a single model
     cmd_list = ['python panel_plotter.py -p '+pickle_file for pickle_file in glob.glob('../TMP/'+tmp_string+'/???.p')]

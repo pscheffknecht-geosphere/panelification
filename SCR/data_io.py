@@ -1,5 +1,7 @@
 import pickle
 
+import logging
+logger = logging.getLogger(__name__)
 
 ### SAVING DATA AND VERIFICATION RESULTS
 def save_data(data_list, verification_subdomain, start_date, end_date, args):
@@ -7,7 +9,7 @@ def save_data(data_list, verification_subdomain, start_date, end_date, args):
     outfilename = "../DATA/"+args.name+"RR_data_"+start_date.strftime("%Y%m%d_%HUTC_")+'{:02d}h_acc_'.format(args.duration)+verification_subdomain+'.p'
     with open(outfilename, 'wb') as f:
         pickle.dump(data_list, f)
-    print(outfilename+" written sucessfully.")
+    logger.info(outfilename+" written sucessfully.")
 
 
 def save_fss(data_list, verification_subdomain, start_date, end_date, args):
@@ -25,4 +27,4 @@ def save_fss(data_list, verification_subdomain, start_date, end_date, args):
         fss_dict[sim['name']] = sim_dict
     with open(outfilename, 'wb') as f:
         pickle.dump(fss_dict, f)
-    print(outfilename+" written sucessfully.")
+    logger.info(outfilename+" written sucessfully.")
