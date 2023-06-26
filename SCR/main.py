@@ -18,7 +18,7 @@ import panel_plotter
 import data_io
 import data_from_dcmdb
 import scan_obs
-from regions import Region
+import regions
 
 # try avoiding hanging during parallelized portions of the program
 os.environ['MKL_NUM_THREADS'] = '1'
@@ -29,6 +29,14 @@ global args, start_date, end_date
 start_date = datetime(2019,8,12,15,0,0)
 end_date = datetime(2019,8,12,18,0,0)
 
+
+def init_logging(args):
+    if args.logfile:
+        logging.basicConfig(filename=args.logfile, level=translate_logging_levels(args.loglevel))
+    else:
+        logging.basicConfig(level=translate_logging_levels(args.loglevel))
+
+
 def translate_logging_levels(lvlstr):
     lvlstr = lvlstr.lower()
     level = logging.INFO #default
@@ -36,6 +44,7 @@ def translate_logging_levels(lvlstr):
     if lvlstr == 'warning': level = logging.WARNING
     if lvlstr == 'error': level = logging.ERROR
     return level
+
 
 def parse_arguments():
     global args
@@ -56,21 +65,9 @@ def parse_arguments():
         help = 'accumulation duration in hours')
     parser.add_argument('--lead', '-l', type=int, default=[12], nargs='+',
         help = 'maximum lead time up to starting time in hours')
-    parser.add_argument('--subdomains', '-u', type=str, default=[], nargs='+',
-        help = """ Select subdomains, available:
-            Auto (default)
-            Vienna
-            Lower Austria
-            Upper Austria
-            Tyrol
-            Eastern Tyrol
-            Vorarlberg
-            Carinthia
-            Salzburg
-            Styria
-            Burgenland
-            Austria
-            Custom""")
+    parser.add_argument('--subdomains', '-u', type=str, default=["Default"], nargs='+',
+        help = """ Select verification subdomains
+            Subdomains are defined in regions.py for each region""")
     parser.add_argument('--draw_subdomain', nargs='?', default=True, const=True, type=str2bool,
         help = "Draw a rectangle to show the verification subdomain")
     parser.add_argument('--case', '-c', type=str, nargs='+', default="austria_2022",
@@ -117,8 +114,9 @@ def parse_arguments():
         help = """Logging level:
           debug, info, warning, error""")
     args = parser.parse_args()
+    init_logging(args)
     # replace the string object with a proper instance of Region
-    args.region = Region(args.region, args.subdomains)
+    args.region = regions.Region(args.region, args.subdomains)
     if args.subdomains == "Custom" and args.lonlat_limits is None:
         logging.critical("""The subdomain is set to "Custom", then its limits need to be set!
             Use the command line argument:
@@ -142,13 +140,6 @@ def parse_arguments():
             args.name += '_' 
     # hidden forces clean too:
     args.clean = True if args.hidden else args.clean
-
-def init_logging(args):
-    if args.logfile:
-        logging.basicConfig(filename=args.logfile, level=translate_logging_levels(args.loglevel))
-    else:
-        logging.basicConfig(level=translate_logging_levels(args.loglevel))
-
 
 def get_lead_limits(args):
     lead_limits = args.lead
@@ -181,7 +172,6 @@ def print_some_basics(start_date, end_date, min_lead, max_lead):
 def main():
     parse_arguments()
     region = args.region
-    init_logging(args)
     min_lead, max_lead = get_lead_limits(args)
     start_date = datetime.strptime(args.start, "%Y%m%d%H")
     end_date = start_date + dt(hours=args.duration)
