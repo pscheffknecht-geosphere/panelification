@@ -73,8 +73,11 @@ def parse_arguments():
     parser.add_argument('--case', '-c', type=str, nargs='+', default="austria_2022",
         help = "Select case to verify")
     parser.add_argument('--experiments', '-e', type=str, nargs='+',
-        default = ['None'],
+        default = None,
         help = """select experiments, if left empty/None it will select all available""")
+    parser.add_argument('--custom_models', type=str, nargs='+',
+        default = None,
+        help = """add you own models not listed in DCMDB""")
     # parser.add_argument('--output_format', type=str, default='png',
     #     help = "Desired output format (png, jpg, pdf, eps, ...)")
     parser.add_argument('--lonlat_limits', type=float, nargs='+',
@@ -177,8 +180,14 @@ def main():
     end_date = start_date + dt(hours=args.duration)
     print_some_basics(start_date, end_date, min_lead, max_lead)
     # generate a list of available simulations and add data, observations and scores
-    data_list = data_from_dcmdb.get_sim_and_file_list(args)
-    # data_list = data_io.get_sims_and_file_list(start_date, end_date, min_lead, max_lead, simdf, args)
+    data_list = []
+    if args.experiments:
+        data_from_dcmdb.get_sim_and_file_list(data_list, args)
+    if args.custom_models:
+        data_io.get_sims_and_file_list(data_list, args)
+    if len(data_list) == 0:
+        logging.critical("No valid models found, exiting...")
+        exit()
     #data_list = data_from_dcmdb.read_data(data_list, args)
     # if args.parameter in ['precip', 'sunshine']:
     if args.precip_verif_dataset == "INCA":
