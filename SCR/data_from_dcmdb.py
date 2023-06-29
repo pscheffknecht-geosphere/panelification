@@ -50,7 +50,7 @@ def fill_path_file_template(pft, exp_init_date, exp_lead):
 def check_file_paths(exp_name, exp_init_date, file_paths, all_paths_raw):
     """ Checks for existence of the file after generating a file name from path and file pattern. This will
     assure that the requested experiment exists for the selected init time and verification period"""
-    all_paths = [p.replace("//", "/") for p in all_paths_raw] # fix double slashes in ECMDB path
+    all_paths = [p.replace("//", "/") for p in all_paths_raw] # fix double slashes in DCMDB path
     for fil in file_paths:
         if not fil in all_paths and fil != "NoStart":
             return False
@@ -138,10 +138,9 @@ def read_data(data_list):
     return data_list
 
 
-def get_sim_and_file_list(args):
+def get_sim_and_file_list(data_list, args):
     """ use Ulf's DCMDB to search for available experiments that cover the start_date, end_date and lead time
     constraints given in args"""
-    data_list = []
     if len(args.lead) == 1:
         leadmin = 0
         leadmax = args.lead[0]
