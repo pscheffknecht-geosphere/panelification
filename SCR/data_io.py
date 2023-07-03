@@ -3,9 +3,10 @@ import os
 import custom_experiments
 from data_from_dcmdb import fill_path_file_template
 import custom_experiments
-from custom_experiments import model_configurations as cmcs
+# from custom_experiments import model_configurations as cmcs
 import datetime as dt
 import pygrib
+import numpy as np
 
 import logging
 logger = logging.getLogger(__name__)
@@ -54,50 +55,76 @@ def mars_request(init, step):
         return None
 
 
+
 def check_fields(f):
+    """Try a number of known passible grib handles that can be used to store precipitation
+    in grib files. Return a list of valid handles if found"""
     try:
         f.select(shortName='twatp')
         f.select(shortName='tsnowp')
-        return {"shortnames": ["twatp", "tsnowp"]} 
+        return [{"shortName": "twatp"},
+                {"shortName": "tsnowp"}]
     except:
         pass
     try:
         f.select(parameterNumber=8)
-        return {"parameterNumber": 8}
+        return [{"parameterNumber": 8}]
     except:
         pass
     try:
         f.select(shortName='tp')
-        return {"shortNames": ["tp"]}
+        return [{"shortName": "tp"}]
     except:
         pass
-    # try:
-    #     f.select(indicatorOfParameter=197, indicatorOfTypeOfLevel=1, level=0)
-    #     f.select(indicatorOfParameter=198, indicatorOfTypeOfLevel=1, level=0)
-    #     f.select(indicatorOfParameter=199, indicatorOfTypeOfLevel=1, level=0)
-    #     return [
-    #         {"indicatorOfParameter": 197, "indicatorOfTypeOfLevel": 1, "level": 0},
-    #         {"indicatorOfParameter": 198, "indicatorOfTypeOfLevel": 1, "level": 0},
-    #         {"indicatorOfParameter": 199,"indicatorOfTypeOfLevel": 1,"level": 0}]
+    try:
+        f.select(indicatorOfParameter=197, indicatorOfTypeOfLevel=1, level=0)
+        f.select(indicatorOfParameter=198, indicatorOfTypeOfLevel=1, level=0)
+        f.select(indicatorOfParameter=199, indicatorOfTypeOfLevel=1, level=0)
+        return [
+            {"indicatorOfParameter": 197,"indicatorOfTypeOfLevel": 1,"level": 0},
+            {"indicatorOfParameter": 198,"indicatorOfTypeOfLevel": 1,"level": 0},
+            {"indicatorOfParameter": 199,"indicatorOfTypeOfLevel": 1,"level": 0}]
+    except:
+        pass
+    try:
+        f.select(parameterNumber=65)
+        f.select(parameterNumber=66)
+        f.select(parameterNumber=75)
+        return [
+            {"parameterNumber": 65}, 
+            {"parameterNumber": 66}, 
+            {"parameterNumber": 75}]
+    except:
+        pass
+    logging.ciritical("No valid grib handles found in file".format(str(f)))
+    exit()
+
+
+
+def read_list_of_fields(f, handles):
+    """ takes and unpacks a dictionary of grib handles, then reads all
+    field and returns the sum"""
+    tmp_data = []
+    for handle in handles:
+        tmp_data.append(f.select(**handle)[0])
+    return tmp_data
 
 
 def read_data(grib_file_path, get_lonlat_data=False):
-    first = True
+    """ calls the grib handle check and returns fields with or without lon and lat data,
+    depending on selection"""
     with pygrib.open(grib_file_path) as f:
         grib_handles = check_fields(f)
         logger.debug("Getting {:s} from file {:s}".format(repr(grib_handles), grib_file_path))
-        if "shortNames" in grib_handles.keys():
-            for sn in grib_handles["shortNames"]:
-                if first:
-                    tmp_data = f.select(shortName=sn)[0]
-                    first = False
-                else:
-                    tmp_date += f.select(shortName=sn)[0]
+        tmp_data_list = read_list_of_fields(f, grib_handles)
+    tmp_data_field = np.zeros(tmp_data_list[0].values.shape)
+    for field in tmp_data_list:
+        tmp_data_field += field.values
     if get_lonlat_data:
-        lat, lon = tmp_data.latlons()
-        return lon, lat, tmp_data.values
+        lat, lon = tmp_data_list[0].latlons()
+        return lon, lat, tmp_data_field
     else:
-        return tmp_data.values
+        return tmp_data_field
 
 
 class ModelConfiguration:
@@ -107,22 +134,39 @@ class ModelConfiguration:
         self.lead = lead #int
         self.lead_end = lead + duration
         self.experiment_name = custom_experiment_name
-        self.path_template = cmcs[custom_experiment_name]["path_template"]
-        self.init_intervall = cmcs[custom_experiment_name]["init_interval"]
-        self.max_leadtime = cmcs[custom_experiment_name]["max_leadtime"]
-        self.output_intervall = cmcs[custom_experiment_name]["output_interval"]
-        self.grib_handles = cmcs[custom_experiment_name]["grib_handles"]
-        self.unit_factor = cmcs[custom_experiment_name]["unit_factor"]
+        cmc = custom_experiments.experiment_configurations[custom_experiment_name]
+        if "base_experiment" in cmc:
+
+            self.__fill_cmc_with_base_values(cmc)
+        self.path_template =    cmc["path_template"]
+        self.init_intervall =   cmc["init_interval"]
+        self.max_leadtime =     cmc["max_leadtime"]
+        self.output_intervall = cmc["output_interval"]
+        # self.grib_handles =     cmc["grib_handles"]
+        self.unit_factor =      cmc["unit_factor"]
         if self.__times_valid():
             self.end_file = self.get_file_path(self.lead_end)
             self.start_file = self.get_file_path(self.lead)
             self.valid = self.__files_valid()
             self.print()
         else:
-            logger.info("Model {:s} with init {:s} has no output for the requested time window.".format(
+            logger.debug("Model {:s} with init {:s} has no output for the requested time window.".format(
                 self.experiment_name, self.init.strftime("%Y-%m-%d %H")))
 
 
+    def __fill_cmc_with_base_values(self, cmc):
+        """ if the experiment is deried from a base experiment, not all keys
+        need values, only experiments which do not refer to a base_experiment
+        need all their values filled"""
+        keys = ["path_template", "init_interval", "max_leadtime", 
+                "output_interval", "unit_factor"]
+        for key in keys:
+            if not key in cmc.keys():
+                logger.debug("Replacing {:s} in {:s} with value from base_experiment {:s}:".format(
+                    key, self.experiment_name, cmc["base_experiment"]))
+                cmc[key] = custom_experiments.experiment_configurations[cmc["base_experiment"]][key]
+                logger.debug("  {:s}".format(str(cmc[key])))
+              
 
     def print(self):
         logger.debug("init: {:s}".format(self.init.strftime("%Y-%m-%d %H")))
@@ -131,20 +175,23 @@ class ModelConfiguration:
         logger.debug("end file: {:s}".format(str(self.end_file)))
         logger.debug("model is valid: {:s}".format(str(self.valid)))
 
+
     def __times_valid(self):
         """ Checks the requested init and lead time to see if they
         are availabled depending on the model configuration's init
         and lead time intervalls"""
-        logger.debug("Init inverval: {:d}".format(self.init_intervall))
-        logger.debug("Init hour: {:d}".format(self.init.hour))
-        logger.debug("Output inverval: {:d}".format(self.output_intervall))
-        logger.debug("Output hour: {:d}".format(self.lead))
-        logger.debug("Output hour: {:d}".format(self.lead_end))
+        # logger.debug("Init inverval: {:d}".format(self.init_intervall))
+        # logger.debug("Init hour: {:d}".format(self.init.hour))
+        # logger.debug("Output inverval: {:d}".format(self.output_intervall))
+        # logger.debug("Output hour: {:d}".format(self.lead))
+        # logger.debug("Output hour: {:d}".format(self.lead_end))
         time_checks = [
             self.lead%self.output_intervall == 0,
             self.init.hour%self.init_intervall == 0,
             self.lead_end%self.output_intervall == 0]
-        print(time_checks)
+        logger.debug("init time divisible by init interval: {:s}".format(str(time_checks[1])))
+        logger.debug("start lead time divisible by output interval: {:s}".format(str(time_checks[0])))
+        logger.debug("end lead time divisible by output interval: {:s}".format(str(time_checks[2])))
         return True if all(time_checks) else False
 
     def __files_valid(self):        
@@ -163,6 +210,11 @@ class ModelConfiguration:
         lon, lat, tmp_data = read_data(self.end_file, get_lonlat_data=True)
         if self.start_file:
             start_tmp_data = read_data(self.start_file)
+            tmp_data -= start_tmp_data
+        logger.info("{:s}: lon lat extent is: {:.2f} - {:.2f}, {:.2f} - {:.2f}".format(
+            self.experiment_name, lon.min(), lon.max(), lat.min(), lat.max()))
+        logger.info("{:s}: Precipitation is between {:.3f} and {:.3f} mm".format(
+            self.experiment_name, self.unit_factor * tmp_data.min(), self.unit_factor * tmp_data.max()))
         return lon, lat, self.unit_factor * tmp_data
 
 
@@ -196,7 +248,7 @@ def get_sims_and_file_list(data_list, args):
     for exp_lead in range(leadmin, leadmax + 1):
         max_lead = exp_lead + args.duration
         exp_init_date = dt.datetime.strptime(args.start, "%Y%m%d%H") - dt.timedelta(hours=exp_lead)
-        for model_name in args.custom_models:
+        for model_name in args.custom_experiments:
             logging.debug("Checking for {:s} at {:s}".format(
                 model_name, exp_init_date.strftime("%Y-%m-%d %H")))
             mod = ModelConfiguration(model_name, exp_init_date, exp_lead, args.duration)
@@ -210,12 +262,11 @@ def get_sims_and_file_list(data_list, args):
                     "name": "{:s} {:s}".format(model_name, exp_init_date.strftime("%Y-%m-%d %H")),
                     "start_file": mod.file_path(exp_lead),
                     "end_file": mod.end_file,
-                    "grib_handles": mod.grib_handles,
+                    # "grib_handles": mod.grib_handles,
                     "lon": lon,
                     "lat": lat,
                     "precip_data": precip}
                 data_list.append(sim)
-                print(sim["lon"], sim["lat"], sim["precip_data"])
     return data_list
 
 
