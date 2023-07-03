@@ -39,28 +39,33 @@ regions = {
         "central_latitude": 45.,
         "extent": [-10., 40., 35., 70.],
         "verification_subdomains": {
-            "Default": [-5, 35., 35., 65.]
+            "Default": {
+                "central_longitude": 20., "central_latitude": 52.5,
+                "x_size": 1500, "y_size": 1500}
         }
     },
     "Austria": {
         "central_longitude": 15.,
         "central_latitude": 48.3,
-        "extent": [9., 17.5, 45.5, 51.],
+        "extent": [9., 17.5, 45.5, 49.5],
         "verification_subdomains": {
-            "Default": [9.33, 17.33, 46.2, 49.2],
-            "Vienna" : [16., 16.66, 48., 48.4],
-            "Lower_Austria" : [14.33, 17.33, 47.4, 49.2],
-            "Upper_Austria" : [12.66, 15., 47.4, 49.],
-            "Salzburg" : [12., 14.3, 46.8, 48.2],
-            "Tyrol" : [10., 13., 46.6, 48.2],
-            "Vorarlberg" : [9.33, 10.33, 46.8, 47.8],
-            "Carinthia" : [12.66, 15.33, 46.2, 47.2],
-            "Styria" : [13.33, 16.33, 46.2, 48.],
-            "Burgenland" : [16., 17.33, 46.6, 48.2],
-            "East_Tyrol" : [12., 13., 46.6, 47.2],
-            "Wechsel" : [15.58, 16.24, 47.30, 47.76],
-            "Nockberge" : [13.85, 14.51, 46.75, 47,21],
-            "Kitzbuehel" : [12.10, 12.76, 47.24, 47.70],
+            "Default": {
+                "central_longitude": 13.25,
+                "central_latitude": 47.7,
+                "x_size": 600., "y_size": 325.}
+            # "Vienna" : [16., 16.66, 48., 48.4],
+            # "Lower_Austria" : [14.33, 17.33, 47.4, 49.2],
+            # "Upper_Austria" : [12.66, 15., 47.4, 49.],
+            # "Salzburg" : [12., 14.3, 46.8, 48.2],
+            # "Tyrol" : [10., 13., 46.6, 48.2],
+            # "Vorarlberg" : [9.33, 10.33, 46.8, 47.8],
+            # "Carinthia" : [12.66, 15.33, 46.2, 47.2],
+            # "Styria" : [13.33, 16.33, 46.2, 48.],
+            # "Burgenland" : [16., 17.33, 46.6, 48.2],
+            # "East_Tyrol" : [12., 13., 46.6, 47.2],
+            # "Wechsel" : [15.58, 16.24, 47.30, 47.76],
+            # "Nockberge" : [13.85, 14.51, 46.75, 47,21],
+            # "Kitzbuehel" : [12.10, 12.76, 47.24, 47.70],
         }
     },
     # for the Finland 2017 case, south of Finland only
@@ -186,13 +191,13 @@ class Region():
         return d
 
     def __calculate_grid_error(self, arr, val, score="bias"):
-        """ return score for array and constant val"""
+        """ return score for array and constant val, only bias working"""
         if score.lower() == "bias":
             return np.mean(arr - val)
-        elif score.lower() == "mae":
-            return np.mean(np.abs(arr-val))
-        elif score.lower() == "rmse":
-            return np.sqrt(np.mean(np.square(np.abs(arr-val))))
+        #elif score.lower() == "mae":
+        #    return np.mean(np.abs(arr-val))
+        #elif score.lower() == "rmse":
+        #    return np.sqrt(np.mean(np.square(np.abs(arr-val))))
         
 
     def __calculate_optimal_k(self, subdomain_data):
@@ -211,7 +216,7 @@ class Region():
                 if np.abs(ds[-1] - ds[-2]) < 0.0000001 or np.abs(ds[-1]) < 0.0000001:
                     # either the last iteration had very little impact or the last score was great
                     break
-                kstep = kstep * 0.66667 if np.abs(ds[-1]) < np.abs(ds[-2]) else -kstep
+                kstep = kstep * 0.5 if np.abs(ds[-1]) < np.abs(ds[-2]) else -0.5 * kstep
                 k += kstep
             else:
                 k += 0.1 * kstep # do a small step to get directions first

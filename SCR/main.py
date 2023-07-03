@@ -75,7 +75,7 @@ def parse_arguments():
     parser.add_argument('--experiments', '-e', type=str, nargs='+',
         default = None,
         help = """select experiments, if left empty/None it will select all available""")
-    parser.add_argument('--custom_models', type=str, nargs='+',
+    parser.add_argument('--custom_experiments', type=str, nargs='+',
         default = None,
         help = """add you own models not listed in DCMDB""")
     # parser.add_argument('--output_format', type=str, default='png',
@@ -183,7 +183,7 @@ def main():
     data_list = []
     if args.experiments:
         data_from_dcmdb.get_sim_and_file_list(data_list, args)
-    if args.custom_models:
+    if args.custom_experiments:
         data_io.get_sims_and_file_list(data_list, args)
     if len(data_list) == 0:
         logging.critical("No valid models found, exiting...")
