@@ -224,6 +224,7 @@ def draw_single_figure(sim, obs, r, jj, levels, cmap, norm, verification_subdoma
                     levels,cmap=cmap,transform=args.region.data_projection,
                     norm=norm, extend='max')
     c.cmap.set_over('orange')
+    ax.set_facecolor("silver")
     if args.draw_p90:
         mpl.rcParams['hatch.linewidth']=0.5
         plt.rcParams.update({'hatch.color': sim['p90_color']})
