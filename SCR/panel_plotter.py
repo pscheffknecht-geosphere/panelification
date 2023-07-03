@@ -234,6 +234,8 @@ def draw_single_figure(sim, obs, r, jj, levels, cmap, norm, verification_subdoma
     # limit drawn area, make the plot nicer and add some info
     ax.set_extent(args.region.extent)
     add_borders(ax)
+    ax.plot(get_array_edge(sim['lon']), get_array_edge(sim['lat']), 'k--', lw=0.5,
+                transform = args.region.data_projection)
     if args.draw_subdomain:
         ax.plot(get_array_edge(sim['lon_resampled']), get_array_edge(sim['lat_resampled']), 'k',
                 transform = args.region.data_projection)
