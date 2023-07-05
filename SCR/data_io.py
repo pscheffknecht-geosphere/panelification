@@ -139,6 +139,7 @@ def read_data(grib_file_path, get_lonlat_data=False):
     tmp_data_field = np.zeros(tmp_data_list[0].values.shape)
     for field in tmp_data_list:
         tmp_data_field += field.values
+    tmp_data_field = np.where(tmp_data_field==9999.0, np.nan, tmp_data_field)
     if get_lonlat_data:
         lat, lon = tmp_data_list[0].latlons()
         return lon, lat, tmp_data_field
@@ -155,17 +156,19 @@ class ModelConfiguration:
         self.experiment_name = custom_experiment_name
         cmc = custom_experiments.experiment_configurations[custom_experiment_name]
         if "base_experiment" in cmc:
-
             self.__fill_cmc_with_base_values(cmc)
         self.path_template =    cmc["path_template"]
-        self.init_intervall =   cmc["init_interval"]
+        self.init_interval =   cmc["init_interval"]
         self.max_leadtime =     cmc["max_leadtime"]
-        self.output_intervall = cmc["output_interval"]
-        # self.grib_handles =     cmc["grib_handles"]
+        self.output_interval = cmc["output_interval"]
+        self.accumulated =      cmc["accumulated"]
         self.unit_factor =      cmc["unit_factor"]
         if self.__times_valid():
-            self.end_file = self.get_file_path(self.lead_end)
-            self.start_file = self.get_file_path(self.lead)
+            if self.accumulated:
+                self.end_file = self.get_file_path(self.lead_end)
+                self.start_file = self.get_file_path(self.lead)
+            else:
+                self.file_list = self.get_file_list()
             self.valid = self.__files_valid()
             self.print()
         else:
@@ -178,7 +181,7 @@ class ModelConfiguration:
         need values, only experiments which do not refer to a base_experiment
         need all their values filled"""
         keys = ["path_template", "init_interval", "max_leadtime", 
-                "output_interval", "unit_factor"]
+                "output_interval", "unit_factor", "accumulated"]
         for key in keys:
             if not key in cmc.keys():
                 logger.debug("Replacing {:s} in {:s} with value from base_experiment {:s}:".format(
@@ -190,49 +193,73 @@ class ModelConfiguration:
     def print(self):
         logger.debug("init: {:s}".format(self.init.strftime("%Y-%m-%d %H")))
         logger.debug("lead: {:d}".format(self.lead))
-        logger.debug("start file: {:s}".format(str(self.start_file)))
-        logger.debug("end file: {:s}".format(str(self.end_file)))
         logger.debug("model is valid: {:s}".format(str(self.valid)))
+        if self.accumulated:
+            logger.debug("start file: {:s}".format(str(self.start_file)))
+            logger.debug("end file: {:s}".format(str(self.end_file)))
+        else:
+            for i, fil in enumerate(self.file_list):
+                logger.debug("file ({:d}): {:s}".format(i, str(fil)))
 
 
     def __times_valid(self):
         """ Checks the requested init and lead time to see if they
         are availabled depending on the model configuration's init
-        and lead time intervalls"""
+        and lead time intervals"""
         time_checks = [
-            self.lead%self.output_intervall == 0,
-            self.init.hour%self.init_intervall == 0,
-            self.lead_end%self.output_intervall == 0]
+            self.lead%self.output_interval == 0,
+            self.init.hour%self.init_interval == 0,
+            self.lead_end%self.output_interval == 0]
         return True if all(time_checks) else False
 
 
     def __files_valid(self):        
-        if self.start_file:
-            if not os.path.isfile(self.start_file):
-                return False
-            elif os.path.getsize(self.start_file) == 0:
-                return False
-        if not os.path.isfile(self.end_file):
-            return False
-        if os.path.getsize(self.end_file) == 0:
-            return False
+        files_to_check = [self.start_file, self.end_file] if self.accumulated else self.file_list
+        for fil in files_to_check:
+            if fil:
+                if not os.path.isfile(str(fil)): 
+                    return False
+                elif os.path.getsize(fil) == 0:
+                    return False
         return True
 
+
     def get_data(self):
+        if self.accumulated:
+            return self.__get_data_accumulated()
+        else:
+            return self.__get_data_not_accumulated()
+
+
+    def __get_data_not_accumulated(self):
+        first = True
+        for i, fil in enumerate(self.file_list):
+            logger.info("Reading file ({:d}): {:s}".format(i, fil))
+            if first:
+                lon, lat, tmp_data = read_data(fil, get_lonlat_data=True)
+                first = False
+            else:
+                tmp_data += read_data(fil)
+            print(tmp_data.min(), tmp_data.max())
+        tmp_data = np.where(tmp_data < 0., 0., tmp_data)
+        return lon, lat, self.unit_factor * tmp_data
+
+
+    def __get_data_accumulated(self):
         logger.info("Reading end file: {:s}".format(self.end_file))
         lon, lat, tmp_data = read_data(self.end_file, get_lonlat_data=True)
         if self.start_file:
-            logger.info("Reading start file: {:s}".format(self.end_file))
+            logger.info("Reading start file: {:s}".format(self.start_file))
             start_tmp_data = read_data(self.start_file)
             tmp_data -= start_tmp_data
         # clamp to 0 because apparently this difference can be negative???
-        # this is NOT a pygrib or panelification problem, happens when
+        # this is NOT a pygrib or panelification problem, also happens when
         # reading values using EPYGRAM
         # TODO: figure out if this is a problem anywhere else
         tmp_data = np.where(tmp_data < 0., 0., tmp_data) 
-        logger.info("{:s}: lon lat extent is: {:.2f} - {:.2f}, {:.2f} - {:.2f}".format(
+        logger.debug("{:s}: lon lat extent is: {:.2f} - {:.2f}, {:.2f} - {:.2f}".format(
             self.experiment_name, lon.min(), lon.max(), lat.min(), lat.max()))
-        logger.info("{:s}: Precipitation is between {:.3f} and {:.3f} mm".format(
+        logger.debug("{:s}: Precipitation is between {:.3f} and {:.3f} mm".format(
             self.experiment_name, self.unit_factor * tmp_data.min(), self.unit_factor * tmp_data.max()))
         return lon, lat, self.unit_factor * tmp_data
 
@@ -254,6 +281,16 @@ class ModelConfiguration:
             return fill_path_file_template(self.path_template, self.init, tt)
 
 
+    def get_file_list(self):
+        lead = self.lead
+        file_list = []
+        while lead <= self.lead_end:
+            file_list.append(self.get_file_path(lead))
+            lead += self.output_interval
+        return file_list
+            
+
+
 
 
 def get_sims_and_file_list(data_list, args):
@@ -263,10 +300,10 @@ def get_sims_and_file_list(data_list, args):
     else:
         leadmin = args.lead[0]
         leadmax = args.lead[1]
-    for exp_lead in range(leadmin, leadmax + 1):
-        max_lead = exp_lead + args.duration
-        exp_init_date = dt.datetime.strptime(args.start, "%Y%m%d%H") - dt.timedelta(hours=exp_lead)
-        for model_name in args.custom_experiments:
+    for model_name in args.custom_experiments:
+        for exp_lead in reversed(range(leadmin, leadmax + 1)):
+            max_lead = exp_lead + args.duration
+            exp_init_date = dt.datetime.strptime(args.start, "%Y%m%d%H") - dt.timedelta(hours=exp_lead)
             logger.debug("Checking for {:s} at {:s}".format(
                 model_name, exp_init_date.strftime("%Y-%m-%d %H")))
             mod = ModelConfiguration(model_name, exp_init_date, exp_lead, args.duration)
@@ -278,8 +315,8 @@ def get_sims_and_file_list(data_list, args):
                     "conf": model_name,
                     "init": exp_init_date,
                     "name": "{:s} {:s}".format(model_name, exp_init_date.strftime("%Y-%m-%d %H")),
-                    "start_file": mod.file_path(exp_lead),
-                    "end_file": mod.end_file,
+                    # "start_file": mod.file_path(exp_lead),
+                    # "end_file": mod.end_file,
                     # "grib_handles": mod.grib_handles,
                     "lon": lon,
                     "lat": lat,
