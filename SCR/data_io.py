@@ -77,13 +77,13 @@ def check_fields(f):
     except:
         pass
     try:
-        f.select(indicatorOfParameter=197, indicatorOfTypeOfLevel=1, level=0)
-        f.select(indicatorOfParameter=198, indicatorOfTypeOfLevel=1, level=0)
-        f.select(indicatorOfParameter=199, indicatorOfTypeOfLevel=1, level=0)
+        f.select(indicatorOfParameter=197) #, indicatorOfTypeOfLevel=1, level=0)
+        f.select(indicatorOfParameter=198) #, indicatorOfTypeOfLevel=1, level=0)
+        f.select(indicatorOfParameter=199) #, indicatorOfTypeOfLevel=1, level=0)
         return [
-            {"indicatorOfParameter": 197,"indicatorOfTypeOfLevel": 1,"level": 0},
-            {"indicatorOfParameter": 198,"indicatorOfTypeOfLevel": 1,"level": 0},
-            {"indicatorOfParameter": 199,"indicatorOfTypeOfLevel": 1,"level": 0}]
+            {"indicatorOfParameter": 197}, #, "indicatorOfTypeOfLevel": 1, "level": 0},
+            {"indicatorOfParameter": 198}, #, "indicatorOfTypeOfLevel": 1, "level": 0},
+            {"indicatorOfParameter": 199}] #, "indicatorOfTypeOfLevel": 1, "level": 0}]
     except:
         pass
     try:
@@ -96,7 +96,26 @@ def check_fields(f):
             {"parameterNumber": 75}]
     except:
         pass
-    logging.ciritical("No valid grib handles found in file".format(str(f)))
+    try:
+        f.select(parameterNumber=55)
+        f.select(parameterNumber=56)
+        f.select(parameterNumber=76)
+        f.select(parameterNumber=77)
+        return [
+            {"parameterNumber": 55}, 
+            {"parameterNumber": 56}, 
+            {"parameterNumber": 76}, 
+            {"parameterNumber": 77}]
+    except:
+        pass
+    try:
+        f.select(shortName="RAIN_CON")
+        f.select(shortName="RAIN_GSP")
+        f.select(shortName="SNOW_CON")
+        f.select(shortName="SNOW_GSP")
+    except:
+        pass
+    logger.critical("No valid grib handles found in file".format(str(f)))
     exit()
 
 
@@ -180,19 +199,12 @@ class ModelConfiguration:
         """ Checks the requested init and lead time to see if they
         are availabled depending on the model configuration's init
         and lead time intervalls"""
-        # logger.debug("Init inverval: {:d}".format(self.init_intervall))
-        # logger.debug("Init hour: {:d}".format(self.init.hour))
-        # logger.debug("Output inverval: {:d}".format(self.output_intervall))
-        # logger.debug("Output hour: {:d}".format(self.lead))
-        # logger.debug("Output hour: {:d}".format(self.lead_end))
         time_checks = [
             self.lead%self.output_intervall == 0,
             self.init.hour%self.init_intervall == 0,
             self.lead_end%self.output_intervall == 0]
-        logger.debug("init time divisible by init interval: {:s}".format(str(time_checks[1])))
-        logger.debug("start lead time divisible by output interval: {:s}".format(str(time_checks[0])))
-        logger.debug("end lead time divisible by output interval: {:s}".format(str(time_checks[2])))
         return True if all(time_checks) else False
+
 
     def __files_valid(self):        
         if self.start_file:
@@ -207,10 +219,17 @@ class ModelConfiguration:
         return True
 
     def get_data(self):
+        logger.info("Reading end file: {:s}".format(self.end_file))
         lon, lat, tmp_data = read_data(self.end_file, get_lonlat_data=True)
         if self.start_file:
+            logger.info("Reading start file: {:s}".format(self.end_file))
             start_tmp_data = read_data(self.start_file)
             tmp_data -= start_tmp_data
+        # clamp to 0 because apparently this difference can be negative???
+        # this is NOT a pygrib or panelification problem, happens when
+        # reading values using EPYGRAM
+        # TODO: figure out if this is a problem anywhere else
+        tmp_data = np.where(tmp_data < 0., 0., tmp_data) 
         logger.info("{:s}: lon lat extent is: {:.2f} - {:.2f}, {:.2f} - {:.2f}".format(
             self.experiment_name, lon.min(), lon.max(), lat.min(), lat.max()))
         logger.info("{:s}: Precipitation is between {:.3f} and {:.3f} mm".format(
@@ -224,7 +243,6 @@ class ModelConfiguration:
         path = fill_path_file_template(self.path_template, self.init, l)
         if self.experiment_name == "ifs-highres" and not os.path.isfile(path):
             path = mars_request(self.init, l)
-        logger.info("Got path: {:s}".format(path))
         return path
             
     
@@ -249,7 +267,7 @@ def get_sims_and_file_list(data_list, args):
         max_lead = exp_lead + args.duration
         exp_init_date = dt.datetime.strptime(args.start, "%Y%m%d%H") - dt.timedelta(hours=exp_lead)
         for model_name in args.custom_experiments:
-            logging.debug("Checking for {:s} at {:s}".format(
+            logger.debug("Checking for {:s} at {:s}".format(
                 model_name, exp_init_date.strftime("%Y-%m-%d %H")))
             mod = ModelConfiguration(model_name, exp_init_date, exp_lead, args.duration)
             if mod.valid:
