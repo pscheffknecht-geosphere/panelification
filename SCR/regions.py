@@ -45,14 +45,18 @@ regions = {
         }
     },
     "Austria": {
-        "central_longitude": 15.,
+        "central_longitude": 13.,
         "central_latitude": 48.3,
-        "extent": [9., 17.5, 45.5, 49.5],
+        "extent": [9., 17.5, 46., 49.4],
         "verification_subdomains": {
             "Default": {
                 "central_longitude": 13.25,
                 "central_latitude": 47.7,
-                "x_size": 600., "y_size": 325.}
+                "x_size": 600., "y_size": 325.},
+            "Lower_Austria": {
+                "central_longitude": 15.83, "central_latitude": 48.31,
+                "x_size": 222., "y_size": 200.
+            },
             # "Vienna" : [16., 16.66, 48., 48.4],
             # "Lower_Austria" : [14.33, 17.33, 47.4, 49.2],
             # "Upper_Austria" : [12.66, 15., 47.4, 49.],
