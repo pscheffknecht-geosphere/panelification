@@ -14,6 +14,7 @@ experiment_configurations = {
         "init_interval"    : 3,
         "output_interval"  : 1,
         "max_leadtime"     : 60, 
+        "accumulated"      : True,
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/arome_%H+%LLLL.grb",
         "unit_factor"      : 1.
         },
@@ -22,6 +23,7 @@ experiment_configurations = {
         "init_interval"    : 1,
         "output_interval"  : 1,
         "max_leadtime"     : 12, 
+        "accumulated"      : True,
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/aromeruc_%H+%LLLL.00.grb",
         },
     "ifs-highres": {
@@ -56,10 +58,6 @@ experiment_configurations = {
         "base_experiment"  : "arome",
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef1k-median_%H+%LLLL.grb",
     },
-    "cosmo1e": {
-        "base_experiment"  : "arome",
-        "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/cosmo1e_%H+%LLLL.grb2",
-    },
     "icon": {
         "base_experiment"  : "arome",
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/icon_%H+%LLLL.grb",
@@ -75,6 +73,14 @@ experiment_configurations = {
     "arpege": {
         "base_experiment"  : "arome",
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/arpege_%H+%LLLL.grb",
+    },
+    "cosmo1e": {
+        "init_interval"    : 3,
+        "output_interval"  : 1, 
+        "max_leadtime"     : 33,
+        "accumulated"      : False,
+        "unit_factor"      : 1.,
+        "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/cosmo1e_%H+%LLLL.grb2",
     },
 }
 
