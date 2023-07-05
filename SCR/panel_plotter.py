@@ -50,20 +50,20 @@ def add_scores(ax, sim, rank_colors):
     color ...... list of colors for each rank"""
     ax.text(0.1, 0.9, "BIAS: {:.3f} ({})".format(sim['bias_real'], sim['rank_bias']), va='top', ha='left',
             rotation='horizontal', rotation_mode='anchor',
-            transform=ax.transAxes,size='medium', backgroundcolor=rank_colors[sim['rank_bias']])
+            transform=ax.transAxes,size=8, backgroundcolor=rank_colors[sim['rank_bias']])
     ax.text(0.1, 0.75, "MAE: {:.3f} ({})".format(sim['mae'], sim['rank_mae']), va='top', ha='left',
             rotation='horizontal', rotation_mode='anchor',
-            transform=ax.transAxes,size='medium', backgroundcolor=rank_colors[sim['rank_mae']])
+            transform=ax.transAxes,size=8, backgroundcolor=rank_colors[sim['rank_mae']])
     ax.text(0.1, 0.60, "RMSE: {:.3f} ({})".format(sim['rms'], sim['rank_rms']), va='top', ha='left',
             rotation='horizontal', rotation_mode='anchor',
-            transform=ax.transAxes,size='medium', backgroundcolor=rank_colors[sim['rank_rms']])
+            transform=ax.transAxes,size=8, backgroundcolor=rank_colors[sim['rank_rms']])
     ax.text(0.1, 0.45, "R$_{{pearson}}$: {:.3f} ({})".format(sim['corr'], sim['rank_corr']), va='top', ha='left',
             rotation='horizontal', rotation_mode='anchor',
-            transform=ax.transAxes,size='medium', backgroundcolor=rank_colors[sim['rank_corr']])
+            transform=ax.transAxes,size=8, backgroundcolor=rank_colors[sim['rank_corr']])
     if sim['d90'] < 9999.:
         ax.text(0.1, 0.30, "D$_{{90}}$: {:.1f} km ({})".format(sim['d90'], sim['rank_d90']), va='top', ha='left',
                 rotation='horizontal', rotation_mode='anchor',
-                transform=ax.transAxes,size='medium', backgroundcolor=rank_colors[sim['rank_d90']])
+                transform=ax.transAxes,size=8, backgroundcolor=rank_colors[sim['rank_d90']])
     # ax.text(1.00, 1.03, "AVG Rank: {:.2f} ({})".format(sim['average_rank'], sim['rank_average_rank']), va='top', ha='right',
     #         rotation='horizontal', rotation_mode='anchor',
     #         transform=ax.transAxes,size='large', 
@@ -87,7 +87,7 @@ def make_fss_rank_plot_axes(ax, args):
     # use ha and va to place labels between tickmarks
     ax.set_xticklabels(xlabels, rotation='vertical', ha='left')
     ax.set_yticklabels(ylabels, va='top')
-    # ax.tick_params(axis='both', which='major', labelsize=5)
+    ax.tick_params(axis='both', which='major', labelsize=7)
     # return ax
 
 
@@ -166,20 +166,22 @@ def arrange_subplots(r, clean=False):
     r .......... float, aspect ratio of the map plot
     clean ...... boolean, omit the smaller panels if no scores are desired
     Returns: 4 lists with the positions and sizes of the subplots"""
-    total_height = 4.80
+    total_height = 3.5 #4.80
+    pad = total_height / 12.
+    height = total_height - 2. * pad
     if clean:
-        total_width = 4. / r + 0.80
-        map_left = .40 / total_width
+        total_width = total_height - 2 * pad / r + 2 * pad
+        map_left = pad / total_width
     else:
-        total_width = 2. + 4. / r + 0.80
-        map_left = 2.40 / total_width
-    map_bottom = 0.40 / total_height
-    map_height = 4. / total_height
-    map_width = 4. / r / total_width
-    small_left = 0.40 / total_width
-    small_width = 2. / total_width
-    small_height = 2. / total_height
-    score_bottom = 2.4 / total_height
+        total_width = 0.5 * height + height / r + 2 * pad
+        map_left = (0.5 * height + pad)  / total_width
+    map_bottom = pad / total_height
+    map_height = height / total_height
+    map_width = height / r / total_width
+    small_left = pad / total_width
+    small_width = 0.5 * height / total_width
+    small_height = 0.5 * height / total_height
+    score_bottom = (0.5 * height + pad) / total_height
     fss_bottom = map_bottom
     map_coords = [map_left, map_bottom, map_width, map_height]
     score_coords = [small_left, score_bottom, small_width, small_height]
