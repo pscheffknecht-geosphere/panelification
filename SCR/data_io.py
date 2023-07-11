@@ -240,7 +240,6 @@ class ModelConfiguration:
                 first = False
             else:
                 tmp_data += read_data(fil)
-            print(tmp_data.min(), tmp_data.max())
         tmp_data = np.where(tmp_data < 0., 0., tmp_data)
         return lon, lat, self.unit_factor * tmp_data
 

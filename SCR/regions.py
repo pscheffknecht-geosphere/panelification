@@ -164,6 +164,7 @@ class Region():
             orig_def, data, targ_def, 
             radius_of_influence=25000, neighbours=20,
             sigmas=250000, fill_value=None)
+        data_resampled = np.where(data_resampled > 9999., np.nan, data_resampled)
         if np.isnan(data_resampled).sum() > 0:
             if fix_nans:
                 logging.warning("--fix_nans is set to True, replaced {:d} NaNs with 0.!".format(
