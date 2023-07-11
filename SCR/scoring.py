@@ -262,13 +262,13 @@ def calc_scores(sim, obs, args):
         mae = np.mean(np.abs(sim["precip_data_resampled"]-obs["precip_data_resampled"]))
         rms = np.sqrt(np.mean(np.square(sim["precip_data_resampled"]-obs["precip_data_resampled"])))
         corr = np.corrcoef(sim["precip_data_resampled"].flatten(),obs["precip_data_resampled"].flatten())[0,1]
-        fss_num, fss_den, fss = fss_functions.fss_frame(sim["precip_data_resampled"],obs["precip_data_resampled"],windows,levels,percentiles=False)
-        fssp_num, fssp_den, fssp = fss_functions.fss_frame(
+        fss_num, fss_den, fss, ovest = fss_functions.fss_frame(sim["precip_data_resampled"],obs["precip_data_resampled"],windows,levels,percentiles=False)
+        fssp_num, fssp_den, fssp, ovestp = fss_functions.fss_frame(
                 np.copy(sim["precip_data_resampled"]),
                 np.copy(obs["precip_data_resampled"]),
                 windows,percs,percentiles=True) # circumvent numpy issue #21524
-        #fssp_num, fssp_den, fssp = fss_functions.fss_frame(sim["precip_data_resampled"],obs["precip_data_resampled"],windows,percs,percentiles=True)
         fssf = pd.concat((fss, fssp), axis=0)
+        ovestf = pd.concat((ovest, ovestp), axis=0)
         sim['bias'] = np.abs(bias)
         sim['bias_real'] = bias
         sim['mae'] = mae
@@ -281,6 +281,7 @@ def calc_scores(sim, obs, args):
         sim['fss_den'] = fss_den
         sim['fssp_den'] = fssp_den
         sim['fssf'] = fssf
+        sim['fss_overestimated'] = ovestf
         sim['d90'] = fss_d90(sim["precip_data_resampled"], obs["precip_data_resampled"])
     return(sim)
 

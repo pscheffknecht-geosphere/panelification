@@ -85,11 +85,45 @@ def make_fss_rank_plot_axes(ax, args):
     xlabels = [xticks[i] if t not in xdict.keys() else xdict[t] for i,t in enumerate(xticks)]
     ylabels = [yticks[i] if t not in ydict.keys() else ydict[t] for i,t in enumerate(yticks)]
     # use ha and va to place labels between tickmarks
-    ax.set_xticklabels(xlabels, rotation='vertical', ha='left')
-    ax.set_yticklabels(ylabels, va='top')
+    ax.set_xticklabels(xlabels, rotation='vertical') #, ha='left')
+    ax.set_yticklabels(ylabels) #, va='top')
     ax.tick_params(axis='both', which='major', labelsize=7)
     # return ax
 
+
+def add_fss_plot_new(ax, sim, rank_vmax, jj, args):
+    fss_rank_cols = ['white']*rank_vmax
+    fss_rank_cols[0:5] = ['black', 'firebrick', 'limegreen', 'gold', 'silver', 'darkorange']
+    fss_cmap = mplcolors.ListedColormap(fss_rank_cols)
+    # add rank diagram for FSS
+    extent = (0, sim['fss_ranks'].shape[1], sim['fss_ranks'].shape[0], 0)
+    ny, nx = sim['fss_ranks'].shape
+    pad = 0.05
+    for yy in range(ny):
+        for xx in range(nx):
+            xedge = -0.5 + np.array([xx+pad, xx+pad, xx+1-pad, xx+1-pad, xx+pad])
+            yedge = -0.5 + np.array([yy+pad, yy+1-pad, yy+1-pad, yy+pad, yy+pad])
+            col = fss_rank_cols[sim['fss_ranks'][yy, xx]]
+            if sim['fss_ranks'][yy, xx] == 1 and yy < 10: #only for bad but not nan
+                if sim['fss_overestimated'].to_numpy()[yy,xx] > 0.:
+                    xedget = -0.5 + np.array([xx+3*pad, xx+1-3*pad, xx+0.5, xx+3*pad])
+                    yedget = -0.5 + np.array([yy+1-3*pad, yy+1-3*pad, yy+3*pad, yy+1-3*pad])
+                    col = 'navy'
+                else:
+                    xedget = -0.5 + np.array([xx+3*pad, xx+1-3*pad, xx+0.5, xx+3*pad])
+                    yedget = -0.5 + np.array([yy+3*pad, yy+3*pad, yy+1-3*pad, yy+3*pad])
+                    col = 'firebrick'
+            if yy == 10:
+                col = 'black' # fix red separation line for fiels that contain nans
+            ax.fill(xedge, yedge, facecolor=col)
+            if sim['fss_ranks'][yy, xx] == 1 and yy < 10: #only for bad but not nan
+                ax.fill(xedget, yedget, facecolor='white')
+    make_fss_rank_plot_axes(ax, args)
+    ax.set_xlim([-0.5, nx-0.5])
+    ax.set_ylim([ny-0.5, -0.5])
+    #ax.set_aspect(float(nx)/float(ny))
+    # ax.grid(color='w', linewidth=0.5)
+            
 
 def add_fss_plot(ax, sim, rank_vmax, jj, args):
     """ Generate the FSS rank plot
@@ -112,6 +146,9 @@ def add_fss_plot(ax, sim, rank_vmax, jj, args):
         ax.imshow(sim['fss_rel'], cmap = "RdYlBu", vmin = -0.05, vmax=0.05, extent=extent)
         ax.imshow(low_mask, cmap="Greys", vmin=-0.3, vmax=1., extent=extent)
         ax.imshow(high_mask, cmap="Greys", vmin=-1., vmax=0., extent=extent)
+    ovest = sim['fss_overestimated']
+    ovest = np.where(sim['fss_ranks'] == 1, ovest, np.nan)
+    ax.imshow(ovest, cmap='coolwarm_r', vmin=-1., vmax=1., extent=extent)
     ax.grid(color='w', linewidth=0.5)
     ax = make_fss_rank_plot_axes(ax, args)
 
@@ -185,7 +222,7 @@ def arrange_subplots(r, clean=False):
     fss_bottom = map_bottom
     map_coords = [map_left, map_bottom, map_width, map_height]
     score_coords = [small_left, score_bottom, small_width, small_height]
-    fss_coords = [small_left, fss_bottom, small_width, small_height]
+    fss_coords = [small_left+0.05*pad, fss_bottom, small_width*0.9, small_height]
     return total_width, total_height, map_coords, score_coords, fss_coords
 
 def draw_single_figure(sim, obs, r, jj, levels, cmap, norm, verification_subdomain, rank_colors, max_rank, args, tmp_string):
@@ -228,6 +265,9 @@ def draw_single_figure(sim, obs, r, jj, levels, cmap, norm, verification_subdoma
     c.cmap.set_over('orange')
     ax.set_facecolor("silver")
     if args.draw_p90:
+        p90 = np.percentile(np.copy(sim['precip_data_resampled']), 90) # circumvent numpy bug #21524
+        sim['rr90'] = np.where(sim['precip_data_resampled'] > p90, 1, 0)
+        sim['p90_color'] = 'black' if p90 <= 10. else 'white'
         mpl.rcParams['hatch.linewidth']=0.5
         plt.rcParams.update({'hatch.color': sim['p90_color']})
         ax.contourf(sim['lon_resampled'], sim['lat_resampled'], sim['rr90'], 
@@ -256,7 +296,7 @@ def draw_single_figure(sim, obs, r, jj, levels, cmap, norm, verification_subdoma
         transform=ax.transAxes,size='large',
         bbox=dict(boxstyle='round', fc=panel_title_fc, ec='black', pad=0.2))
     if jj > 0 and not args.clean:
-        add_fss_plot(ax_fss, sim, max_rank, jj, args)
+        add_fss_plot_new(ax_fss, sim, max_rank, jj, args)
         add_scores(ax_scores, sim, rank_colors)
     gl = ax.gridlines(crs=args.region.data_projection, draw_labels=False, dms=True, x_inline=False, y_inline=False)
     gl.left_labels=False
