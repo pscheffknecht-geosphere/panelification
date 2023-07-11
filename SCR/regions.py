@@ -55,7 +55,13 @@ regions = {
                 "x_size": 600., "y_size": 325.},
             "Lower_Austria": {
                 "central_longitude": 15.83, "central_latitude": 48.31,
-                "x_size": 222., "y_size": 200.
+                "x_size": 222., "y_size": 200.},
+            "Carinthia": {
+                'central_longitude': 14.00, 'central_latitude': 46.7, 
+                'x_size': 210, 'y_size': 111},
+            "Styria": {
+                'central_longitude': 14.83, 'central_latitude': 47.1, 
+                'x_size': 221, 'y_size': 200},
             },
             # "Vienna" : [16., 16.66, 48., 48.4],
             # "Lower_Austria" : [14.33, 17.33, 47.4, 49.2],
@@ -70,7 +76,6 @@ regions = {
             # "Wechsel" : [15.58, 16.24, 47.30, 47.76],
             # "Nockberge" : [13.85, 14.51, 46.75, 47,21],
             # "Kitzbuehel" : [12.10, 12.76, 47.24, 47.70],
-        }
     },
     # for the Finland 2017 case, south of Finland only
     "Finland": {
