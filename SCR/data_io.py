@@ -282,7 +282,7 @@ class ModelConfiguration:
 
 
     def get_file_list(self):
-        lead = self.lead
+        lead = self.lead + 1
         file_list = []
         while lead <= self.lead_end:
             file_list.append(self.get_file_path(lead))
