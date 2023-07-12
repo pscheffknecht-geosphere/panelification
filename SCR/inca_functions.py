@@ -95,7 +95,7 @@ def INCA_grid(INCAplus=False):
         NX=701
         NY=401
         X=20.+np.arange(NX) #*1000.
-        Y=190.+np.arange(NY) #*1000.
+        Y=220.+np.arange(NY) #*1000.
     XX,YY=np.meshgrid(X,Y)
     lon_INCA,lat_INCA=myproj(XX,YY,inverse=True)
     logging.debug("############################################################################")
