@@ -188,7 +188,6 @@ def draw_solo_colorbar(levels, cmap, norm, tmp_string, args):
         ax_rr = fig.add_axes([0.1,0.8,0.8,0.1])
     cb = mpl.colorbar.ColorbarBase(ax_rr, cmap=cmap, norm=norm, 
         orientation='horizontal', ticks=levels, extend='max')
-    cb.cmap.set_over('orange')
     cb.cmap.set_bad('gray')
     cb.set_label(parameter_settings.colorbar_label[args.parameter])
     plt.savefig('../TMP/'+tmp_string+'/cbar.png')
@@ -207,7 +206,7 @@ def arrange_subplots(r, clean=False):
     pad = total_height / 12.
     height = total_height - 2. * pad
     if clean:
-        total_width = total_height - 2 * pad / r + 2 * pad
+        total_width = (total_height - 2 * pad) / r + 2 * pad
         map_left = pad / total_width
     else:
         total_width = 0.5 * height + height / r + 2 * pad
@@ -262,7 +261,7 @@ def draw_single_figure(sim, obs, r, jj, levels, cmap, norm, verification_subdoma
     c = ax.contourf(lon, lat, precip_data_smooth,
                     levels,cmap=cmap,transform=args.region.data_projection,
                     norm=norm, extend='max')
-    c.cmap.set_over('orange')
+    # c.cmap.set_over('orange')
     ax.set_facecolor("silver")
     if args.draw_p90:
         p90 = np.percentile(np.copy(sim['precip_data_resampled']), 90) # circumvent numpy bug #21524
@@ -342,6 +341,7 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
     r, cols, lins = define_panel_and_plot_dimensions(data_list, args)
     logger.info("generating a panel plot with {} lines and {} columns".format(lins, cols))
     levels, cmap, norm = parameter_settings.get_cmap_and_levels(args)
+    cmap.set_over('orange')
     rank_colors = 500*['white']
     rank_colors[1:3] = ['gold', 'silver', 'darkorange']
     # init projections
