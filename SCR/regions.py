@@ -160,10 +160,9 @@ class Region():
             lats = self.subdomains[subdomain_name]["lat"])
         orig_def = pyresample.geometry.SwathDefinition(
             lons=lon, lats=lat)
-        data_resampled =  pyresample.kd_tree.resample_gauss(
-            orig_def, data, targ_def, 
-            radius_of_influence=25000, neighbours=20,
-            sigmas=250000, fill_value=None)
+        data_resampled =  pyresample.kd_tree.resample_nearest(
+            orig_def, data, targ_def, reduce_data=False,
+            radius_of_influence=radius_of_influence)
         data_resampled = np.where(data_resampled > 9999., np.nan, data_resampled)
         if np.isnan(data_resampled).sum() > 0:
             if fix_nans:
