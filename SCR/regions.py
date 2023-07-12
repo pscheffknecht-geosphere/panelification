@@ -45,14 +45,24 @@ regions = {
         }
     },
     "Austria": {
-        "central_longitude": 15.,
+        "central_longitude": 13.,
         "central_latitude": 48.3,
-        "extent": [9., 17.5, 45.5, 49.5],
+        "extent": [9., 17.5, 46., 49.4],
         "verification_subdomains": {
             "Default": {
                 "central_longitude": 13.25,
                 "central_latitude": 47.7,
-                "x_size": 600., "y_size": 325.}
+                "x_size": 600., "y_size": 325.},
+            "Lower_Austria": {
+                "central_longitude": 15.83, "central_latitude": 48.31,
+                "x_size": 222., "y_size": 200.},
+            "Carinthia": {
+                'central_longitude': 14.00, 'central_latitude': 46.7, 
+                'x_size': 210, 'y_size': 111},
+            "Styria": {
+                'central_longitude': 14.83, 'central_latitude': 47.1, 
+                'x_size': 221, 'y_size': 200},
+            },
             # "Vienna" : [16., 16.66, 48., 48.4],
             # "Lower_Austria" : [14.33, 17.33, 47.4, 49.2],
             # "Upper_Austria" : [12.66, 15., 47.4, 49.],
@@ -66,7 +76,6 @@ regions = {
             # "Wechsel" : [15.58, 16.24, 47.30, 47.76],
             # "Nockberge" : [13.85, 14.51, 46.75, 47,21],
             # "Kitzbuehel" : [12.10, 12.76, 47.24, 47.70],
-        }
     },
     # for the Finland 2017 case, south of Finland only
     "Finland": {
@@ -151,10 +160,10 @@ class Region():
             lats = self.subdomains[subdomain_name]["lat"])
         orig_def = pyresample.geometry.SwathDefinition(
             lons=lon, lats=lat)
-        data_resampled =  pyresample.kd_tree.resample_gauss(
-            orig_def, data, targ_def, 
-            radius_of_influence=25000, neighbours=20,
-            sigmas=250000, fill_value=None)
+        data_resampled =  pyresample.kd_tree.resample_nearest(
+            orig_def, data, targ_def, reduce_data=False,
+            radius_of_influence=radius_of_influence)
+        data_resampled = np.where(data_resampled > 9999., np.nan, data_resampled)
         if np.isnan(data_resampled).sum() > 0:
             if fix_nans:
                 logging.warning("--fix_nans is set to True, replaced {:d} NaNs with 0.!".format(
