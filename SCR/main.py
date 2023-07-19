@@ -68,6 +68,11 @@ def parse_arguments():
     parser.add_argument('--subdomains', '-u', type=str, default=["Default"], nargs='+',
         help = """ Select verification subdomains
             Subdomains are defined in regions.py for each region""")
+    parser.add_argument('--sorting', type=str, default='model',
+        help = """Sorting of the panels
+            default ... sort by model as given in the arguments
+            model ..... sort by model name
+            init ...... sort by init time""")
     parser.add_argument('--draw_subdomain', nargs='?', default=True, const=True, type=str2bool,
         help = "Draw a rectangle to show the verification subdomain")
     parser.add_argument('--case', '-c', type=str, nargs='+', default="austria_2022",
@@ -205,6 +210,10 @@ def main():
     #     logging.critical("Parameter {:s} unknown, accepted parameters: precip, sunshine, hail, lightning".format(
     #         args.parameter))
     #     exit(1)
+    if args.sorting == 'init':
+        newlist = sorted(data_list[1::], key=lambda d: d['init']) 
+        newlist.insert(0, data_list[0])
+        data_list = newlist
     df_subdomain_details = scan_obs.get_interesting_subdomains(data_list[0], args)
     for _, dom in df_subdomain_details.iterrows():
         subdomain_name = dom['name']
