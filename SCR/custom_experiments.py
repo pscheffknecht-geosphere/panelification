@@ -26,6 +26,10 @@ experiment_configurations = {
         "accumulated"      : True,
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/aromeruc_%H+%LLLL.00.grb",
         },
+    "aromeesuite": {
+        "base_experiment"  : "arome",
+        "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/aromeesuite_%H+%LLLL.grb"
+        },
     "ifs-highres": {
         "init_interval"    : 6,
         "output_interval"  : 1, # 3 for some lead times, but panelification can sort that out
