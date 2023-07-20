@@ -219,6 +219,14 @@ def write_scores_to_csv(data_list, start_date, end_date, args, verification_subd
     return score_table, score_table2, col_labels2, col_labels3, row_labels
 
 
+def prep_windows(ww, mode, nx, ny):
+    windows_shape = (len(ww), 2)
+    windows_ret = np.zeros(windows_shape, dtype=int)
+    for idx, w in enumerate(ww):
+        windows_ret[idx, 0] = ny if mode == 'valid_adaptive' and w > ny else w
+        windows_ret[idx, 1] = nx if mode == 'valid_adaptive' and w > nx else w
+    return windows_ret
+        
 def calc_scores(sim, obs, args):
     """
     calculate verification metrics MAE, RMSE, BIAS and CORRELATION COEFFICIENT
@@ -230,6 +238,8 @@ def calc_scores(sim, obs, args):
     percs=[25, 50, 75, 90, 95]
     levels = parameter_settings.get_fss_thresholds(args)
     windows=[10,20,30,40,60,80,100,120,140,160,180,200]
+    ny, nx = sim["precip_data_resampled"].shape
+    windows = prep_windows(windows, args.fss_calc_mode, nx, ny)
     if sim['conf'] == 'INCA' or sim['conf'] == 'OPERA':
         sim['bias'] = 999
         sim['mae'] = 999
@@ -262,11 +272,14 @@ def calc_scores(sim, obs, args):
         mae = np.mean(np.abs(sim["precip_data_resampled"]-obs["precip_data_resampled"]))
         rms = np.sqrt(np.mean(np.square(sim["precip_data_resampled"]-obs["precip_data_resampled"])))
         corr = np.corrcoef(sim["precip_data_resampled"].flatten(),obs["precip_data_resampled"].flatten())[0,1]
-        fss_num, fss_den, fss, ovest = fss_functions.fss_frame(sim["precip_data_resampled"],obs["precip_data_resampled"],windows,levels,percentiles=False)
+        fss_num, fss_den, fss, ovest = fss_functions.fss_frame(
+            sim["precip_data_resampled"],
+            obs["precip_data_resampled"],
+            windows,levels,percentiles=False, mode=args.fss_calc_mode.replace("_adaptive", ""))
         fssp_num, fssp_den, fssp, ovestp = fss_functions.fss_frame(
-                np.copy(sim["precip_data_resampled"]),
-                np.copy(obs["precip_data_resampled"]),
-                windows,percs,percentiles=True) # circumvent numpy issue #21524
+            np.copy(sim["precip_data_resampled"]), # circumvent numpy issue #21524
+            np.copy(obs["precip_data_resampled"]), # circumvent numpy issue #21524
+            windows,percs,percentiles=True, mode=args.fss_calc_mode.replace("_adaptive", "")) 
         fssf = pd.concat((fss, fssp), axis=0)
         ovestf = pd.concat((ovest, ovestp), axis=0)
         sim['bias'] = np.abs(bias)
@@ -282,11 +295,11 @@ def calc_scores(sim, obs, args):
         sim['fssp_den'] = fssp_den
         sim['fssf'] = fssf
         sim['fss_overestimated'] = ovestf
-        sim['d90'] = fss_d90(sim["precip_data_resampled"], obs["precip_data_resampled"])
+        sim['d90'] = fss_d90(sim["precip_data_resampled"], obs["precip_data_resampled"], args)
     return(sim)
 
 
-def fss_d90(rrm, rro):
+def fss_d90(rrm, rro, args):
     """
     arr .... array-like
 
@@ -296,6 +309,7 @@ def fss_d90(rrm, rro):
     """
     # consistency check
     windows = [1, 3, 5, 7, 11, 21, 31, 41, 51, 61, 81, 101, 121, 141, 181, 251, 351, 501, 701]
+    windows_2d = prep_windows(windows, args.mode, *rrm.shape)
     levels = [0.5]
     _rro = np.where(rro > np.percentile(np.copy(rro), 90), 1, 0)
     rrm = np.where(rrm > np.percentile(np.copy(rrm), 90), 1, 0) # circumvent numpy issue #21524
@@ -306,7 +320,8 @@ def fss_d90(rrm, rro):
         logger.warning("No precipitation in model array, returning no d90!")
         return np.nan
     overlap = float(np.sum(_rro*rrm))/float(np.sum(rrm))
-    arr = fss_functions.fss_strip(rro_s, rrm_s, windows, levels).values.flatten()
+    _, _, _arr, _ = fss_functions.fss_frame(rro_s, rrm_s, windows_2d, levels, args.fss_calc_mode)
+    arr = _arr.values.flatten()
     for ii in range(1,len(arr)):
         if arr[ii] - arr[ii-1] < 0:
             logger.info("non-monotonous array in argument, returning no d90!")
