@@ -62,6 +62,9 @@ regions = {
             "Styria": {
                 'central_longitude': 14.83, 'central_latitude': 47.1, 
                 'x_size': 221, 'y_size': 200},
+            "Vienna": {
+                'central_longitude': 16.33, 'central_latitude': 48.20,
+                'x_size': 40, 'y_size': 40},
             },
             # "Vienna" : [16., 16.66, 48., 48.4],
             # "Lower_Austria" : [14.33, 17.33, 47.4, 49.2],
@@ -162,7 +165,7 @@ class Region():
             lons=lon, lats=lat)
         data_resampled =  pyresample.kd_tree.resample_nearest(
             orig_def, data, targ_def, reduce_data=False,
-            radius_of_influence=radius_of_influence)
+            radius_of_influence=25000.)
         data_resampled = np.where(data_resampled > 9999., np.nan, data_resampled)
         if np.isnan(data_resampled).sum() > 0:
             if fix_nans:
