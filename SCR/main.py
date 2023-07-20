@@ -111,6 +111,7 @@ def parse_arguments():
     parser.add_argument('--save', nargs='?', default=False, const=True, type=str2bool,
         help = 'save full fields to pickle files')
     parser.add_argument('--fss_mode', type=str, default='ranks')
+    parser.add_argument('--fss_calc_mode', type=str, default='same')
     parser.add_argument('--save_full_fss', nargs='?', default=False, const=True, type=str2bool,
         help = 'save full FSS, including numerator and denominator')
     parser.add_argument('--hidden', nargs='?', default=False, const=True, type=str2bool,
@@ -121,6 +122,8 @@ def parse_arguments():
     parser.add_argument('--loglevel', type=str, default='info',
         help = """Logging level:
           debug, info, warning, error""")
+    parser.add_argument('--rank_score_time_series', nargs='?', default=False, const=True, type=str2bool,
+        help = """Draw line plots of model performance, init on x axis, score on y axis""")
     args = parser.parse_args()
     init_logging(args)
     # replace the string object with a proper instance of Region
@@ -223,7 +226,7 @@ def main():
                 sim["lon_resampled"] = _lon
                 sim["lat_resampled"] = _lat
                 sim["precip_data_resampled"] = _data
-            Parallel(n_jobs=6,backend='threading')(delayed(scoring.calc_scores)(sim, data_list[0], args) for ii, sim in enumerate(data_list))
+            Parallel(n_jobs=1,backend='threading')(delayed(scoring.calc_scores)(sim, data_list[0], args) for ii, sim in enumerate(data_list))
             scoring.rank_scores(data_list)
             scoring.total_fss_rankings(data_list)
         else:

@@ -104,7 +104,7 @@ def add_fss_plot_new(ax, sim, rank_vmax, jj, args):
             xedge = -0.5 + np.array([xx+pad, xx+pad, xx+1-pad, xx+1-pad, xx+pad])
             yedge = -0.5 + np.array([yy+pad, yy+1-pad, yy+1-pad, yy+pad, yy+pad])
             col = fss_rank_cols[sim['fss_ranks'][yy, xx]]
-            if sim['fss_ranks'][yy, xx] == 1 and yy < 10: #only for bad but not nan
+            if sim['fss_ranks'][yy, xx] == 1 and yy < 9: #only for bad but not nan
                 if sim['fss_overestimated'].to_numpy()[yy,xx] > 0.:
                     xedget = -0.5 + np.array([xx+3*pad, xx+1-3*pad, xx+0.5, xx+3*pad])
                     yedget = -0.5 + np.array([yy+1-3*pad, yy+1-3*pad, yy+3*pad, yy+1-3*pad])
@@ -113,10 +113,10 @@ def add_fss_plot_new(ax, sim, rank_vmax, jj, args):
                     xedget = -0.5 + np.array([xx+3*pad, xx+1-3*pad, xx+0.5, xx+3*pad])
                     yedget = -0.5 + np.array([yy+3*pad, yy+3*pad, yy+1-3*pad, yy+3*pad])
                     col = 'firebrick'
-            if yy == 10:
+            if yy == 9:
                 col = 'black' # fix red separation line for fiels that contain nans
             ax.fill(xedge, yedge, facecolor=col)
-            if sim['fss_ranks'][yy, xx] == 1 and yy < 10: #only for bad but not nan
+            if sim['fss_ranks'][yy, xx] == 1 and yy < 9: #only for bad but not nan
                 ax.fill(xedget, yedget, facecolor='white')
     make_fss_rank_plot_axes(ax, args)
     ax.set_xlim([-0.5, nx-0.5])
@@ -318,13 +318,37 @@ def define_panel_and_plot_dimensions(data_list, args):
     ax.set_extent(args.region.extent)
     r = ax.get_data_ratio()
     # Automatically determine necessary size of the panel plot
-    cols = int(np.ceil(np.sqrt(float(len(data_list)))))
-    lins = int(np.floor(np.sqrt(float(len(data_list)))))
-    if cols*lins < len(data_list):
+    N = len(data_list)
+    if args.rank_score_time_series:
+        N += 1
+    cols = int(np.ceil(np.sqrt(float(N))))
+    lins = int(np.floor(np.sqrt(float(N))))
+    if cols*lins < N:
         lins = lins + 1
     logger.debug("PLOT ASPECT: {:.2f}".format(r))
     return r, cols, lins
 
+
+def test_plot(data_list, r, tmp_string):
+    fig, ax = plt.subplots(1, 1, figsize=(3.5/r, 3.5), dpi=150)
+    logger.info("Making time series test plot")
+    score = {}
+    init = {}
+    for sim in data_list[1::]:
+        if not sim['conf'] in score.keys():
+            score[sim['conf']] = []
+            init[sim['conf']] = []
+        score[sim['conf']].append(sim['fss_total_abs_score'])
+        init[sim['conf']].append(sim['init'])
+    for key, s in score.items():
+        ax.plot(init[key], s, label=key)
+    ax.legend()
+    ax.set_ylabel("FSS rank score")
+    ax.set_xlabel("model init time")
+    ax.set_title("Model performance by init time", loc='left')
+    plt.savefig('../TMP/'+tmp_string+'/998.png')
+    # exit()
+        
 
 def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
     """ Draw all data onto panels. This function separates the data into pickle files,
@@ -355,6 +379,8 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
     os.system('mkdir ../TMP/'+tmp_string)
     logger.debug('mkdir ../TMP/'+tmp_string)
     # dump data for each model into a single pickle file
+    if args.rank_score_time_series:
+        test_plot(data_list, r, tmp_string)
     for jj, sim in enumerate(data_list):
         pickle.dump([sim, data_list[0], r, jj, levels, cmap,
             norm, verification_subdomain, rank_colors, data_list[0]['max_rank'], args, tmp_string], 
