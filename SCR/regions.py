@@ -58,27 +58,45 @@ regions = {
                 "x_size": 222., "y_size": 200.},
             "Carinthia": {
                 'central_longitude': 14.00, 'central_latitude': 46.7, 
-                'x_size': 210, 'y_size': 111},
+                'x_nsize': 210, 'y_size': 111},
             "Styria": {
                 'central_longitude': 14.83, 'central_latitude': 47.1, 
                 'x_size': 221, 'y_size': 200},
             "Vienna": {
                 'central_longitude': 16.33, 'central_latitude': 48.20,
                 'x_size': 40, 'y_size': 40},
+            "Upper_Austria": {
+                'central_longitude': 13.83, 'central_latitude': 48.2, 
+                'x_size': 171, 'y_size': 178},
+            "Salzburg": {
+                'central_longitude': 13.15, 'central_latitude': 47.5, 
+                'x_size': 173, 'y_size': 156},
+            "Tyrol": {
+                'central_longitude': 11.5, 'central_latitude': 47.2, 
+                'x_size': 227, 'y_size': 133},
+            "Vorarlberg": {
+                'central_longitude': 9.83, 'central_latitude': 47.3, 
+                'x_size': 75, 'y_size': 111},
+            "NorthWest": {
+                'central_longitude': 12.165, 'central_latitude': 47.75, 
+                'x_size': 424, 'y_size': 167},
+            "SouthEast": {
+                'central_longitude': 15.165, 'central_latitude': 46.85, 
+                'x_size': 279, 'y_size': 145}
             },
-            # "Vienna" : [16., 16.66, 48., 48.4],
-            # "Lower_Austria" : [14.33, 17.33, 47.4, 49.2],
-            # "Upper_Austria" : [12.66, 15., 47.4, 49.],
-            # "Salzburg" : [12., 14.3, 46.8, 48.2],
-            # "Tyrol" : [10., 13., 46.6, 48.2],
-            # "Vorarlberg" : [9.33, 10.33, 46.8, 47.8],
-            # "Carinthia" : [12.66, 15.33, 46.2, 47.2],
-            # "Styria" : [13.33, 16.33, 46.2, 48.],
-            # "Burgenland" : [16., 17.33, 46.6, 48.2],
-            # "East_Tyrol" : [12., 13., 46.6, 47.2],
-            # "Wechsel" : [15.58, 16.24, 47.30, 47.76],
-            # "Nockberge" : [13.85, 14.51, 46.75, 47,21],
-            # "Kitzbuehel" : [12.10, 12.76, 47.24, 47.70],
+            # "Vienna" :        [16.,   16.66, 48., 4 8.4],
+            # "Lower_Austria" : [14.33, 17.33, 47.4,  49.2],
+            # "Upper_Austria" : [12.66, 15.,   47.4,  49.],
+            # "Salzburg" :      [12.,   14.3,  46.8,  48.2],
+            # "Tyrol" :         [10.,   13.,   46.6,  48.2],
+            # "Vorarlberg" :    [9.33,  10.33, 46.8,  47.8],
+            # "Carinthia" :     [12.66, 15.33, 46.2,  47.2],
+            # "Styria" :        [13.33, 16.33, 46.2,  48.],
+            # "Burgenland" :    [16.,   17.33, 46.6,  48.2],
+            # "East_Tyrol" :    [12.,   13.,   46.6,  47.2],
+            # "Wechsel" :       [15.58, 16.24, 47.30, 47.76],
+            # "Nockberge" :     [13.85, 14.51, 46.75, 47,21],
+            # "Kitzbuehel" :    [12.10, 12.76, 47.24, 47.70],
     },
     # for the Finland 2017 case, south of Finland only
     "Finland": {
