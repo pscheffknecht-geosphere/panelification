@@ -16,6 +16,7 @@ MODIFY AT YOUR OWN RISK!!!
 # string for use in the title of the entire panel
 title_part = {
     'precip': 'Acc. Precip. [mm]',
+    'precip2': 'Acc. Precip. [mm]',
     'sunshine': 'Acc. Sunshine Duration [h]',
     'lightning': 'lightning strikes [km$^{-2}$]',
     'hail': 'Hail [??]'
@@ -23,6 +24,7 @@ title_part = {
 # label for the color bar
 colorbar_label = {
     'precip': 'accumulated precipitation [mm]',
+    'precip2': 'accumulated precipitation [mm]',
     'sunshine': 'sunshine duration [h]',
     'lightning': 'lightning strikes [km$^{-2}$]',
     'hail': 'hail [??]'
@@ -32,6 +34,7 @@ colorbar_label = {
 def get_fss_thresholds(args):
     thresholds_for_fss = {
         'precip' : [0.1,1.,5.,10.,25.,35.,50.,75.,100., 99999.],
+        'precip2' : [0.2,2.,10.,20.,50.,70.,100.,150.,200., 99999.],
         'sunshine' : list(np.arange(0., 1., 1/6.)) + [999999],
         'hail' : [1, 2, 5, 10, 25, 35, 50, 75, 100, 99999],
         'lightning' : [0.1*x for x in [1, 2, 5, 10, 25, 35, 50, 75, 100]] + [99999]
@@ -59,6 +62,16 @@ def get_axes_for_fss_rank_plot(args):
         'ydict': {
             0 : '0.1', 1 : '1', 2 : '5', 3 : '10', 4 : '25', 5 : '35', 6 : '50', 7 : '75', 
             8 : '100', 9 : '', 10 : '25%', 11 : '50%', 12 : '75%', 13 : '90%', 14 : '95%'},
+        'xdict' : {
+            0 : '10', 1 : '20', 2 : '30', 3 : '40', 4 : '60', 5 : '80', 6 : '100', 7 : '120', 
+            8 : '140', 9 : '160', 10 : '180', 11 : '200'}
+        },
+    'precip2' : {
+        'xticks' : range(12),
+        'yticks' : range(15),
+        'ydict': {
+            0 : '0.2', 1 : '2', 2 : '10', 3 : '20', 4 : '50', 5 : '70', 6 : '100', 7 : '150', 
+            8 : '200', 9 : '', 10 : '25%', 11 : '50%', 12 : '75%', 13 : '90%', 14 : '95%'},
         'xdict' : {
             0 : '10', 1 : '20', 2 : '30', 3 : '40', 4 : '60', 5 : '80', 6 : '100', 7 : '120', 
             8 : '140', 9 : '160', 10 : '180', 11 : '200'}
@@ -197,6 +210,8 @@ def precip_cmap_and_levels(args):
 # for refactoring
 def get_cmap_and_levels(args):
     if args.parameter == 'precip':
+        return precip_cmap_and_levels(args)
+    elif args.parameter == 'precip2':
         return precip_cmap_and_levels(args)
     elif args.parameter == 'hail':
         return hail_cmap_and_levels(args)

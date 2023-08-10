@@ -111,7 +111,7 @@ def INCA_grid(INCAplus=False):
 
 def read_INCA(data_list, start_date, end_date, args):
     first=True
-    if args.parameter == 'precip':
+    if args.parameter == 'precip' or args.parameter == 'precip2':
         read_dt = dt(hours=1)
         dtype = np.int16
     elif args.parameter == 'sunshine':
@@ -120,7 +120,7 @@ def read_INCA(data_list, start_date, end_date, args):
     for read_inca_date in loop_datetime(start_date + dt(hours=1), end_date + dt(hours=1), read_dt):
         datestring=read_inca_date.strftime("%Y%m%d%H")
         logging.info("reading inca at "+str(read_inca_date))
-        if args.parameter == "precip":
+        if "precip" in args.parameter:
             if first:
                 var_tmp = bO.bring(datestring, inca_file=None)
                 first = False
