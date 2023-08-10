@@ -30,7 +30,7 @@ experiment_configurations = {
         "base_experiment"  : "arome",
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/aromeesuite_%H+%LLLL.grb"
         },
-    "ifs-highres": {
+    "ecmwf": {
         "init_interval"    : 6,
         "output_interval"  : 1, # 3 for some lead times, but panelification can sort that out
         "max_leadtime"     : 120,
