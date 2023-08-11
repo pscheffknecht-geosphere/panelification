@@ -2,7 +2,10 @@ from matplotlib.colors import BoundaryNorm as bnorm
 import numpy as np
 import matplotlib.cm as cm
 import matplotlib.colors as mplcolors
-#import more_color_maps
+
+import logging
+logger = logging.getLogger(__name__)
+logging.getLogger('matplotlib').setLevel(logging.WARNING)
 
 """ THIS FILE CONTAINS A RANGE OF OPTIONS FOR THE PLOTS
 
@@ -185,7 +188,7 @@ def sunshine_cmap_and_levels(args):
 def precip_cmap_and_levels(args):
     mycolors = None # only change if required
     if args.mode == 'None' or args.mode == 'resampled':
-        if args.duration >= 24:
+        if args.duration >= 24 or args.parameter == "precip2":
             levels = [0., 1. , 3. ,  5.,  10.,  15.,  20.,  30.,  40.,  50.,  60.,  80., 100., 150.,  200., 250.]
         else:
             levels = [0., 0.1, 0.2, 0.5,  1.0,  5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 35.0, 40.0, 45.0,  50.0, 100.0]
@@ -209,6 +212,7 @@ def precip_cmap_and_levels(args):
 # dirty and primitive but it works, but a good candidate
 # for refactoring
 def get_cmap_and_levels(args):
+    logger.info("Getting color map and contour levels for parameter "+args.parameter)
     if args.parameter == 'precip':
         return precip_cmap_and_levels(args)
     elif args.parameter == 'precip2':
