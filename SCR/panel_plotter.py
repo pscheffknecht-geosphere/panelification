@@ -351,7 +351,7 @@ def test_plot(data_list, r, tmp_string):
         score[sim['conf']].append(sim['fss_total_abs_score'])
         init[sim['conf']].append(sim['init'])
     for key, s in score.items():
-        ax.plot(init[key], s, label=key)
+        ax.plot(init[key], s, 'o-', label=key)
     ax.legend()
     ax.set_ylabel("FSS rank score")
     ax.set_xlabel("model init time")
