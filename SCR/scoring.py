@@ -28,6 +28,14 @@ def array_minus_avg(a, t):
     a_normed = np.where(np.isnan(a), 10., a_normed)
     return a_normed
 
+
+def clamp_array(a, xmin=0., xmax=1):
+    """ clamp array to values between xmin and xmax """
+    a = np.where(a < xmin, xmin, a)
+    a = np.where(a > xmax, xmax, a)
+    return a
+
+
 def rank_array(a_in,t):
     """
     dirty and cumbersome ranking funktion for a 1d numpy array
@@ -70,7 +78,7 @@ def rank_array(a_in,t):
                     a[idx] = -97.
                 else:
                     # increment to 3 for gold (best rank but not perfect)
-                    # if no perfect score was fond before!
+                    # if no perfect score was found before!
                     # this will catch all other ranks
                     if jj == 2.:
                         jj += 1. 
@@ -86,6 +94,20 @@ def rank_array(a_in,t):
             break
     return ranks
 
+
+def rank_score_using_threshold(a_in, t):
+    """
+    assign 0 to 1 points per window/threshold combo where RSS values from 0 to f0
+    geet 0 points and values between f0 and 1 are mapped to 0 ... 1
+    """
+    a = copy.copy(a_in)
+    ranks = np.zeros(len(a))
+    s = 1. / (1. - t)
+    a = clamp_array(a)
+    return a
+
+
+# def
 
 def rank_fss_all(data_list):
     """
@@ -163,27 +185,28 @@ def rank_scores(data_list):
     return data_list
 
 
-def fss_overall_values(fss_ranks):
+def fss_overall_values(fss_ranks, windows, thresholds):
     # takes fss as numpy array, returns some single fss_overall_values
     fss_ranks = np.where(fss_ranks == 2, 3, fss_ranks) # merge number 1 and perfect scores
     fss_ranks_abs = fss_ranks[ 0: 9,:] # ranks for absolute thresholds
     fss_ranks_rel = fss_ranks[10:15,:] # ranks for percentiles
     # fss_ranks_abs_high = fss_ranks[ 4: 9,:] # ranks for absolute thresholds
+    fss_test_score = None
     fss_total_abs_score = np.sum(np.where(fss_ranks_abs < 2, 0, 1./(fss_ranks_abs-2))) # better rank > more score
     fss_total_rel_score = np.sum(np.where(fss_ranks_rel < 2, 0, 1./(fss_ranks_rel-2))) # better rank > more score
     fss_success_rate_abs = np.mean(np.where(fss_ranks_abs == 1, 0, 1))
     fss_success_rate_rel = np.mean(np.where(fss_ranks_rel == 1, 0, 1))
-    return fss_total_abs_score, fss_total_rel_score, fss_success_rate_abs, fss_success_rate_rel
+    return fss_test_score, fss_total_abs_score, fss_total_rel_score, fss_success_rate_abs, fss_success_rate_rel
 
 
-def total_fss_rankings(data_list):
+def total_fss_rankings(data_list, windows, thresholds):
     for sim in data_list[1::]:
-        sim['fss_total_abs_score'], sim['fss_total_rel_score'], sim['fss_success_rate_abs'], sim['fss_success_rate_rel'] = fss_overall_values(sim['fss_ranks'])
+        sim['fss_test_score'], sim['fss_total_abs_score'], sim['fss_total_rel_score'], sim['fss_success_rate_abs'], sim['fss_success_rate_rel'] = fss_overall_values(sim['fss_ranks'], windows, thresholds)
     data_list = rank_fss_all(data_list)
     return data_list
     
 
-def write_scores_to_csv(data_list, start_date, end_date, args, verification_subdomain):
+def write_scores_to_csv(data_list, start_date, end_date, args, verification_subdomain, windows, thresholds):
     # TODO
     # sim['fss'] = fss
     # sim['fss_ranks'] = fss
@@ -203,7 +226,7 @@ def write_scores_to_csv(data_list, start_date, end_date, args, verification_subd
         col_labels3 = ['FSS', 'SR', 'FSS%', 'SR%']
         score_writer.writerow(col_labels)
         for sim in data_list[1::]:
-            fss_total_abs_score, fss_total_rel_score, fss_success_rate_abs, fss_success_rate_rel = fss_overall_values(sim['fss_ranks'])
+            fss_test_score, fss_total_abs_score, fss_total_rel_score, fss_success_rate_abs, fss_success_rate_rel = fss_overall_values(sim['fss_ranks'], windows, thresholds)
             score_writer.writerow([
                 sim['name'].replace(' ','_'), 
                 "{:.5f}".format(sim['bias_real']), "{:.5f}".format(sim['mae']), "{:.5f}".format(sim['rms']), "{:.5f}".format(sim['corr']), "{:.5f}".format(sim['d90']),
@@ -250,6 +273,7 @@ def calc_scores(sim, obs, args):
         sim['fss_total_rel_score'] = -999
         sim['fss_success_rate_abs'] = -999
         sim['fss_success_rate_rel'] = -999
+        sim['fss_test_score'] = -999
         sim['fss'] = None
         sim['fssp'] = None
         sim['fss_num'] = None

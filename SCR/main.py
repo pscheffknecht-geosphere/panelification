@@ -19,6 +19,7 @@ import data_io
 import data_from_dcmdb
 import scan_obs
 import regions
+import parameter_settings
 
 # try avoiding hanging during parallelized portions of the program
 os.environ['MKL_NUM_THREADS'] = '1'
@@ -218,6 +219,8 @@ def main():
         newlist.insert(0, data_list[0])
         data_list = newlist
     df_subdomain_details = scan_obs.get_interesting_subdomains(data_list[0], args)
+    thresholds = parameter_settings.get_fss_thresholds(args)
+    windows = [10,20,30,40,60,80,100,120,140,160,180,200]
     for _, dom in df_subdomain_details.iterrows():
         subdomain_name = dom['name']
         if dom['score'] or dom['draw'] or args.save:
@@ -228,11 +231,12 @@ def main():
                 sim["precip_data_resampled"] = _data
             Parallel(n_jobs=6,backend='threading')(delayed(scoring.calc_scores)(sim, data_list[0], args) for ii, sim in enumerate(data_list))
             scoring.rank_scores(data_list)
-            scoring.total_fss_rankings(data_list)
+
+            scoring.total_fss_rankings(data_list, windows, thresholds)
         else:
             logging.info("Skipping "+dom['name']+", nothing is requested.")
         if dom['score']:
-            scoring.write_scores_to_csv(data_list, start_date, end_date, args, subdomain_name)
+            scoring.write_scores_to_csv(data_list, start_date, end_date, args, subdomain_name, windows, thresholds)
         if dom['draw']:
             plot_start = datetime.now()
             panel_plotter.draw_panels(data_list, start_date, end_date, subdomain_name, args) #, mode=args.mode)
