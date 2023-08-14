@@ -237,6 +237,12 @@ def main():
             logging.info("Skipping "+dom['name']+", nothing is requested.")
         if dom['score']:
             scoring.write_scores_to_csv(data_list, start_date, end_date, args, subdomain_name, windows, thresholds)
+        # print new test scores
+        for sim in data_list:
+            print(sim['name'],
+                  sim['fss_total_abs_score'],     sim['rank_fss_total_abs_score'],
+                  sim['fss_condensed'],           sim['rank_fss_condensed'],
+                  sim['fss_condensed_weighted'],  sim['rank_fss_condensed_weighted'])
         if dom['draw']:
             plot_start = datetime.now()
             panel_plotter.draw_panels(data_list, start_date, end_date, subdomain_name, args) #, mode=args.mode)

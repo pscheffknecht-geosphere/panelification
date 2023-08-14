@@ -15,7 +15,7 @@ def array_minus_avg(a, t):
     a ....... 1d array containing all fss values for one window/threshold
     t ....... float, skillful/useful threshold for the FSS derived from OBS
 
-    Returns:
+    Return:
     np.array (1D) with
     10. ......................... if a was a NaN
     -10. ........................ if a was below useful
@@ -95,19 +95,44 @@ def rank_array(a_in,t):
     return ranks
 
 
-def rank_score_using_threshold(a_in, t):
+def fss_condensed(sim):
     """
     assign 0 to 1 points per window/threshold combo where RSS values from 0 to f0
     geet 0 points and values between f0 and 1 are mapped to 0 ... 1
     """
-    a = copy.copy(a_in)
-    ranks = np.zeros(len(a))
-    s = 1. / (1. - t)
-    a = clamp_array(a)
-    return a
+    score = 0.
+    for ii, t in enumerate(sim['fss_thresholds']):
+        a_ = sim['fss'].values[ii, :]
+        a = copy.copy(a_)
+        s = 1. / (1. - t)
+        a = s * (a - 1) + 1
+        a = clamp_array(a)
+        score += np.nansum(a)
+    return score
 
 
-# def
+def weighted_fss_condensed(sim, levels):
+    score = 0.
+    wins = np.asarray(sim['fss_windows'])
+    max_l = np.max(levels[0:9])
+    max_w = wins.max()
+    for ii, t in enumerate(sim['fss_thresholds']):
+        a_ = sim['fss'].values[ii, :]
+        a = copy.copy(a_)
+        s = 1. / (1. - t)
+        a = s * (a - 1) + 1
+        a = clamp_array(a)
+        l = levels[ii]
+        for jj, w in enumerate(sim['fss_windows']):
+            w = np.max(w) # reduce the x and y and take only the larger one
+            # linear weighting where smallest window is roughlty 2x the weight of the largest
+            # and smallest threshold is roughtly 2x the weight of the largest
+            if not np.isnan(a[jj]):
+                l_fac = 2. * max_l / (max_l + l)
+                w_fac = 2. * max_w / (max_w + w)
+                score += l_fac * w_fac * a[jj]
+    return score
+
 
 def rank_fss_all(data_list):
     """
@@ -144,12 +169,13 @@ def rank_scores(data_list):
     """
     namelist = [d['name'] for d in data_list]
     logging.info("Ranking")
-    for metric in ['mae', 'bias', 'rms', 'corr', 'd90']:
+    for metric in ['mae', 'bias', 'rms', 'corr', 'd90', 'fss_condensed', 'fss_condensed_weighted']:
         rank=1
         rank_name='rank_'+metric
         if metric == 'bias':
             data_list_metric = sorted(data_list, key=lambda k: np.abs(k[metric]))
-        elif metric == 'corr' or metric == 'fss_success_rate_abs' or metric == 'fss_success_rate_rel':
+        elif metric == 'corr' or metric == 'fss_success_rate_abs' or metric == 'fss_success_rate_rel' \
+             or metric == 'fss_condensed' or metric == 'fss_condensed_weighted':
             data_list_metric = sorted(data_list, key=lambda k: -k[metric])
         else:
             data_list_metric = sorted(data_list, key=lambda k: k[metric])
@@ -191,17 +217,17 @@ def fss_overall_values(fss_ranks, windows, thresholds):
     fss_ranks_abs = fss_ranks[ 0: 9,:] # ranks for absolute thresholds
     fss_ranks_rel = fss_ranks[10:15,:] # ranks for percentiles
     # fss_ranks_abs_high = fss_ranks[ 4: 9,:] # ranks for absolute thresholds
-    fss_test_score = None
+
     fss_total_abs_score = np.sum(np.where(fss_ranks_abs < 2, 0, 1./(fss_ranks_abs-2))) # better rank > more score
     fss_total_rel_score = np.sum(np.where(fss_ranks_rel < 2, 0, 1./(fss_ranks_rel-2))) # better rank > more score
     fss_success_rate_abs = np.mean(np.where(fss_ranks_abs == 1, 0, 1))
     fss_success_rate_rel = np.mean(np.where(fss_ranks_rel == 1, 0, 1))
-    return fss_test_score, fss_total_abs_score, fss_total_rel_score, fss_success_rate_abs, fss_success_rate_rel
+    return fss_total_abs_score, fss_total_rel_score, fss_success_rate_abs, fss_success_rate_rel
 
 
 def total_fss_rankings(data_list, windows, thresholds):
     for sim in data_list[1::]:
-        sim['fss_test_score'], sim['fss_total_abs_score'], sim['fss_total_rel_score'], sim['fss_success_rate_abs'], sim['fss_success_rate_rel'] = fss_overall_values(sim['fss_ranks'], windows, thresholds)
+        sim['fss_total_abs_score'], sim['fss_total_rel_score'], sim['fss_success_rate_abs'], sim['fss_success_rate_rel'] = fss_overall_values(sim['fss_ranks'], windows, thresholds)
     data_list = rank_fss_all(data_list)
     return data_list
     
@@ -226,7 +252,7 @@ def write_scores_to_csv(data_list, start_date, end_date, args, verification_subd
         col_labels3 = ['FSS', 'SR', 'FSS%', 'SR%']
         score_writer.writerow(col_labels)
         for sim in data_list[1::]:
-            fss_test_score, fss_total_abs_score, fss_total_rel_score, fss_success_rate_abs, fss_success_rate_rel = fss_overall_values(sim['fss_ranks'], windows, thresholds)
+            fss_total_abs_score, fss_total_rel_score, fss_success_rate_abs, fss_success_rate_rel = fss_overall_values(sim['fss_ranks'], windows, thresholds)
             score_writer.writerow([
                 sim['name'].replace(' ','_'), 
                 "{:.5f}".format(sim['bias_real']), "{:.5f}".format(sim['mae']), "{:.5f}".format(sim['rms']), "{:.5f}".format(sim['corr']), "{:.5f}".format(sim['d90']),
@@ -273,7 +299,8 @@ def calc_scores(sim, obs, args):
         sim['fss_total_rel_score'] = -999
         sim['fss_success_rate_abs'] = -999
         sim['fss_success_rate_rel'] = -999
-        sim['fss_test_score'] = -999
+        sim['fss_condensed'] = -999
+        sim['fss_condensed_weighted'] = -999
         sim['fss'] = None
         sim['fssp'] = None
         sim['fss_num'] = None
@@ -281,8 +308,6 @@ def calc_scores(sim, obs, args):
         sim['fss_den'] = None
         sim['fssp_den'] = None
     else:
-        # sim['sim_param_resampled'] = sim['sim_param_resampled']
-        # sim['obs_param_resampled'] = sim['obs_param_resampled']
         thresholds = []
         thresholds_percs = []
         for level in levels:
@@ -311,6 +336,7 @@ def calc_scores(sim, obs, args):
         sim['mae'] = mae
         sim['rms'] = rms
         sim['corr'] = corr
+        sim['fss_windows'] = windows
         sim['fss'] = fss
         sim['fssp'] = fssp
         sim['fss_num'] = fss_num
@@ -319,6 +345,8 @@ def calc_scores(sim, obs, args):
         sim['fssp_den'] = fssp_den
         sim['fssf'] = fssf
         sim['fss_overestimated'] = ovestf
+        sim['fss_condensed'] = fss_condensed(sim)
+        sim['fss_condensed_weighted'] = weighted_fss_condensed(sim, levels)
         sim['d90'] = fss_d90(sim["precip_data_resampled"], obs["precip_data_resampled"], args)
     return(sim)
 

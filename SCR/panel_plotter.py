@@ -316,7 +316,7 @@ def draw_single_figure(sim, obs, r, jj, levels, cmap, norm, verification_subdoma
         draw_solo_colorbar(levels, cmap, norm, tmp_string, args)
 
 
-def define_panel_and_plot_dimensions(data_list, args):
+def define_panel_and_plot_dimensions(data_list, args, time_series_scores):
     """ Make a dummy map to obtain the aspect ratio, calculate lines
     and columns. This happens in the same function to make use of
     the aspect ratio when determining the cols/lins (not implemented
@@ -330,7 +330,7 @@ def define_panel_and_plot_dimensions(data_list, args):
     # Automatically determine necessary size of the panel plot
     N = len(data_list)
     if args.rank_score_time_series:
-        N += 1
+        N += len(time_series_scores)
     cols = int(np.ceil(np.sqrt(float(N))))
     lins = int(np.floor(np.sqrt(float(N))))
     if cols*lins < N:
@@ -339,25 +339,28 @@ def define_panel_and_plot_dimensions(data_list, args):
     return r, cols, lins
 
 
-def test_plot(data_list, r, tmp_string):
-    fig, ax = plt.subplots(1, 1, figsize=(3.5/r, 3.5), dpi=150)
-    logger.info("Making time series test plot")
-    score = {}
-    init = {}
-    for sim in data_list[1::]:
-        if not sim['conf'] in score.keys():
-            score[sim['conf']] = []
-            init[sim['conf']] = []
-        score[sim['conf']].append(sim['fss_total_abs_score'])
-        init[sim['conf']].append(sim['init'])
-    for key, s in score.items():
-        ax.plot(init[key], s, 'o-', label=key)
-    ax.legend()
-    ax.set_ylabel("FSS rank score")
-    ax.set_xlabel("model init time")
-    ax.set_title("Model performance by init time", loc='left')
-    plt.savefig('../TMP/'+tmp_string+'/998.png')
-    # exit()
+def score_time_series(data_list, r, tmp_string, time_series_scores):
+    score_names = ["Old FSS Rank Score", "New FSS Score", "New FSS Score Weighted"]
+    for sidx, s in enumerate(time_series_scores):
+        fig, ax = plt.subplots(1, 1, figsize=(3.5/r, 3.5), dpi=150)
+        logger.info("Making time series test plot for " + score_names[sidx])
+        score = {}
+        init = {}
+        for sim in data_list[1::]:
+            if not sim['conf'] in score.keys():
+                score[sim['conf']] = []
+                init[sim['conf']] = []
+            score[sim['conf']].append(sim[s])
+            init[sim['conf']].append(sim['init'])
+        for key, s in score.items():
+            ax.plot(init[key], s, 'o-', label=key)
+        ax.legend()
+        ax.set_ylabel("FSS rank score")
+        ax.set_xlabel("model init time")
+        title = score_names[sidx] + " by model and init"
+        ax.set_title(title, loc='left')
+        plt.savefig('../TMP/' + tmp_string + '/' + str(990 + sidx) + '.png')
+        # exit()
         
 
 def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
@@ -372,7 +375,8 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
     args ............. command line arguments
     mode ............. string, resampled or original data to be drawn"""
     logger.debug(args.region.extent)
-    r, cols, lins = define_panel_and_plot_dimensions(data_list, args)
+    time_series_scores = ["fss_total_abs_score", "fss_test_score", "fss_test_score_weighted"]
+    r, cols, lins = define_panel_and_plot_dimensions(data_list, args, time_series_scores)
     logger.info("generating a panel plot with {} lines and {} columns".format(lins, cols))
     levels, cmap, norm = parameter_settings.get_cmap_and_levels(args)
     cmap.set_over('orange')
@@ -390,7 +394,7 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
     logger.debug('mkdir ../TMP/'+tmp_string)
     # dump data for each model into a single pickle file
     if args.rank_score_time_series:
-        test_plot(data_list, r, tmp_string)
+        score_time_series(data_list, r, tmp_string, time_series_scores)
     for jj, sim in enumerate(data_list):
         pickle.dump([sim, data_list[0], r, jj, levels, cmap,
             norm, verification_subdomain, rank_colors, data_list[0]['max_rank'], args, tmp_string], 
