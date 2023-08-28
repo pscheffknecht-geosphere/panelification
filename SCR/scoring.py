@@ -128,8 +128,8 @@ def weighted_fss_condensed(sim, levels):
             # linear weighting where smallest window is roughlty 2x the weight of the largest
             # and smallest threshold is roughtly 2x the weight of the largest
             if not np.isnan(a[jj]):
-                l_fac = 2. * max_l / (max_l + l)
-                w_fac = 2. * max_w / (max_w + w)
+                l_fac = (max_l + l) / max_l      # 2 for max precip, 1 for 0.
+                w_fac = 2. * max_w / (max_w + w) # 2 for window size of 0, 1 for max window size
                 score += l_fac * w_fac * a[jj]
     return score
 
