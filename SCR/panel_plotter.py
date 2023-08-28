@@ -298,8 +298,8 @@ def draw_single_figure(sim, obs, r, jj, levels, cmap, norm, verification_subdoma
         panel_title = sim['name']
         panel_title_fc = 'white'
     else:
-        panel_title = sim['name'].replace("finland_2017", "")+' ({:d})'.format(int(sim['rank_fss_total_abs_score']))
-        panel_title_fc = rank_colors[sim['rank_fss_total_abs_score']]
+        panel_title = sim['name'].replace("finland_2017", "")+' ({:d})'.format(int(sim['rank_'+args.rank_by_fss_metric]))
+        panel_title_fc = rank_colors[sim['rank_'+args.rank_by_fss_metric]]
     ax.text(0.0, 1.03, panel_title, va='top', ha='left',
         rotation='horizontal', rotation_mode='anchor',
         transform=ax.transAxes,size='large',
@@ -375,7 +375,7 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
     args ............. command line arguments
     mode ............. string, resampled or original data to be drawn"""
     logger.debug(args.region.extent)
-    time_series_scores = ["fss_total_abs_score", "fss_test_score", "fss_test_score_weighted"]
+    time_series_scores = ["fss_total_abs_score", "fss_condensed", "fss_condensed_weighted"]
     r, cols, lins = define_panel_and_plot_dimensions(data_list, args, time_series_scores)
     logger.info("generating a panel plot with {} lines and {} columns".format(lins, cols))
     levels, cmap, norm = parameter_settings.get_cmap_and_levels(args)
