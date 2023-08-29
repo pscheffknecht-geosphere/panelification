@@ -104,8 +104,11 @@ def fss_condensed(sim):
     for ii, t in enumerate(sim['fss_thresholds']):
         a_ = sim['fss'].values[ii, :]
         a = copy.copy(a_)
-        s = 1. / (1. - t)
-        a = s * (a - 1) + 1
+        if t == 1.: #catch cases where the entire domain is above the precip threshold
+            a = np.where(a == 1., 1. ,0.) #???
+        else:
+            s = 1. / (1. - t)
+            a = s * (a - 1) + 1
         a = clamp_array(a)
         score += np.nansum(a)
     return score
@@ -119,8 +122,11 @@ def weighted_fss_condensed(sim, levels):
     for ii, t in enumerate(sim['fss_thresholds']):
         a_ = sim['fss'].values[ii, :]
         a = copy.copy(a_)
-        s = 1. / (1. - t)
-        a = s * (a - 1) + 1
+        if t == 1.: #catch cases where the entire domain is above the precip threshold
+            a = np.where(a == 1., 1. ,0.) #???
+        else:
+            s = 1. / (1. - t)
+            a = s * (a - 1) + 1
         a = clamp_array(a)
         l = levels[ii]
         for jj, w in enumerate(sim['fss_windows']):
