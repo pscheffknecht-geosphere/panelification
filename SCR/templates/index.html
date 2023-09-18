@@ -2,7 +2,7 @@
 {% from 'bootstrap5/form.html' import render_form %}
 
 {% block title %}
-Best Movie Actors
+Panelmaker v0.1
 {% endblock %}
 
 
@@ -12,17 +12,65 @@ Best Movie Actors
 	TIPS about using Bootstrap-Flask:
 	https://github.com/helloflask/bootstrap-flask
 	https://bootstrap-flask.readthedocs.io/
+      {{ render_form(form) }}
 -->
 
 <div class="container">
   <div class="row">
     <div class="col-md-10 col-lg-8 mx-lg-auto mx-md-auto">
 
-      <h1 class="pt-5 pb-2">Welcoem to the panelification web mask test!</h1>
+      <h1 class="pt-5 pb-2">Welcome to the panelification web mask test!</h1>
 
       <p class="lead">This is some example text... with <em>emphasized</em> text too</p>
 
-      {{ render_form(form) }}
+      <form method="POST">
+          <table style="width:100%">
+              {{ form.csrf_token }}
+              <tr><th>Name:</th><th>{{ form.name }}</th></tr>
+              <tr><th>Start of verification window [YYYYmmddHH]:</th><th>{{ form.start }}</th></tr>
+              <tr><th>Length of verification window (1-999 h):</th><th>{{ form.duration }}</th></tr>
+              <tr><th>Minimum lead of models before start (0 - 999 h):</th><th>{{ form.min_lead }}</th></tr>
+              <tr><th>Maximum lead of models before start (0 - 999 h):</th><th>{{ form.max_lead }}</th></tr>
+              <tr><th>Region:</th><th>{{ form.region }}</th></tr>
+              <tr><th>Verification Subdomains:</th><th>{{ form.verification_subdomain }}</th></tr>
+              <tr><th>Models:</th><th>{{ form.models }}</th></tr>
+              <tr><th>Panel sorting:</th><th>{{ form.sorting }}</th></tr>
+              <tr><th>Draw verification subdomain borders:</th><th>{{ form.draw_subdomain }}</th></tr>
+              <tr><th>Draw if precipitation is high enough</th><th>{{ form.draw }}</th></tr>
+              <tr><th>Draw regardless of precipitation</th><th>{{ form.forcedraw }}</th></tr>
+              <tr><th>Score regardless of precipitation</th><th>{{ form.forcescore }}</th></tr>
+              <tr><th>Draw hatched contours of 90th precipitation percentile</th><th>{{ form.draw_p90 }}</th></tr>
+              <tr><th>Omit all scoring and ranking info on the panels</th><th>{{ form.clean }}</th></tr>
+              <tr><th>Hide model names (also omits scoring and ranking info)</th><th>{{ form.hidden }}</th></tr>
+              <tr><th>Draw normal precipitation fields or draw the resampled fields used for verification. Resampled will only draw precipitation inside the verification domain.</th><th>{{ form.mode }}</th></tr>
+              <tr><th>Replace NaNs with zeros if verification subdomain extends outside of the model domain</th><th>{{ form.fix_nans }}</th></tr>
+              <tr><th>Save all data to pickle file</th><th>{{ form.save }}</th></tr>
+              <tr><th>Select FSS plot mode</th><th>{{ form.fss_mode }}</th></tr>
+              <tr><th>Append time series of score by which the models are ranked</th><th>{{ form.rank_core_time_series }}</th></tr>
+              <tr><th>Select ranking metric, default is fss_condensed_weighted, old default was fss_total_abs_score</th><th>{{ form.rank_by_fss_metric }}</th></tr>
+              <tr><th>Save all FSS data (numerator, denominator, fss) for all models to pickle file</th><th>{{ form.save_full_fss }}</th></tr>
+              <tr><th>Log to file instead of stdout (allows to examine log later)</th><th>{{ form.logfile }}</th></tr>
+              <tr><th>Log level</th><th>{{ form.loglevel }}</th></tr>
+              <tr><th><input type="submit"></th></tr>
+          </table>
+      </form>
+      <script>
+          let region_select = document.getElementById('region');
+          let subdomain_select = document.getElementById('verification_subdomain');
+          region_select.onchange = function() {
+              region = region_select.value;
+              fetch("/subdomain/"+region).then(function(response) {
+                  response.json().then(function(data) {
+                      let optionSubdomainHTML = ''
+                      for (let subdomain of data.verification_subdomains) {
+                          optionSubdomainHTML += '<option value="'+subdomain.id + '">'+ subdomain.name + '</option>';
+                      };
+                      verification_subdomain.innerHTML = optionSubdomainHTML
+                  });
+
+              });
+          };
+      </script>
 
       <p class="pt-5"><strong>{{ message }}</strong></p>
 
