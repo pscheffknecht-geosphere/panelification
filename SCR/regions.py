@@ -62,20 +62,55 @@ regions = {
             "Styria": {
                 'central_longitude': 14.83, 'central_latitude': 47.1, 
                 'x_size': 221, 'y_size': 200},
+            "Vienna": {
+                'central_longitude': 16.33, 'central_latitude': 48.20,
+                'x_size': 40, 'y_size': 40},
+            "Upper_Austria": {
+                'central_longitude': 13.83, 'central_latitude': 48.2, 
+                'x_size': 171, 'y_size': 178},
+            "Salzburg": {
+                'central_longitude': 13.15, 'central_latitude': 47.5, 
+                'x_size': 173, 'y_size': 156},
+            "Tyrol": {
+                'central_longitude': 11.5, 'central_latitude': 47.2, 
+                'x_size': 227, 'y_size': 133},
+            "Vorarlberg": {
+                'central_longitude': 9.83, 'central_latitude': 47.3, 
+                'x_size': 75, 'y_size': 111},
+            "NorthWest": {
+                'central_longitude': 12.165, 'central_latitude': 47.75, 
+                'x_size': 424, 'y_size': 167},
+            "SouthEast": {
+                'central_longitude': 15.165, 'central_latitude': 46.85, 
+                'x_size': 279, 'y_size': 145},
+            "West": {
+                'central_longitude': 11.25, 'central_latitude': 47.45,
+                'x_size': 338, 'y_size': 234}
             },
-            # "Vienna" : [16., 16.66, 48., 48.4],
-            # "Lower_Austria" : [14.33, 17.33, 47.4, 49.2],
-            # "Upper_Austria" : [12.66, 15., 47.4, 49.],
-            # "Salzburg" : [12., 14.3, 46.8, 48.2],
-            # "Tyrol" : [10., 13., 46.6, 48.2],
-            # "Vorarlberg" : [9.33, 10.33, 46.8, 47.8],
-            # "Carinthia" : [12.66, 15.33, 46.2, 47.2],
-            # "Styria" : [13.33, 16.33, 46.2, 48.],
-            # "Burgenland" : [16., 17.33, 46.6, 48.2],
-            # "East_Tyrol" : [12., 13., 46.6, 47.2],
-            # "Wechsel" : [15.58, 16.24, 47.30, 47.76],
-            # "Nockberge" : [13.85, 14.51, 46.75, 47,21],
-            # "Kitzbuehel" : [12.10, 12.76, 47.24, 47.70],
+            # "Vienna" :        [16.,   16.66, 48., 4 8.4],
+            # "Lower_Austria" : [14.33, 17.33, 47.4,  49.2],
+            # "Upper_Austria" : [12.66, 15.,   47.4,  49.],
+            # "Salzburg" :      [12.,   14.3,  46.8,  48.2],
+            # "Tyrol" :         [10.,   13.,   46.6,  48.2],
+            # "Vorarlberg" :    [9.33,  10.33, 46.8,  47.8],
+            # "Carinthia" :     [12.66, 15.33, 46.2,  47.2],
+            # "Styria" :        [13.33, 16.33, 46.2,  48.],
+            # "Burgenland" :    [16.,   17.33, 46.6,  48.2],
+            # "East_Tyrol" :    [12.,   13.,   46.6,  47.2],
+            # "Wechsel" :       [15.58, 16.24, 47.30, 47.76],
+            # "Nockberge" :     [13.85, 14.51, 46.75, 47,21],
+            # "Kitzbuehel" :    [12.10, 12.76, 47.24, 47.70],
+    },
+    "Austria_East": {
+        "central_longitude": 14.25,
+        "central_latitude": 48.3,
+        "extent": [13., 17.5, 46., 49.4],
+        "verification_subdomains": {
+            "Default": {
+                "central_longitude": 14.25,
+                "central_latitude": 47.7,
+                "x_size": 300., "y_size": 325.}
+        },
     },
     # for the Finland 2017 case, south of Finland only
     "Finland": {
@@ -102,7 +137,6 @@ regions = {
 
 class Region():
     def __init__(self, region_name="Europe", subdomains=["Default"]):
-        logger.info("But not here")
         self.name = region_name
         self.extent=regions[region_name]['extent']
         self.data_projection = ccrs.PlateCarree()
@@ -139,6 +173,7 @@ class Region():
     def __prep_subdomains(self, region_name, subdomain_name_list):
         self.subdomains = {}
         for subdomain_name in subdomain_name_list:
+            logger.info("Preparing subdomain {:s}".format(subdomain_name))
             k = self.__get_scale_factor(regions[region_name]["verification_subdomains"][subdomain_name])
             lon, lat = self.__make_grid(regions[region_name]["verification_subdomains"][subdomain_name], k=k)
             if "thresholds" in regions[region_name]["verification_subdomains"][subdomain_name].keys():
@@ -162,7 +197,7 @@ class Region():
             lons=lon, lats=lat)
         data_resampled =  pyresample.kd_tree.resample_nearest(
             orig_def, data, targ_def, reduce_data=False,
-            radius_of_influence=radius_of_influence)
+            radius_of_influence=25000.)
         data_resampled = np.where(data_resampled > 9999., np.nan, data_resampled)
         if np.isnan(data_resampled).sum() > 0:
             if fix_nans:
@@ -180,7 +215,8 @@ class Region():
                 subdomain_data["central_latitude"],
                 subdomain_data["x_size"],
                 subdomain_data["y_size"])
-        logger.info("Current subdomain key {:s}".format(key_str))
+        logger.info("Current subdomain: {:s}".format(key_str))
+        logger.info("Current subdomain key: {:s}".format(key_str))
         return key_str
 
 
