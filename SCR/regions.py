@@ -84,7 +84,7 @@ regions = {
                 'central_longitude': 15.165, 'central_latitude': 46.85, 
                 'x_size': 279, 'y_size': 145},
             "West": {
-                'central_longitude': 11.25, 'central_latitude': 47.45, 
+                'central_longitude': 11.25, 'central_latitude': 47.45,
                 'x_size': 338, 'y_size': 234}
             },
             # "Vienna" :        [16.,   16.66, 48., 4 8.4],
