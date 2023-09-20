@@ -15,7 +15,7 @@ def array_minus_avg(a, t):
     a ....... 1d array containing all fss values for one window/threshold
     t ....... float, skillful/useful threshold for the FSS derived from OBS
 
-    Returns:
+    Return:
     np.array (1D) with
     10. ......................... if a was a NaN
     -10. ........................ if a was below useful
@@ -27,6 +27,14 @@ def array_minus_avg(a, t):
     a_normed = np.where(a < t, -10., a_normed)
     a_normed = np.where(np.isnan(a), 10., a_normed)
     return a_normed
+
+
+def clamp_array(a, xmin=0., xmax=1):
+    """ clamp array to values between xmin and xmax """
+    a = np.where(a < xmin, xmin, a)
+    a = np.where(a > xmax, xmax, a)
+    return a
+
 
 def rank_array(a_in,t):
     """
@@ -70,7 +78,7 @@ def rank_array(a_in,t):
                     a[idx] = -97.
                 else:
                     # increment to 3 for gold (best rank but not perfect)
-                    # if no perfect score was fond before!
+                    # if no perfect score was found before!
                     # this will catch all other ranks
                     if jj == 2.:
                         jj += 1. 
@@ -85,6 +93,55 @@ def rank_array(a_in,t):
         else:
             break
     return ranks
+
+
+def fss_condensed(sim):
+    """
+    assign 0 to 1 points per window/threshold combo where RSS values from 0 to f0
+    geet 0 points and values between f0 and 1 are mapped to 0 ... 1
+    """
+    score = 0.
+    score_arr = np.zeros(sim['fss'].values.shape)
+    for ii, t in enumerate(sim['fss_thresholds']):
+        a_ = sim['fss'].values[ii, :]
+        a = copy.copy(a_)
+        if t == 1.: #catch cases where the entire domain is above the precip threshold
+            a = np.where(a == 1., 1. ,0.) #???
+        else:
+            s = 1. / (1. - t)
+            a = s * (a - 1) + 1
+        a = clamp_array(a)
+        score_arr [ii, :] = a
+        score += np.nansum(a)
+    return score, score_arr
+
+
+def weighted_fss_condensed(sim, levels):
+    score = 0.
+    score_arr = np.zeros(sim['fssf'].values.shape)
+    wins = np.asarray(sim['fss_windows'])
+    max_l = np.max(levels[0:9])
+    max_w = wins.max()
+    for ii, t in enumerate(sim['fss_thresholds']):
+        a_ = sim['fss'].values[ii, :]
+        a = copy.copy(a_)
+        if t == 1.: #catch cases where the entire domain is above the precip threshold
+            a = np.where(a == 1., 1. ,0.) #???
+        else:
+            s = 1. / (1. - t)
+            a = s * (a - 1) + 1
+        a = clamp_array(a)
+        l = levels[ii]
+        for jj, w in enumerate(sim['fss_windows']):
+            w = np.max(w) # reduce the x and y and take only the larger one
+            # linear weighting where smallest window is roughlty 2x the weight of the largest
+            # and smallest threshold is roughtly 2x the weight of the largest
+            if not np.isnan(a[jj]):
+                l_fac = (max_l + l) / max_l      # 2 for max precip, 1 for 0.
+                w_fac = 2. * max_w / (max_w + w) # 2 for window size of 0, 1 for max window size
+                score += l_fac * w_fac * a[jj]
+                score_arr [ii, jj] = l_fac * w_fac * a[jj]
+    return score, score_arr
 
 
 def rank_fss_all(data_list):
@@ -122,12 +179,13 @@ def rank_scores(data_list):
     """
     namelist = [d['name'] for d in data_list]
     logging.info("Ranking")
-    for metric in ['mae', 'bias', 'rms', 'corr', 'd90']:
+    for metric in ['mae', 'bias', 'rms', 'corr', 'd90', 'fss_condensed', 'fss_condensed_weighted']:
         rank=1
         rank_name='rank_'+metric
         if metric == 'bias':
             data_list_metric = sorted(data_list, key=lambda k: np.abs(k[metric]))
-        elif metric == 'corr' or metric == 'fss_success_rate_abs' or metric == 'fss_success_rate_rel':
+        elif metric == 'corr' or metric == 'fss_success_rate_abs' or metric == 'fss_success_rate_rel' \
+             or metric == 'fss_condensed' or metric == 'fss_condensed_weighted':
             data_list_metric = sorted(data_list, key=lambda k: -k[metric])
         else:
             data_list_metric = sorted(data_list, key=lambda k: k[metric])
@@ -163,12 +221,13 @@ def rank_scores(data_list):
     return data_list
 
 
-def fss_overall_values(fss_ranks):
+def fss_overall_values(fss_ranks, windows, thresholds):
     # takes fss as numpy array, returns some single fss_overall_values
     fss_ranks = np.where(fss_ranks == 2, 3, fss_ranks) # merge number 1 and perfect scores
     fss_ranks_abs = fss_ranks[ 0: 9,:] # ranks for absolute thresholds
     fss_ranks_rel = fss_ranks[10:15,:] # ranks for percentiles
     # fss_ranks_abs_high = fss_ranks[ 4: 9,:] # ranks for absolute thresholds
+
     fss_total_abs_score = np.sum(np.where(fss_ranks_abs < 2, 0, 1./(fss_ranks_abs-2))) # better rank > more score
     fss_total_rel_score = np.sum(np.where(fss_ranks_rel < 2, 0, 1./(fss_ranks_rel-2))) # better rank > more score
     fss_success_rate_abs = np.mean(np.where(fss_ranks_abs == 1, 0, 1))
@@ -176,14 +235,14 @@ def fss_overall_values(fss_ranks):
     return fss_total_abs_score, fss_total_rel_score, fss_success_rate_abs, fss_success_rate_rel
 
 
-def total_fss_rankings(data_list):
+def total_fss_rankings(data_list, windows, thresholds):
     for sim in data_list[1::]:
-        sim['fss_total_abs_score'], sim['fss_total_rel_score'], sim['fss_success_rate_abs'], sim['fss_success_rate_rel'] = fss_overall_values(sim['fss_ranks'])
+        sim['fss_total_abs_score'], sim['fss_total_rel_score'], sim['fss_success_rate_abs'], sim['fss_success_rate_rel'] = fss_overall_values(sim['fss_ranks'], windows, thresholds)
     data_list = rank_fss_all(data_list)
     return data_list
     
 
-def write_scores_to_csv(data_list, start_date, end_date, args, verification_subdomain):
+def write_scores_to_csv(data_list, start_date, end_date, args, verification_subdomain, windows, thresholds):
     # TODO
     # sim['fss'] = fss
     # sim['fss_ranks'] = fss
@@ -203,7 +262,7 @@ def write_scores_to_csv(data_list, start_date, end_date, args, verification_subd
         col_labels3 = ['FSS', 'SR', 'FSS%', 'SR%']
         score_writer.writerow(col_labels)
         for sim in data_list[1::]:
-            fss_total_abs_score, fss_total_rel_score, fss_success_rate_abs, fss_success_rate_rel = fss_overall_values(sim['fss_ranks'])
+            fss_total_abs_score, fss_total_rel_score, fss_success_rate_abs, fss_success_rate_rel = fss_overall_values(sim['fss_ranks'], windows, thresholds)
             score_writer.writerow([
                 sim['name'].replace(' ','_'), 
                 "{:.5f}".format(sim['bias_real']), "{:.5f}".format(sim['mae']), "{:.5f}".format(sim['rms']), "{:.5f}".format(sim['corr']), "{:.5f}".format(sim['d90']),
@@ -219,6 +278,14 @@ def write_scores_to_csv(data_list, start_date, end_date, args, verification_subd
     return score_table, score_table2, col_labels2, col_labels3, row_labels
 
 
+def prep_windows(ww, mode, nx, ny):
+    windows_shape = (len(ww), 2)
+    windows_ret = np.zeros(windows_shape, dtype=int)
+    for idx, w in enumerate(ww):
+        windows_ret[idx, 0] = ny if mode == 'valid_adaptive' and w > ny else w
+        windows_ret[idx, 1] = nx if mode == 'valid_adaptive' and w > nx else w
+    return windows_ret
+        
 def calc_scores(sim, obs, args):
     """
     calculate verification metrics MAE, RMSE, BIAS and CORRELATION COEFFICIENT
@@ -230,6 +297,8 @@ def calc_scores(sim, obs, args):
     percs=[25, 50, 75, 90, 95]
     levels = parameter_settings.get_fss_thresholds(args)
     windows=[10,20,30,40,60,80,100,120,140,160,180,200]
+    ny, nx = sim["precip_data_resampled"].shape
+    windows = prep_windows(windows, args.fss_calc_mode, nx, ny)
     if sim['conf'] == 'INCA' or sim['conf'] == 'OPERA':
         sim['bias'] = 999
         sim['mae'] = 999
@@ -240,6 +309,8 @@ def calc_scores(sim, obs, args):
         sim['fss_total_rel_score'] = -999
         sim['fss_success_rate_abs'] = -999
         sim['fss_success_rate_rel'] = -999
+        sim['fss_condensed'] = -999
+        sim['fss_condensed_weighted'] = -999
         sim['fss'] = None
         sim['fssp'] = None
         sim['fss_num'] = None
@@ -247,8 +318,6 @@ def calc_scores(sim, obs, args):
         sim['fss_den'] = None
         sim['fssp_den'] = None
     else:
-        # sim['sim_param_resampled'] = sim['sim_param_resampled']
-        # sim['obs_param_resampled'] = sim['obs_param_resampled']
         thresholds = []
         thresholds_percs = []
         for level in levels:
@@ -262,11 +331,14 @@ def calc_scores(sim, obs, args):
         mae = np.mean(np.abs(sim["precip_data_resampled"]-obs["precip_data_resampled"]))
         rms = np.sqrt(np.mean(np.square(sim["precip_data_resampled"]-obs["precip_data_resampled"])))
         corr = np.corrcoef(sim["precip_data_resampled"].flatten(),obs["precip_data_resampled"].flatten())[0,1]
-        fss_num, fss_den, fss, ovest = fss_functions.fss_frame(sim["precip_data_resampled"],obs["precip_data_resampled"],windows,levels,percentiles=False)
+        fss_num, fss_den, fss, ovest = fss_functions.fss_frame(
+            sim["precip_data_resampled"],
+            obs["precip_data_resampled"],
+            windows,levels,percentiles=False, mode=args.fss_calc_mode.replace("_adaptive", ""))
         fssp_num, fssp_den, fssp, ovestp = fss_functions.fss_frame(
-                np.copy(sim["precip_data_resampled"]),
-                np.copy(obs["precip_data_resampled"]),
-                windows,percs,percentiles=True) # circumvent numpy issue #21524
+            np.copy(sim["precip_data_resampled"]), # circumvent numpy issue #21524
+            np.copy(obs["precip_data_resampled"]), # circumvent numpy issue #21524
+            windows,percs,percentiles=True, mode=args.fss_calc_mode.replace("_adaptive", "")) 
         fssf = pd.concat((fss, fssp), axis=0)
         ovestf = pd.concat((ovest, ovestp), axis=0)
         sim['bias'] = np.abs(bias)
@@ -274,6 +346,7 @@ def calc_scores(sim, obs, args):
         sim['mae'] = mae
         sim['rms'] = rms
         sim['corr'] = corr
+        sim['fss_windows'] = windows
         sim['fss'] = fss
         sim['fssp'] = fssp
         sim['fss_num'] = fss_num
@@ -282,11 +355,13 @@ def calc_scores(sim, obs, args):
         sim['fssp_den'] = fssp_den
         sim['fssf'] = fssf
         sim['fss_overestimated'] = ovestf
-        sim['d90'] = fss_d90(sim["precip_data_resampled"], obs["precip_data_resampled"])
+        sim['fss_condensed'], sim['fss_normalized_arr'] = fss_condensed(sim)
+        sim['fss_condensed_weighted'], sim['fss_normalized_weighted_arr'] = weighted_fss_condensed(sim, levels)
+        sim['d90'] = fss_d90(sim["precip_data_resampled"], obs["precip_data_resampled"], args)
     return(sim)
 
 
-def fss_d90(rrm, rro):
+def fss_d90(rrm, rro, args):
     """
     arr .... array-like
 
@@ -296,6 +371,7 @@ def fss_d90(rrm, rro):
     """
     # consistency check
     windows = [1, 3, 5, 7, 11, 21, 31, 41, 51, 61, 81, 101, 121, 141, 181, 251, 351, 501, 701]
+    windows_2d = prep_windows(windows, args.mode, *rrm.shape)
     levels = [0.5]
     _rro = np.where(rro > np.percentile(np.copy(rro), 90), 1, 0)
     rrm = np.where(rrm > np.percentile(np.copy(rrm), 90), 1, 0) # circumvent numpy issue #21524
@@ -306,7 +382,8 @@ def fss_d90(rrm, rro):
         logger.warning("No precipitation in model array, returning no d90!")
         return np.nan
     overlap = float(np.sum(_rro*rrm))/float(np.sum(rrm))
-    arr = fss_functions.fss_strip(rro_s, rrm_s, windows, levels).values.flatten()
+    _, _, _arr, _ = fss_functions.fss_frame(rro_s, rrm_s, windows_2d, levels, args.fss_calc_mode)
+    arr = _arr.values.flatten()
     for ii in range(1,len(arr)):
         if arr[ii] - arr[ii-1] < 0:
             logger.info("non-monotonous array in argument, returning no d90!")

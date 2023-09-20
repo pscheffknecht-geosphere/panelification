@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% from 'bootstrap5/form.html' import render_form %}
+
+{% block title %}
+Panelmaker v0.1
+{% endblock %}
+
+
+{% block content %}
+
+<!--
+	TIPS about using Bootstrap-Flask:
+	https://github.com/helloflask/bootstrap-flask
+	https://bootstrap-flask.readthedocs.io/
+-->
+<style>
+    #main_form tr:nth-child(even){background-color: #eeeeff;}
+    #main_form tr:nth-child(odd){background-color: #ffffff;}
+    #main_form tr:hover {background-color: #dddddd;}
+    .tooltip {
+        position: relative;
+        display: inline-block;
+    }
+    .tooltip .tooltiptext {
+        visiblity: hidden;
+        width: 120px;
+        background-color: #eeeeff;
+        text-align: left;
+        padding: 5px;
+        border-radius: 6px;
+        position: absolute;
+        z-index: 1;
+    }
+</style>
+<div class="container">
+  <div class="row">
+    <div class="col-md-10 col-lg-8 mx-lg-auto mx-md-auto">
+      <p class="pt-5 pb-2"><a href="/">Back to the panelification form</a>
+      <h3 class="pt-5 pb-2">Available panels:</h3>
+      <table style="width:100%" id="main_form">
+        {% for img in panel_list %}
+            <tr><th><a href="/static/{{ img }}">{{ img }}</a></th></tr>
+        {% endfor %}
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

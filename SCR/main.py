@@ -19,6 +19,7 @@ import data_io
 import data_from_dcmdb
 import scan_obs
 import regions
+import parameter_settings
 
 # try avoiding hanging during parallelized portions of the program
 os.environ['MKL_NUM_THREADS'] = '1'
@@ -68,6 +69,11 @@ def parse_arguments():
     parser.add_argument('--subdomains', '-u', type=str, default=["Default"], nargs='+',
         help = """ Select verification subdomains
             Subdomains are defined in regions.py for each region""")
+    parser.add_argument('--sorting', type=str, default='model',
+        help = """Sorting of the panels
+            default ... sort by model as given in the arguments
+            model ..... sort by model name
+            init ...... sort by init time""")
     parser.add_argument('--draw_subdomain', nargs='?', default=True, const=True, type=str2bool,
         help = "Draw a rectangle to show the verification subdomain")
     parser.add_argument('--case', '-c', type=str, nargs='+', default="austria_2022",
@@ -96,26 +102,38 @@ def parse_arguments():
         help = 'draw panels for all subdomains, no matter how much rain was observed')
     parser.add_argument('--clean', nargs='?', default=False, const=True, type=str2bool,
         help = 'do not draw/write verification metrics on the panels')
-    parser.add_argument('--mode', default='None', type=str,
-        help = """ Drawing mode:\n
-            'None' (default) ... Draw rain contours\n
-            'resampled' ........ Draw model data interpolated to INCA grid for verification""")
+    parser.add_argument('--mode', default='normal', type=str,
+        help = """ Drawing mode:
+            'normal' (default) ... Draw model data as-is
+            'resampled' .......... Draw model data interpolated to INCA grid for verification""")
     #         'diff' ............. Draw interpolated rain field difference to INCA analysis\n
     parser.add_argument('--fix_nans', nargs='?', default=False, const=True, type=str2bool,
         help = 'Fix NaNs in OBS and Model fields by setting them to 0.')
     parser.add_argument('--save', nargs='?', default=False, const=True, type=str2bool,
         help = 'save full fields to pickle files')
     parser.add_argument('--fss_mode', type=str, default='ranks')
+    parser.add_argument('--fss_calc_mode', type=str, default='same')
+    parser.add_argument('--rank_by_fss_metric',type=str, default='fss_condensed_weighted',
+        help = """Select score used when ranking simulation by their FSS performance:
+        fss_total_abs_score .................. use the old FSS Rank Score
+        fss_condensed ........................ condensed FSS value, uniform weight
+        fss_condensed_weighted (default) ..... condensed FSS value, higher weight smaller windows and higher precipitation""")
     parser.add_argument('--save_full_fss', nargs='?', default=False, const=True, type=str2bool,
         help = 'save full FSS, including numerator and denominator')
     parser.add_argument('--hidden', nargs='?', default=False, const=True, type=str2bool,
         help = 'clean panels, with names hidden and numbers used instead')
+    parser.add_argument('--panel_rows_columns', nargs='+', default=None, type=int,
+        help = """Manually select rows and columns of the panel plot
+        If rows x columns is too small, lines will be added to accomodate all panels
+        if rows x columns is larger than needed, fewer lines will be filled""")
     # parser.add_argument('--fast', nargs='?', default=False, const=True, type=str2bool,
     #     help = 'faster drawing using pcolormesh')
     parser.add_argument('--logfile', type=str, default=None, help='Name of logfile')
     parser.add_argument('--loglevel', type=str, default='info',
         help = """Logging level:
           debug, info, warning, error""")
+    parser.add_argument('--rank_score_time_series', nargs='?', default=False, const=True, type=str2bool,
+        help = """Draw line plots of model performance, init on x axis, score on y axis""")
     args = parser.parse_args()
     init_logging(args)
     # replace the string object with a proper instance of Region
@@ -205,7 +223,13 @@ def main():
     #     logging.critical("Parameter {:s} unknown, accepted parameters: precip, sunshine, hail, lightning".format(
     #         args.parameter))
     #     exit(1)
+    if args.sorting == 'init':
+        newlist = sorted(data_list[1::], key=lambda d: d['init']) 
+        newlist.insert(0, data_list[0])
+        data_list = newlist
     df_subdomain_details = scan_obs.get_interesting_subdomains(data_list[0], args)
+    thresholds = parameter_settings.get_fss_thresholds(args)
+    windows = [10,20,30,40,60,80,100,120,140,160,180,200]
     for _, dom in df_subdomain_details.iterrows():
         subdomain_name = dom['name']
         if dom['score'] or dom['draw'] or args.save:
@@ -216,16 +240,24 @@ def main():
                 sim["precip_data_resampled"] = _data
             Parallel(n_jobs=6,backend='threading')(delayed(scoring.calc_scores)(sim, data_list[0], args) for ii, sim in enumerate(data_list))
             scoring.rank_scores(data_list)
-            scoring.total_fss_rankings(data_list)
+
+            scoring.total_fss_rankings(data_list, windows, thresholds)
         else:
             logging.info("Skipping "+dom['name']+", nothing is requested.")
         if dom['score']:
-            scoring.write_scores_to_csv(data_list, start_date, end_date, args, subdomain_name)
+            scoring.write_scores_to_csv(data_list, start_date, end_date, args, subdomain_name, windows, thresholds)
+        # print new test scores
+        for sim in data_list:
+            print(sim['name'],
+                  sim['fss_total_abs_score'],     sim['rank_fss_total_abs_score'],
+                  sim['fss_condensed'],           sim['rank_fss_condensed'],
+                  sim['fss_condensed_weighted'],  sim['rank_fss_condensed_weighted'])
         if dom['draw']:
             plot_start = datetime.now()
-            panel_plotter.draw_panels(data_list, start_date, end_date, subdomain_name, args) #, mode=args.mode)
+            outfilename = panel_plotter.draw_panels(data_list, start_date, end_date, subdomain_name, args) #, mode=args.mode)
             plot_duration = datetime.now() - plot_start
             logging.info("Plotting "+str(len(data_list))+"panels took "+str(plot_duration))
+            logging.info("File saved to: " + os.path.abspath(outfilename))
         if args.save:
             data_io.save_data(data_list, subdomain_name, start_date, end_date, args)
         if args.save_full_fss:
