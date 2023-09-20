@@ -58,7 +58,7 @@ regions = {
                 "x_size": 222., "y_size": 200.},
             "Carinthia": {
                 'central_longitude': 14.00, 'central_latitude': 46.7, 
-                'x_nsize': 210, 'y_size': 111},
+                'x_size': 210, 'y_size': 111},
             "Styria": {
                 'central_longitude': 14.83, 'central_latitude': 47.1, 
                 'x_size': 221, 'y_size': 200},
@@ -82,7 +82,10 @@ regions = {
                 'x_size': 424, 'y_size': 167},
             "SouthEast": {
                 'central_longitude': 15.165, 'central_latitude': 46.85, 
-                'x_size': 279, 'y_size': 145}
+                'x_size': 279, 'y_size': 145},
+            "West": {
+                'central_longitude': 11.25, 'central_latitude': 47.45,
+                'x_size': 338, 'y_size': 234}
             },
             # "Vienna" :        [16.,   16.66, 48., 4 8.4],
             # "Lower_Austria" : [14.33, 17.33, 47.4,  49.2],
@@ -97,6 +100,17 @@ regions = {
             # "Wechsel" :       [15.58, 16.24, 47.30, 47.76],
             # "Nockberge" :     [13.85, 14.51, 46.75, 47,21],
             # "Kitzbuehel" :    [12.10, 12.76, 47.24, 47.70],
+    },
+    "Austria_East": {
+        "central_longitude": 14.25,
+        "central_latitude": 48.3,
+        "extent": [13., 17.5, 46., 49.4],
+        "verification_subdomains": {
+            "Default": {
+                "central_longitude": 14.25,
+                "central_latitude": 47.7,
+                "x_size": 300., "y_size": 325.}
+        },
     },
     # for the Finland 2017 case, south of Finland only
     "Finland": {
@@ -123,7 +137,6 @@ regions = {
 
 class Region():
     def __init__(self, region_name="Europe", subdomains=["Default"]):
-        logger.info("But not here")
         self.name = region_name
         self.extent=regions[region_name]['extent']
         self.data_projection = ccrs.PlateCarree()
@@ -160,6 +173,7 @@ class Region():
     def __prep_subdomains(self, region_name, subdomain_name_list):
         self.subdomains = {}
         for subdomain_name in subdomain_name_list:
+            logger.info("Preparing subdomain {:s}".format(subdomain_name))
             k = self.__get_scale_factor(regions[region_name]["verification_subdomains"][subdomain_name])
             lon, lat = self.__make_grid(regions[region_name]["verification_subdomains"][subdomain_name], k=k)
             if "thresholds" in regions[region_name]["verification_subdomains"][subdomain_name].keys():
@@ -201,7 +215,8 @@ class Region():
                 subdomain_data["central_latitude"],
                 subdomain_data["x_size"],
                 subdomain_data["y_size"])
-        logger.info("Current subdomain key {:s}".format(key_str))
+        logger.info("Current subdomain: {:s}".format(key_str))
+        logger.info("Current subdomain key: {:s}".format(key_str))
         return key_str
 
 

@@ -187,7 +187,7 @@ def sunshine_cmap_and_levels(args):
 
 def precip_cmap_and_levels(args):
     mycolors = None # only change if required
-    if args.mode == 'None' or args.mode == 'resampled':
+    if args.mode == 'normal' or args.mode == 'resampled':
         if args.duration >= 24 or args.parameter == "precip2":
             levels = [0., 1. , 3. ,  5.,  10.,  15.,  20.,  30.,  40.,  50.,  60.,  80., 100., 150.,  200., 250.]
         else:

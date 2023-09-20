@@ -102,10 +102,10 @@ def parse_arguments():
         help = 'draw panels for all subdomains, no matter how much rain was observed')
     parser.add_argument('--clean', nargs='?', default=False, const=True, type=str2bool,
         help = 'do not draw/write verification metrics on the panels')
-    parser.add_argument('--mode', default='None', type=str,
-        help = """ Drawing mode:\n
-            'None' (default) ... Draw rain contours\n
-            'resampled' ........ Draw model data interpolated to INCA grid for verification""")
+    parser.add_argument('--mode', default='normal', type=str,
+        help = """ Drawing mode:
+            'normal' (default) ... Draw model data as-is
+            'resampled' .......... Draw model data interpolated to INCA grid for verification""")
     #         'diff' ............. Draw interpolated rain field difference to INCA analysis\n
     parser.add_argument('--fix_nans', nargs='?', default=False, const=True, type=str2bool,
         help = 'Fix NaNs in OBS and Model fields by setting them to 0.')
@@ -113,15 +113,19 @@ def parse_arguments():
         help = 'save full fields to pickle files')
     parser.add_argument('--fss_mode', type=str, default='ranks')
     parser.add_argument('--fss_calc_mode', type=str, default='same')
-    parser.add_argument('--rank_by_fss_metric',type=str, default='fss_total_abs_score',
+    parser.add_argument('--rank_by_fss_metric',type=str, default='fss_condensed_weighted',
         help = """Select score used when ranking simulation by their FSS performance:
-        fss_total_abs_score (default) ........ use the old FSS Rank Score
+        fss_total_abs_score .................. use the old FSS Rank Score
         fss_condensed ........................ condensed FSS value, uniform weight
-        fss_condensed_weighted ............... condensed FSS value, higher weight smaller windows and higher precipitation""")
+        fss_condensed_weighted (default) ..... condensed FSS value, higher weight smaller windows and higher precipitation""")
     parser.add_argument('--save_full_fss', nargs='?', default=False, const=True, type=str2bool,
         help = 'save full FSS, including numerator and denominator')
     parser.add_argument('--hidden', nargs='?', default=False, const=True, type=str2bool,
         help = 'clean panels, with names hidden and numbers used instead')
+    parser.add_argument('--panel_rows_columns', nargs='+', default=None, type=int,
+        help = """Manually select rows and columns of the panel plot
+        If rows x columns is too small, lines will be added to accomodate all panels
+        if rows x columns is larger than needed, fewer lines will be filled""")
     # parser.add_argument('--fast', nargs='?', default=False, const=True, type=str2bool,
     #     help = 'faster drawing using pcolormesh')
     parser.add_argument('--logfile', type=str, default=None, help='Name of logfile')
@@ -250,9 +254,10 @@ def main():
                   sim['fss_condensed_weighted'],  sim['rank_fss_condensed_weighted'])
         if dom['draw']:
             plot_start = datetime.now()
-            panel_plotter.draw_panels(data_list, start_date, end_date, subdomain_name, args) #, mode=args.mode)
+            outfilename = panel_plotter.draw_panels(data_list, start_date, end_date, subdomain_name, args) #, mode=args.mode)
             plot_duration = datetime.now() - plot_start
             logging.info("Plotting "+str(len(data_list))+"panels took "+str(plot_duration))
+            logging.info("File saved to: " + os.path.abspath(outfilename))
         if args.save:
             data_io.save_data(data_list, subdomain_name, start_date, end_date, args)
         if args.save_full_fss:

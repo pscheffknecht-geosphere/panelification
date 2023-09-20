@@ -167,7 +167,7 @@ def prep_plot_data(sim, obs, mode):
     sim ........ dictionary for the model
     obs ........ dictionary for the observations
     mode ....... string, select whether to plot original or resampled fields"""
-    if mode == 'None':
+    if mode == 'normal':
         precip_data = sim['precip_data']
         lon = sim['lon']
         lat = sim['lat']
@@ -336,14 +336,17 @@ def define_panel_and_plot_dimensions(data_list, args, time_series_scores):
     if cols*lins < N:
         lins = lins + 1
     logger.debug("PLOT ASPECT: {:.2f}".format(r))
-    return r, cols, lins
+    return r, cols, lins, N
 
 
 def score_time_series(data_list, r, tmp_string, time_series_scores):
-    score_names = ["Old FSS Rank Score", "New FSS Score", "New FSS Score Weighted"]
+    score_names = {
+        "fss_total_abs_score": "Old FSS Rank Score", 
+        "fss_condensed": "New FSS Score", 
+        "fss_condensed_weighted": "New FSS Score Weighted"}
     for sidx, s in enumerate(time_series_scores):
         fig, ax = plt.subplots(1, 1, figsize=(3.5/r, 3.5), dpi=150)
-        logger.info("Making time series test plot for " + score_names[sidx])
+        logger.info("Making time series plot for " + score_names[s])
         score = {}
         init = {}
         for sim in data_list[1::]:
@@ -352,12 +355,12 @@ def score_time_series(data_list, r, tmp_string, time_series_scores):
                 init[sim['conf']] = []
             score[sim['conf']].append(sim[s])
             init[sim['conf']].append(sim['init'])
-        for key, s in score.items():
-            ax.plot(init[key], s, 'o-', label=key)
+        for key, ss in score.items():
+            ax.plot(init[key], ss, 'o-', label=key)
         ax.legend()
-        ax.set_ylabel("FSS rank score")
+        ax.set_ylabel("score")
         ax.set_xlabel("model init time")
-        title = score_names[sidx] + " by model and init"
+        title = score_names[s] + " by model and init"
         ax.set_title(title, loc='left')
         plt.savefig('../TMP/' + tmp_string + '/' + str(990 + sidx) + '.png')
         # exit()
@@ -375,8 +378,13 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
     args ............. command line arguments
     mode ............. string, resampled or original data to be drawn"""
     logger.debug(args.region.extent)
-    time_series_scores = ["fss_total_abs_score", "fss_condensed", "fss_condensed_weighted"]
-    r, cols, lins = define_panel_and_plot_dimensions(data_list, args, time_series_scores)
+    time_series_scores = [args.rank_by_fss_metric]
+    r, cols, lins, nplots = define_panel_and_plot_dimensions(data_list, args, time_series_scores)
+    if args.panel_rows_columns:
+        lins_new, cols_new = args.panel_rows_columns
+        min_lines = nplots // cols_new + 1
+        lins_new = min_lines if min_lines > lins_new else lins_new
+        cols, lins = cols_new, lins_new
     logger.info("generating a panel plot with {} lines and {} columns".format(lins, cols))
     levels, cmap, norm = parameter_settings.get_cmap_and_levels(args)
     cmap.set_over('orange')
@@ -413,6 +421,7 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
     # os.system('rm ../TMP/'+tmp_string+'/???.p ../TMP/'+tmp_string+'/*.png')
     # clear temporary data directory
     os.system('rm -R ../TMP/'+tmp_string)
+    return outfilename
 
 
 def main():

@@ -101,26 +101,35 @@ def fss_condensed(sim):
     geet 0 points and values between f0 and 1 are mapped to 0 ... 1
     """
     score = 0.
+    score_arr = np.zeros(sim['fss'].values.shape)
     for ii, t in enumerate(sim['fss_thresholds']):
         a_ = sim['fss'].values[ii, :]
         a = copy.copy(a_)
-        s = 1. / (1. - t)
-        a = s * (a - 1) + 1
+        if t == 1.: #catch cases where the entire domain is above the precip threshold
+            a = np.where(a == 1., 1. ,0.) #???
+        else:
+            s = 1. / (1. - t)
+            a = s * (a - 1) + 1
         a = clamp_array(a)
+        score_arr [ii, :] = a
         score += np.nansum(a)
-    return score
+    return score, score_arr
 
 
 def weighted_fss_condensed(sim, levels):
     score = 0.
+    score_arr = np.zeros(sim['fssf'].values.shape)
     wins = np.asarray(sim['fss_windows'])
     max_l = np.max(levels[0:9])
     max_w = wins.max()
     for ii, t in enumerate(sim['fss_thresholds']):
         a_ = sim['fss'].values[ii, :]
         a = copy.copy(a_)
-        s = 1. / (1. - t)
-        a = s * (a - 1) + 1
+        if t == 1.: #catch cases where the entire domain is above the precip threshold
+            a = np.where(a == 1., 1. ,0.) #???
+        else:
+            s = 1. / (1. - t)
+            a = s * (a - 1) + 1
         a = clamp_array(a)
         l = levels[ii]
         for jj, w in enumerate(sim['fss_windows']):
@@ -131,7 +140,8 @@ def weighted_fss_condensed(sim, levels):
                 l_fac = (max_l + l) / max_l      # 2 for max precip, 1 for 0.
                 w_fac = 2. * max_w / (max_w + w) # 2 for window size of 0, 1 for max window size
                 score += l_fac * w_fac * a[jj]
-    return score
+                score_arr [ii, jj] = l_fac * w_fac * a[jj]
+    return score, score_arr
 
 
 def rank_fss_all(data_list):
@@ -345,8 +355,8 @@ def calc_scores(sim, obs, args):
         sim['fssp_den'] = fssp_den
         sim['fssf'] = fssf
         sim['fss_overestimated'] = ovestf
-        sim['fss_condensed'] = fss_condensed(sim)
-        sim['fss_condensed_weighted'] = weighted_fss_condensed(sim, levels)
+        sim['fss_condensed'], sim['fss_normalized_arr'] = fss_condensed(sim)
+        sim['fss_condensed_weighted'], sim['fss_normalized_weighted_arr'] = weighted_fss_condensed(sim, levels)
         sim['d90'] = fss_d90(sim["precip_data_resampled"], obs["precip_data_resampled"], args)
     return(sim)
 
