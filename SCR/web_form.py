@@ -1,4 +1,3 @@
-import flask
 import time
 from flask import Flask, render_template, redirect, url_for, jsonify
 from flask_bootstrap import Bootstrap5
@@ -9,7 +8,6 @@ from wtforms import StringField, SubmitField, SelectField, SelectMultipleField, 
 from wtforms.validators import DataRequired, Length, NumberRange, InputRequired
 
 import secrets
-import os
 import glob
 import subprocess
 import datetime as dt
@@ -116,11 +114,13 @@ def make_panelification_command(form):
     command_string += "--save " + str(form.save.data) + " "
     command_string += "--rank_score_time_series " + str(form.rank_score_time_series.data) + " "
     command_string += "--save_full_fss " + str(form.save_full_fss.data) + " "
+    command_string += "--fss_mode " + form.fss_mode.data + " "
     if len(form.logfile.data) > 0:
         logfile_name = form.logfile.data
         logfile_name = logfile_name if logfile_name.endwith(".log") else logfile_name + ".log"
         command_string += "--logfile " + logfile_name + " "
     command_string += "--loglevel " + form.loglevel.data + " "
+    print(form.mode.data)
     command_string += "--mode " + form.mode.data + " "
     command_string += "--rank_by_fss_metric " + form.rank_by_fss_metric.data + " "
     return command_string
@@ -189,3 +189,6 @@ def subdomains(region):
 
     return jsonify({'verification_subdomains': subdomain_array})
 
+
+if __name__ == "__main__":
+    app.run()
