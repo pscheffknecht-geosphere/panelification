@@ -55,6 +55,20 @@ def mars_request(init, step):
         return None
 
 
+def get_lonlat_fallback(grb):
+    Nx = None
+    Ny = None
+    lll = None
+    try:
+        Nx = grb['Nx']
+        Ny = grb['Ny']
+        lll = grb.latLonValues.reshape((Ny, Nx, 3))
+        print(lll)
+    except:
+        logger.critical("Fallback failed on unknown grid type, exiting!!!")
+        raise
+    return lll[:, :, 1], lll[:, :, 0]
+
 
 def check_fields(f):
     """Try a number of known passible grib handles that can be used to store precipitation
@@ -141,7 +155,11 @@ def read_data(grib_file_path, get_lonlat_data=False):
         tmp_data_field += field.values
     tmp_data_field = np.where(tmp_data_field==9999.0, np.nan, tmp_data_field)
     if get_lonlat_data:
-        lat, lon = tmp_data_list[0].latlons()
+        if tmp_data_list[0]['gridType'] == "lambert_lam":
+            logger.info("gridType lambert_lam detected, going to fallback!")
+            lon, lat = get_lonlat_fallback(tmp_data_list[0])
+        else:
+            lat, lon = tmp_data_list[0].latlons()
         return lon, lat, tmp_data_field
     else:
         return tmp_data_field
