@@ -82,7 +82,6 @@ Panelmaker v0.1
                       let optionSubdomainHTML = ''
                       for (let subdomain of data.verification_subdomains) {
                           optionSubdomainHTML += '<option value="'+subdomain.id + '">'+ subdomain.name + '</option>';
-                          console.log('<option value="'+subdomain.id + '">'+ subdomain.name + '</option>');
                       };
                       verification_subdomains.innerHTML = optionSubdomainHTML
                   });
