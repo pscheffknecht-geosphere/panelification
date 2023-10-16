@@ -86,6 +86,29 @@ experiment_configurations = {
         "unit_factor"      : 1.,
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/cosmo1e_%H+%LLLL.grb2",
     },
+    "link_ref": {
+        "base_experiment"  : "arome",
+        "init_interval"    : 12,
+        "max_leadtime"     : 12, 
+        "accumulated"      : True,
+        "path_template"    : "/ment_arch2/model/AROME_PLAYGROUND/EX180/GRIB/%Y%m%d/%H/AROMEaut+%LLLL.grb",
+    },
+    "link_notok": {
+        "base_experiment"  : "link_ref",
+        "path_template"    : "/ment_arch2/model/AROME_PLAYGROUND/EX181/GRIB/%Y%m%d/%H/AROMEaut+%LLLL.grb",
+    },
+    "link_ok": {
+        "base_experiment"  : "link_ref",
+        "path_template"    : "/ment_arch2/model/AROME_PLAYGROUND/EX182/GRIB/%Y%m%d/%H/AROMEaut+%LLLL.grb",
+    },
+    "deode_test": {
+        "init_interval"    : 24,
+        "output_interval"  : 1,
+        "max_leadtime"     : 5, 
+        "accumulated"      : True,
+        "path_template"    : "/ment_arch2/aladin/DEODE/CASE_1/%Y%m%d_%H/GRIBPFDEODAUSTRIA_500m+%LLLLh00m00s",
+        "unit_factor"      : 1.
+        },
 }
 
 
