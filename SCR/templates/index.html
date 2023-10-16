@@ -74,7 +74,7 @@ Panelmaker v0.1
       </form>
       <script>
           let region_select = document.getElementById('region');
-          let subdomain_select = document.getElementById('verification_subdomain');
+          let subdomain_select = document.getElementById('verification_subdomains');
           region_select.onchange = function() {
               region = region_select.value;
               fetch("/subdomain/"+region).then(function(response) {
@@ -82,8 +82,9 @@ Panelmaker v0.1
                       let optionSubdomainHTML = ''
                       for (let subdomain of data.verification_subdomains) {
                           optionSubdomainHTML += '<option value="'+subdomain.id + '">'+ subdomain.name + '</option>';
+                          console.log('<option value="'+subdomain.id + '">'+ subdomain.name + '</option>');
                       };
-                      verification_subdomain.innerHTML = optionSubdomainHTML
+                      verification_subdomains.innerHTML = optionSubdomainHTML
                   });
 
               });
