@@ -111,7 +111,7 @@ def INCA_grid(INCAplus=False):
 
 def read_INCA(data_list, start_date, end_date, args):
     first=True
-    if args.parameter == 'precip' or args.parameter == 'precip2':
+    if args.parameter == 'precip' or args.parameter == 'precip2' or args.parameter == 'gusts':
         read_dt = dt(hours=1)
         dtype = np.int16
     elif args.parameter == 'sunshine':
@@ -126,6 +126,27 @@ def read_INCA(data_list, start_date, end_date, args):
                 first = False
             else:
                 var_tmp = var_tmp + bO.bring(datestring, inca_file=None)
+        elif args.parameter == "gusts":
+            logging.info("reading INCA gusts")
+            inca_file_u = inca_ana_paths['gusts']['UU'].format(
+                read_inca_date.strftime("%Y%m%d"),
+                read_inca_date.strftime("%H"))
+            inca_file_v = inca_ana_paths['gusts']['VV'].format(
+                read_inca_date.strftime("%Y%m%d"),
+                read_inca_date.strftime("%H"))
+            logging.debug(inca_file_u)
+            logging.debug(inca_file_v)
+            u_tmp = bO.bring(datestring, inca_file=inca_file_u) 
+            v_tmp = bO.bring(datestring, inca_file=inca_file_v) 
+            print(u_tmp)
+            print(v_tmp)
+            f_tmp = np.sqrt(u_tmp ** 2 + v_tmp ** 2)
+            print(f_tmp)
+            if first:
+                var_tmp = f_tmp
+                first = False
+            else:
+                var_tmp = np.where(f_tmp > var_tmp, f_tmp, var_tmp)
         elif args.parameter == "sunshine":
             logging.info("reading INCA sunshine")
             inca_file = inca_ana_paths['sunshine'].format(

@@ -1,8 +1,8 @@
 from matplotlib.colors import BoundaryNorm as bnorm
+import nclcmaps
 import numpy as np
 import matplotlib.cm as cm
 import matplotlib.colors as mplcolors
-
 import logging
 logger = logging.getLogger(__name__)
 logging.getLogger('matplotlib').setLevel(logging.WARNING)
@@ -22,6 +22,7 @@ title_part = {
     'precip2': 'Acc. Precip. [mm]',
     'sunshine': 'Acc. Sunshine Duration [h]',
     'lightning': 'lightning strikes [km$^{-2}$]',
+    'gusts': 'wind gusts [m s$^{-1}$]',
     'hail': 'Hail [??]'
 }
 # label for the color bar
@@ -30,6 +31,7 @@ colorbar_label = {
     'precip2': 'accumulated precipitation [mm]',
     'sunshine': 'sunshine duration [h]',
     'lightning': 'lightning strikes [km$^{-2}$]',
+    'gusts': 'gust speed [m s$^{-1}$]',
     'hail': 'hail [??]'
 }
 
@@ -40,6 +42,7 @@ def get_fss_thresholds(args):
         'precip2' : [0.2,2.,10.,20.,50.,70.,100.,150.,200., 99999.],
         'sunshine' : list(np.arange(0., 1., 1/6.)) + [999999],
         'hail' : [1, 2, 5, 10, 25, 35, 50, 75, 100, 99999],
+        'gusts' : [5, 10, 15, 20, 25, 30, 40, 50, 70, 99999],
         'lightning' : [0.1*x for x in [1, 2, 5, 10, 25, 35, 50, 75, 100]] + [99999]
         # 'sunshine' : [x*args.duration for x in range(0, 1, 1/6.)] + [999999]
     }
@@ -97,6 +100,16 @@ def get_axes_for_fss_rank_plot(args):
             0 : '10', 1 : '20', 2 : '30', 3 : '40', 4 : '60', 5 : '80', 6 : '100', 7 : '120', 
             8 : '140', 9 : '160', 10 : '180', 11 : '200'}
         },
+    'gusts' : {
+        'xticks' : range(12),
+        'yticks' : range(15),
+        'ydict': {
+            0 : '5', 1 : '10', 2 : '15', 3 : '20', 4 : '25', 5 : '30', 6 : '40', 7 : '50', 
+            8 : '70', 9 : '', 10 : '25%', 11 : '50%', 12 : '75%', 13 : '90%', 14 : '95%'},
+        'xdict' : {
+            0 : '10', 1 : '20', 2 : '30', 3 : '40', 4 : '60', 5 : '80', 6 : '100', 7 : '120', 
+            8 : '140', 9 : '160', 10 : '180', 11 : '200'}
+        },
     'lightning' : {
         'xticks' : range(12),
         'yticks' : range(15),
@@ -111,23 +124,6 @@ def get_axes_for_fss_rank_plot(args):
     return ax_ticks[args.parameter]
         
 # RGB tuples for custom color maps
-warn_colors = [
-    (255, 255, 255),  
-    (255, 255, 212), 
-    (255, 255, 169), 
-    (255, 255, 126), 
-    (255, 255,  83), 
-    (255, 230,  40), 
-    (255, 205,   0), 
-    (255, 180,   0), 
-    (255, 155,   0), 
-    (255, 130,   0), 
-    (255, 105,   0), 
-    (255,  80,   0), 
-    (255,  55,   0), 
-    (255,  30,   0), 
-    (255,   0,   0)]
-
 warn_colors = [
     (255, 255, 255), 
     (212, 212, 212),
@@ -145,10 +141,26 @@ warn_colors = [
     #( 83,   0,   0),
     ( 40,   0,   0)]
 
+gust_colors = [
+    (255, 255, 255), 
+    (212, 212, 212),
+    #(190, 190, 126),
+    (126, 126, 126),
+    (190, 190,   0),
+    #(190, 190,  40),
+    (255, 255,   0),
+    (255, 169,   0),
+    #(255, 126,   0),
+    (255,  83,   0),
+    #(212,  40,   0),
+    (169,   0,   0),
+    #(126,   0,   0),
+    #( 83,   0,   0),
+    ( 40,   0,   0)]
 
 
 def lightning_cmap_and_levels(args):
-    levels = [0.1*x for x in [0., 1. , 2. ,  5.,  10.,  20.,  30.,  50.,  75., 100.]]
+    levels = [0.1*x for x in [0., 5. , 10. ,  15.,  20.,  25.,  30.,  40.,  50., 70.]]
     mycolors =  warn_colors
          #  [(255.,255.,255.),(0,254,150),(0,254,200),(0,254,254),(0,200,254),(0,150,254),
          #   (0,50,254),(50,0,254),(100,0,254),(150,0,254),(200,0,254),(250,0,254),(200,0,200),
@@ -156,6 +168,13 @@ def lightning_cmap_and_levels(args):
     mycolors2 = tuple(np.array(mycolors)/255.)        
     norm = bnorm(levels,ncolors=len(mycolors))
     cmap = mplcolors.ListedColormap(mycolors2)
+    return levels, cmap, norm
+
+
+def gusts_cmap_and_levels(args):
+    levels = [0., 1. , 2. ,  5.,  10.,  20.,  30.,  50.,  75., 100.]
+    cmap = nclcmaps.cmap("WhiteBlueGreenYellowRed")
+    norm = bnorm(levels,cmap.N)
     return levels, cmap, norm
 
 
@@ -223,6 +242,8 @@ def get_cmap_and_levels(args):
         return lightning_cmap_and_levels(args)
     elif args.parameter == 'sunshine':
         return sunshine_cmap_and_levels(args)
+    elif args.parameter == 'gusts':
+        return gusts_cmap_and_levels(args)
 
 
 
