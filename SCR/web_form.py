@@ -59,7 +59,7 @@ class PanelificationRequest(FlaskForm):
     region_choices = get_choices_for_regions()
     region = SelectField(choices=region_choices, default='Austria')
     verification_subdomains = SelectMultipleField(
-        choices=get_subdomain_choices(region_choices[1]), 
+        choices=get_subdomain_choices(region_choices[2]), 
         default=['0'])
     model_choices = get_choices_for_models()
     models = SelectMultipleField(
