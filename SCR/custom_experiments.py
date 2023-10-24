@@ -14,8 +14,13 @@ experiment_configurations = {
         "init_interval"    : 3,
         "output_interval"  : 1,
         "max_leadtime"     : 60, 
-        "accumulated"      : True,
-        "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/arome_%H+%LLLL.grb",
+        "accumulated"      : {'precip': True,
+                              'gusts': False},
+        "path_template"    : {'precip': "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/arome_%H+%LLLL.grb",
+                              'gusts': "/arome_arch/aladin/ARCHIVE/AROMEaut/%Y%m%d/%H/AROMEaut+%LLLL.grb",
+                              'hail': "/arome_arch/aladin/ARCHIVE/AROMEaut/%Y%m%d/%H/AROMEaut+%LLLL.grb",
+                              'sunshine': "/arome_arch/aladin/ARCHIVE/AROMEaut/%Y%m%d/%H/AROMEaut+%LLLL.grb",
+                              'lightning': "/arome_arch/aladin/ARCHIVE/AROMEaut/%Y%m%d/%H/AROMEaut+%LLLL.grb"},
         "unit_factor"      : 1.
         },
     "aromeruc": {

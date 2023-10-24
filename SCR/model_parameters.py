@@ -1,5 +1,4 @@
 import pandas as pd
-import nclcmaps
 import matplotlib.cm as cm
 import numpy as np
 from matplotlib.colors import BoundaryNorm as bnorm
@@ -17,7 +16,9 @@ inca_fc_paths = {
 }
 
 inca_ana_paths = {
-    'sunshine'      : "/mapp_arch/mgruppe/arc/inca_l/mslp/{:s}/INCA_SSD-{:s}.asc.gz"
+    'sunshine'      : "/mapp_arch/mgruppe/arc/inca_l/mslp/{:s}/INCA_SSD-{:s}.asc.gz",
+    'gusts'         : {"UU": "/mapp_arch/mgruppe/arc/inca_l/wind/{:s}/INCA_UU-{:s}.asc.gz", # 2 components
+                       "VV": "/mapp_arch/mgruppe/arc/inca_l/wind/{:s}/INCA_VV-{:s}.asc.gz"}
 }
 
 path="/ment_arch3/aladin/PRECIP_ARCH/" # standard precipitation archive
