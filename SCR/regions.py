@@ -44,6 +44,16 @@ regions = {
                 "x_size": 1500, "y_size": 1500}
         }
     },
+    "Alps": {
+        "central_longitude": 9.,
+        "central_latitude": 45.,
+        "extent": [3., 19., 43., 49.5],
+        "verification_subdomains": {
+            "Default": {
+                "central_longitude": 9., "central_latitude": 46.25,
+                "x_size": 1000, "y_size": 500}
+        }
+    },
     "Austria": {
         "central_longitude": 13.,
         "central_latitude": 48.3,
