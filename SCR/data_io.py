@@ -1,5 +1,6 @@
 import pickle
 import os
+from grib_handle_check import find_grib_handles
 import custom_experiments
 from data_from_dcmdb import fill_path_file_template
 import custom_experiments
@@ -60,99 +61,60 @@ def get_lonlat_fallback(grb):
     Ny = None
     lll = None
     try:
-        Nx = grb['Nx']
-        Ny = grb['Ny']
-        lll = grb.latLonValues.reshape((Ny, Nx, 3))
-        print(lll)
+        Nx, Ny = grb['Nx'], grb['Ny']
+        lon = grb.longitudes.reshape((Ny, Nx))
+        lat = grb.latitudes.reshape((Ny, Nx))
     except:
         logger.critical("Fallback failed on unknown grid type, exiting!!!")
         raise
-    return lll[:, :, 1], lll[:, :, 0]
+    return lon, lat
 
 
-def check_fields(f):
-    """Try a number of known passible grib handles that can be used to store precipitation
-    in grib files. Return a list of valid handles if found"""
-    try:
-        f.select(shortName='twatp')
-        f.select(shortName='tsnowp')
-        return [{"shortName": "twatp"},
-                {"shortName": "tsnowp"}]
-    except:
-        pass
-    try:
-        f.select(parameterNumber=8)
-        return [{"parameterNumber": 8}]
-    except:
-        pass
-    try:
-        f.select(shortName='tp')
-        return [{"shortName": "tp"}]
-    except:
-        pass
-    try:
-        f.select(indicatorOfParameter=197) #, indicatorOfTypeOfLevel=1, level=0)
-        f.select(indicatorOfParameter=198) #, indicatorOfTypeOfLevel=1, level=0)
-        f.select(indicatorOfParameter=199) #, indicatorOfTypeOfLevel=1, level=0)
-        return [
-            {"indicatorOfParameter": 197}, #, "indicatorOfTypeOfLevel": 1, "level": 0},
-            {"indicatorOfParameter": 198}, #, "indicatorOfTypeOfLevel": 1, "level": 0},
-            {"indicatorOfParameter": 199}] #, "indicatorOfTypeOfLevel": 1, "level": 0}]
-    except:
-        pass
-    try:
-        f.select(parameterNumber=65)
-        f.select(parameterNumber=66)
-        f.select(parameterNumber=75)
-        return [
-            {"parameterNumber": 65}, 
-            {"parameterNumber": 66}, 
-            {"parameterNumber": 75}]
-    except:
-        pass
-    try:
-        f.select(parameterNumber=55)
-        f.select(parameterNumber=56)
-        f.select(parameterNumber=76)
-        f.select(parameterNumber=77)
-        return [
-            {"parameterNumber": 55}, 
-            {"parameterNumber": 56}, 
-            {"parameterNumber": 76}, 
-            {"parameterNumber": 77}]
-    except:
-        pass
-    try:
-        f.select(shortName="RAIN_CON")
-        f.select(shortName="RAIN_GSP")
-        f.select(shortName="SNOW_CON")
-        f.select(shortName="SNOW_GSP")
-    except:
-        pass
-    logger.critical("No valid grib handles found in file".format(str(f)))
-    exit()
-
-
+def read_values_from_grib_field(grb):
+    if grb['gridType'] == "lambert_lam": # new deode experiments
+        return grb.values
+    else:
+        return grb.data()[0]
 
 def read_list_of_fields(f, handles):
     """ takes and unpacks a dictionary of grib handles, then reads all
     field and returns the sum"""
-    tmp_data = []
+    ret_data = []
     for handle in handles:
-        tmp_data.append(f.select(**handle)[0])
-    return tmp_data
+        ret_data.append(f.select(**handle)[0])
+    return ret_data
 
 
-def read_data(grib_file_path, get_lonlat_data=False):
+def data_sum(tmp_data_list):
+    if len(tmp_data_list) > 1:
+        return np.sum(np.array([read_values_from_grib_field(x) for x in tmp_data_list]), axis=0)
+    else:
+        return tmp_data_list[0]
+
+def data_norm(tmp_data_list):
+    if not len(tmp_data_list) == 2:
+        raise ValueError("tmp_data_list has wrong lenght, must be 2 but is "+str(len(tmp_data_list)))
+    else:
+        return np.sqrt(read_values_from_grib_field(tmp_data_list[0]) ** 2 + read_values_from_grib_field(tmp_data_list[1]) ** 2)
+
+
+def calc_data(tmp_data_list, parameter):
+    calc_funcs = {
+       "precip" : data_sum,
+       "precip2" : data_sum,
+       "gusts" : data_norm
+       }
+    return calc_funcs[parameter](tmp_data_list)
+
+
+def read_data(grib_file_path, parameter, get_lonlat_data=False):
     """ calls the grib handle check and returns fields with or without lon and lat data,
     depending on selection"""
     with pygrib.open(grib_file_path) as f:
-        grib_handles = check_fields(f)
+        grib_handles = find_grib_handles(f, parameter)
         logger.debug("Getting {:s} from file {:s}".format(repr(grib_handles), grib_file_path))
         tmp_data_list = read_list_of_fields(f, grib_handles)
-    tmp_data_field = np.zeros(tmp_data_list[0].values.shape)
-    for field in tmp_data_list:
-        tmp_data_field += field.values
+    tmp_data_field = calc_data(tmp_data_list, parameter)
     tmp_data_field = np.where(tmp_data_field==9999.0, np.nan, tmp_data_field)
     if get_lonlat_data:
         if tmp_data_list[0]['gridType'] == "lambert_lam":
@@ -166,20 +128,21 @@ def read_data(grib_file_path, get_lonlat_data=False):
 
 
 class ModelConfiguration:
-    def __init__(self, custom_experiment_name, init, lead, duration):
+    def __init__(self, custom_experiment_name, init, lead, duration, parameter):
         self.valid=False
         self.init = init #datetime
         self.lead = lead #int
         self.lead_end = lead + duration
         self.experiment_name = custom_experiment_name
+        self.parameter = parameter
         cmc = custom_experiments.experiment_configurations[custom_experiment_name]
         if "base_experiment" in cmc:
             self.__fill_cmc_with_base_values(cmc)
-        self.path_template =    cmc["path_template"]
+        self.path_template = self.__pick_value(cmc["path_template"])
         self.init_interval =   cmc["init_interval"]
         self.max_leadtime =     cmc["max_leadtime"]
         self.output_interval = cmc["output_interval"]
-        self.accumulated =      cmc["accumulated"]
+        self.accumulated = self.__pick_value(cmc["accumulated"])
         self.unit_factor =      cmc["unit_factor"]
         if self.__times_valid():
             if self.accumulated:
@@ -194,6 +157,20 @@ class ModelConfiguration:
                 self.experiment_name, self.init.strftime("%Y-%m-%d %H")))
 
 
+    def __pick_value(self, raw_value):
+        """ If path template is a dictionary, return the correct item for the given parameter
+            if it is a string, return the string
+            else raise a ValueError"""
+        print("Picking path template from")
+        print(raw_value)
+        if isinstance(raw_value, dict):
+            value = raw_value[self.parameter]
+        else:
+            value = raw_value
+        print(f"returning {value}")
+        return value
+
+        
     def __fill_cmc_with_base_values(self, cmc):
         """ if the experiment is deried from a base experiment, not all keys
         need values, only experiments which do not refer to a base_experiment
@@ -242,11 +219,14 @@ class ModelConfiguration:
         return True
 
 
-    def get_data(self):
-        if self.accumulated:
-            return self.__get_data_accumulated()
-        else:
-            return self.__get_data_not_accumulated()
+    def get_data(self, param):
+        if param == 'gusts':
+            return self.__get_data_max()
+        elif 'precip' in param:
+            if self.accumulated:
+                return self.__get_data_accumulated()
+            else:
+                return self.__get_data_not_accumulated()
 
 
     def __get_data_not_accumulated(self):
@@ -254,20 +234,35 @@ class ModelConfiguration:
         for i, fil in enumerate(self.file_list):
             logger.info("Reading file ({:d}): {:s}".format(i, fil))
             if first:
-                lon, lat, tmp_data = read_data(fil, get_lonlat_data=True)
+                lon, lat, tmp_data = read_data(fil, self.parameter, get_lonlat_data=True)
                 first = False
             else:
-                tmp_data += read_data(fil)
+                tmp_data += read_data(fil, self.parameter)
+        tmp_data = np.where(tmp_data < 0., 0., tmp_data)
+        return lon, lat, self.unit_factor * tmp_data
+
+
+    def __get_data_max(self):
+        first = True
+        tmp_data_list = []
+        for i, fil in enumerate(self.file_list):
+            logger.info("Reading file ({:d}): {:s}".format(i, fil))
+            if first:
+                lon, lat, tmp_data = read_data(fil, self.parameter, get_lonlat_data=True)
+                first = False
+            else:
+                td2 = read_data(fil, self.parameter)
+                tmp_data = np.where(td2 > tmp_data, td2, tmp_data)
         tmp_data = np.where(tmp_data < 0., 0., tmp_data)
         return lon, lat, self.unit_factor * tmp_data
 
 
     def __get_data_accumulated(self):
         logger.info("Reading end file: {:s}".format(self.end_file))
-        lon, lat, tmp_data = read_data(self.end_file, get_lonlat_data=True)
+        lon, lat, tmp_data = read_data(self.end_file, self.parameter, get_lonlat_data=True)
         if self.start_file:
             logger.info("Reading start file: {:s}".format(self.start_file))
-            start_tmp_data = read_data(self.start_file)
+            start_tmp_data = read_data(self.start_file, self.parameter)
             tmp_data -= start_tmp_data
         # clamp to 0 because apparently this difference can be negative???
         # this is NOT a pygrib or panelification problem, also happens when
@@ -305,9 +300,6 @@ class ModelConfiguration:
             file_list.append(self.get_file_path(lead))
             lead += self.output_interval
         return file_list
-            
-
-
 
 
 def get_sims_and_file_list(data_list, args):
@@ -323,9 +315,9 @@ def get_sims_and_file_list(data_list, args):
             exp_init_date = dt.datetime.strptime(args.start, "%Y%m%d%H") - dt.timedelta(hours=exp_lead)
             logger.debug("Checking for {:s} at {:s}".format(
                 model_name, exp_init_date.strftime("%Y-%m-%d %H")))
-            mod = ModelConfiguration(model_name, exp_init_date, exp_lead, args.duration)
+            mod = ModelConfiguration(model_name, exp_init_date, exp_lead, args.duration, args.parameter)
             if mod.valid:
-                lon, lat, precip = mod.get_data()
+                lon, lat, precip = mod.get_data(args.parameter)
                 sim = {
                     "case": args.case[0],
                     "exp": model_name,
@@ -346,7 +338,8 @@ def get_sims_and_file_list(data_list, args):
 ### SAVING DATA AND VERIFICATION RESULTS
 def save_data(data_list, verification_subdomain, start_date, end_date, args):
     """ write all data to a pickle file """
-    outfilename = "../DATA/"+args.name+"RR_data_"+start_date.strftime("%Y%m%d_%HUTC_")+'{:02d}h_acc_'.format(args.duration)+verification_subdomain+'.p'
+    start_date_str = start_date.strftime("%Y%m%d_%HUTC_")
+    outfilename = "../DATA/{args.name}RR_data_{start_date_str}{args.duration:02d}h_acc_{verification_subdomain}.p"
     with open(outfilename, 'wb') as f:
         pickle.dump(data_list, f)
     logger.info(outfilename+" written sucessfully.")
@@ -354,7 +347,8 @@ def save_data(data_list, verification_subdomain, start_date, end_date, args):
 
 def save_fss(data_list, verification_subdomain, start_date, end_date, args):
     """ write all data to a pickle file """
-    outfilename = "../DATA/"+args.name+"FSS_data_"+start_date.strftime("%Y%m%d_%HUTC_")+'{:02d}h_acc_'.format(args.duration)+verification_subdomain+'.p'
+    start_date_str = start_date.strftime("%Y%m%d_%HUTC_")
+    outfilename = f"../DATA/{args.name}FSS_data_{start_date_str}{args.duration:02d}h_acc_{verification_subdomain}.p"
     fss_dict = {}
     for sim in data_list[1::]:
         sim_dict = {
