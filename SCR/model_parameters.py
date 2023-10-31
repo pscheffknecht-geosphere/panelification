@@ -17,8 +17,7 @@ inca_fc_paths = {
 
 inca_ana_paths = {
     'sunshine'      : "/mapp_arch/mgruppe/arc/inca_l/mslp/{:s}/INCA_SSD-{:s}.asc.gz",
-    'gusts'         : {"UU": "/mapp_arch/mgruppe/arc/inca_l/wind/{:s}/INCA_UU-{:s}.asc.gz", # 2 components
-                       "VV": "/mapp_arch/mgruppe/arc/inca_l/wind/{:s}/INCA_VV-{:s}.asc.gz"}
+    'gusts'         : "/mapp_arch/mgruppe/arc/inca_l/gust/{:s}/FGUST_{:s}.dat.gz"
 }
 
 path="/ment_arch3/aladin/PRECIP_ARCH/" # standard precipitation archive

@@ -45,6 +45,7 @@ Panelmaker v0.1
           <table style="width:100%" id="main_form">
               {{ form.csrf_token }}
               <tr><th>Name:</th><th>{{ form.name }}</th></tr>
+              <tr><th>Parameter:</th><th>{{ form.parameter }}</th></tr>
               <tr><th>Start of verification window [YYYYmmddHH]:</th><th>{{ form.start }}</th></tr>
               <tr><th>Length of verification window (1-999 h):</th><th>{{ form.duration }}</th></tr>
               <tr><th>Minimum lead of models before start (0 - 999 h):</th><th>{{ form.min_lead }}</th></tr>

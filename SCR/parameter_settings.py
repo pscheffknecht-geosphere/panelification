@@ -1,4 +1,5 @@
 from matplotlib.colors import BoundaryNorm as bnorm
+from matplotlib.colors import Normalize as nnorm
 import nclcmaps
 import numpy as np
 import matplotlib.cm as cm
@@ -44,7 +45,6 @@ def get_fss_thresholds(args):
         'hail' : [1, 2, 5, 10, 25, 35, 50, 75, 100, 99999],
         'gusts' : [5, 10, 15, 20, 25, 30, 40, 50, 70, 99999],
         'lightning' : [0.1*x for x in [1, 2, 5, 10, 25, 35, 50, 75, 100]] + [99999]
-        # 'sunshine' : [x*args.duration for x in range(0, 1, 1/6.)] + [999999]
     }
     return thresholds_for_fss[args.parameter]
 
@@ -141,30 +141,10 @@ warn_colors = [
     #( 83,   0,   0),
     ( 40,   0,   0)]
 
-gust_colors = [
-    (255, 255, 255), 
-    (212, 212, 212),
-    #(190, 190, 126),
-    (126, 126, 126),
-    (190, 190,   0),
-    #(190, 190,  40),
-    (255, 255,   0),
-    (255, 169,   0),
-    #(255, 126,   0),
-    (255,  83,   0),
-    #(212,  40,   0),
-    (169,   0,   0),
-    #(126,   0,   0),
-    #( 83,   0,   0),
-    ( 40,   0,   0)]
-
 
 def lightning_cmap_and_levels(args):
     levels = [0.1*x for x in [0., 5. , 10. ,  15.,  20.,  25.,  30.,  40.,  50., 70.]]
     mycolors =  warn_colors
-         #  [(255.,255.,255.),(0,254,150),(0,254,200),(0,254,254),(0,200,254),(0,150,254),
-         #   (0,50,254),(50,0,254),(100,0,254),(150,0,254),(200,0,254),(250,0,254),(200,0,200),
-         #   (150,0,150),(255,0,0)]
     mycolors2 = tuple(np.array(mycolors)/255.)        
     norm = bnorm(levels,ncolors=len(mycolors))
     cmap = mplcolors.ListedColormap(mycolors2)
@@ -174,16 +154,13 @@ def lightning_cmap_and_levels(args):
 def gusts_cmap_and_levels(args):
     levels = [0., 1. , 2. ,  5.,  10.,  20.,  30.,  50.,  75., 100.]
     cmap = nclcmaps.cmap("WhiteBlueGreenYellowRed")
-    norm = bnorm(levels,cmap.N)
+    norm = nnorm(vmin=0., vmax=100.)
     return levels, cmap, norm
 
 
 def hail_cmap_and_levels(args):
     levels = [0., 1. , 3. ,  5.,  10.,  15.,  20.,  30.,  40.,  50.,  60.,  80., 100., 150.,  200., 250.]
     mycolors = warn_colors 
-         #  [(255.,255.,255.),(0,254,150),(0,254,200),(0,254,254),(0,200,254),(0,150,254),
-         #   (0,50,254),(50,0,254),(100,0,254),(150,0,254),(200,0,254),(250,0,254),(200,0,200),
-         #   (150,0,150),(255,0,0)]
     mycolors2 = tuple(np.array(mycolors)/255.)        
     norm = bnorm(levels,ncolors=len(mycolors))
     cmap = mplcolors.ListedColormap(mycolors2)
@@ -197,9 +174,6 @@ def sunshine_cmap_and_levels(args):
     mycolors2 = tuple(np.array(mycolors)/255.)        
     norm = bnorm(levels,ncolors=len(mycolors))
     cmap = mplcolors.ListedColormap(mycolors2)
-    # levels = np.arange(0., 3600.1, 300) * args.duration
-    # cmap = 'MPL_rainbow'
-    # norm = bnorm(levels,ncolors=cm.get_cmap(cmap).N)
     return levels, cmap, norm
 
 

@@ -116,12 +116,17 @@ def check_lightning_fields(grb):
         raise
     return None
 
-
+# factory for grib field checks
 def find_grib_handles(grb, param):
-    if 'precip' in param:
-        ret = check_precip_fields(grb)
-    elif 'gusts' in param:
-        ret = check_gust_fields(grb)
+    check_function = {
+        'precip': check_precip_fields,
+        'precip2': check_precip_fields,
+        'sunshine': check_sunshine_fields,
+        'hail': check_hail_fields,
+        'lightning': check_lightning_fields,
+        'gusts': check_gust_fields
+    }
+    ret = check_function[param](grb)
     if not ret:
         logger.critical(f"Fields not found in grib file for variable {param}, exiting...")
         exit()
