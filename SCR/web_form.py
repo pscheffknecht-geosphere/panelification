@@ -1,4 +1,3 @@
-import flask
 import time
 from flask import Flask, render_template, redirect, url_for, jsonify
 from flask_bootstrap import Bootstrap5
@@ -9,7 +8,6 @@ from wtforms import StringField, SubmitField, SelectField, SelectMultipleField, 
 from wtforms.validators import DataRequired, Length, NumberRange, InputRequired
 
 import secrets
-import os
 import glob
 import subprocess
 import datetime as dt
@@ -25,6 +23,7 @@ csrf = CSRFProtect(app)
 foo = secrets.token_urlsafe(16)
 app.secret_key = foo
 
+ALL_PARAMETERS = ["precip" , "precip2" , "sunshine" , "lightnning" , "hail" , "gusts"]
 
 def get_default_name():
     return "MyPanel_{:s}".format(dt.datetime.now().strftime("%Y-%m-%d_%H%M%S"))
@@ -50,6 +49,7 @@ def get_subdomain_choices(region_name):
 class PanelificationRequest(FlaskForm):
     name = StringField(default=get_default_name(), 
         validators=[DataRequired(), Length(1, 100)])
+    parameter = SelectField(choices=ALL_PARAMETERS, default=ALL_PARAMETERS[0])
     start = StringField("Start date as yyyymmddHH", 
         validators=[DataRequired(), Length(10, 10)], default="2023080418")
     duration = DecimalField(default=6,
@@ -61,7 +61,7 @@ class PanelificationRequest(FlaskForm):
     region_choices = get_choices_for_regions()
     region = SelectField(choices=region_choices, default='Austria')
     verification_subdomains = SelectMultipleField(
-        choices=get_subdomain_choices(region_choices[1]), 
+        choices=get_subdomain_choices(region_choices[2]), 
         default=['0'])
     model_choices = get_choices_for_models()
     models = SelectMultipleField(
@@ -90,6 +90,7 @@ class PanelificationRequest(FlaskForm):
 def make_panelification_command(form):
     command_string = "python main.py "
     command_string += "--name {:s} ".format(form.name.data) if len(form.name.data) > 0 else ""
+    command_string += "--parameter {:s} ".format(form.parameter.data)
     command_string += "-s {:s} -d {:d} ".format(form.start.data, int(form.duration.data))
     command_string += "-l {:d} {:d} ".format(int(form.min_lead.data), int(form.max_lead.data))
     command_string += "--region " + form.region.data + " "
@@ -116,11 +117,13 @@ def make_panelification_command(form):
     command_string += "--save " + str(form.save.data) + " "
     command_string += "--rank_score_time_series " + str(form.rank_score_time_series.data) + " "
     command_string += "--save_full_fss " + str(form.save_full_fss.data) + " "
+    command_string += "--fss_mode " + form.fss_mode.data + " "
     if len(form.logfile.data) > 0:
         logfile_name = form.logfile.data
         logfile_name = logfile_name if logfile_name.endwith(".log") else logfile_name + ".log"
         command_string += "--logfile " + logfile_name + " "
     command_string += "--loglevel " + form.loglevel.data + " "
+    print(form.mode.data)
     command_string += "--mode " + form.mode.data + " "
     command_string += "--rank_by_fss_metric " + form.rank_by_fss_metric.data + " "
     return command_string
@@ -189,3 +192,6 @@ def subdomains(region):
 
     return jsonify({'verification_subdomains': subdomain_array})
 
+
+if __name__ == "__main__":
+    app.run()

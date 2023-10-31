@@ -9,14 +9,20 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+# entries can be dict with entries for specific parameters or str/float with entries valid for
+# all parameters. Dict entry 'else' can be used as fallback, i.e. define specific file for
+# one parameter and another path for all other parameters.
 experiment_configurations = {
     "arome": {
         "init_interval"    : 3,
         "output_interval"  : 1,
         "max_leadtime"     : 60, 
-        "accumulated"      : True,
-        "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/arome_%H+%LLLL.grb",
-        "unit_factor"      : 1.
+        "accumulated"      : {'gusts': False,
+                              'else': True},
+        "path_template"    : {'precip': "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/arome_%H+%LLLL.grb",
+                              'else': "/arome_arch/aladin/ARCHIVE/AROMEaut/%Y%m%d/%H/AROMEaut+%LLLL.grb"},
+        "unit_factor"      : {'sunshine': 1./3600.,
+                              'else': 1.}
         },
     "aromeruc": {
         "base_experiment"  : "arome",
@@ -86,6 +92,29 @@ experiment_configurations = {
         "unit_factor"      : 1.,
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/cosmo1e_%H+%LLLL.grb2",
     },
+    "link_ref": {
+        "base_experiment"  : "arome",
+        "init_interval"    : 12,
+        "max_leadtime"     : 12, 
+        "accumulated"      : True,
+        "path_template"    : "/ment_arch2/model/AROME_PLAYGROUND/EX180/GRIB/%Y%m%d/%H/AROMEaut+%LLLL.grb",
+    },
+    "link_notok": {
+        "base_experiment"  : "link_ref",
+        "path_template"    : "/ment_arch2/model/AROME_PLAYGROUND/EX181/GRIB/%Y%m%d/%H/AROMEaut+%LLLL.grb",
+    },
+    "link_ok": {
+        "base_experiment"  : "link_ref",
+        "path_template"    : "/ment_arch2/model/AROME_PLAYGROUND/EX182/GRIB/%Y%m%d/%H/AROMEaut+%LLLL.grb",
+    },
+    "deode_test": {
+        "init_interval"    : 24,
+        "output_interval"  : 1,
+        "max_leadtime"     : 5, 
+        "accumulated"      : True,
+        "path_template"    : "/ment_arch2/aladin/DEODE/CASE_1/%Y%m%d_%H/GRIBPFDEODAUSTRIA_500m+%LLLLh00m00s",
+        "unit_factor"      : 1.
+        },
 }
 
 
