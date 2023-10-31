@@ -23,6 +23,7 @@ csrf = CSRFProtect(app)
 foo = secrets.token_urlsafe(16)
 app.secret_key = foo
 
+ALL_PARAMETERS = ["precip" , "precip2" , "sunshine" , "lightnning" , "hail" , "gusts"]
 
 def get_default_name():
     return "MyPanel_{:s}".format(dt.datetime.now().strftime("%Y-%m-%d_%H%M%S"))
@@ -48,6 +49,7 @@ def get_subdomain_choices(region_name):
 class PanelificationRequest(FlaskForm):
     name = StringField(default=get_default_name(), 
         validators=[DataRequired(), Length(1, 100)])
+    parameter = SelectField(choices=ALL_PARAMETERS, default=ALL_PARAMETERS[0])
     start = StringField("Start date as yyyymmddHH", 
         validators=[DataRequired(), Length(10, 10)], default="2023080418")
     duration = DecimalField(default=6,
@@ -88,6 +90,7 @@ class PanelificationRequest(FlaskForm):
 def make_panelification_command(form):
     command_string = "python main.py "
     command_string += "--name {:s} ".format(form.name.data) if len(form.name.data) > 0 else ""
+    command_string += "--parameter {:s} ".format(form.parameter.data)
     command_string += "-s {:s} -d {:d} ".format(form.start.data, int(form.duration.data))
     command_string += "-l {:d} {:d} ".format(int(form.min_lead.data), int(form.max_lead.data))
     command_string += "--region " + form.region.data + " "

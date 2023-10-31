@@ -89,7 +89,7 @@ def data_sum(tmp_data_list):
     if len(tmp_data_list) > 1:
         return np.sum(np.array([read_values_from_grib_field(x) for x in tmp_data_list]), axis=0)
     else:
-        return tmp_data_list[0]
+        return read_values_from_grib_field(tmp_data_list[0])
 
 def data_norm(tmp_data_list):
     if not len(tmp_data_list) == 2:
@@ -102,6 +102,9 @@ def calc_data(tmp_data_list, parameter):
     calc_funcs = {
        "precip" : data_sum,
        "precip2" : data_sum,
+       "sunshine": data_sum,
+       "lightning": data_sum,
+       "hail": data_sum,
        "gusts" : data_norm
        }
     return calc_funcs[parameter](tmp_data_list)
@@ -115,6 +118,8 @@ def read_data(grib_file_path, parameter, get_lonlat_data=False):
         logger.debug("Getting {:s} from file {:s}".format(repr(grib_handles), grib_file_path))
         tmp_data_list = read_list_of_fields(f, grib_handles)
     tmp_data_field = calc_data(tmp_data_list, parameter)
+    logger.debug(type(tmp_data_field))
+    logger.debug(tmp_data_field)
     tmp_data_field = np.where(tmp_data_field==9999.0, np.nan, tmp_data_field)
     if get_lonlat_data:
         if tmp_data_list[0]['gridType'] == "lambert_lam":
@@ -138,12 +143,12 @@ class ModelConfiguration:
         cmc = custom_experiments.experiment_configurations[custom_experiment_name]
         if "base_experiment" in cmc:
             self.__fill_cmc_with_base_values(cmc)
-        self.path_template = self.__pick_value(cmc["path_template"])
-        self.init_interval =   cmc["init_interval"]
-        self.max_leadtime =     cmc["max_leadtime"]
-        self.output_interval = cmc["output_interval"]
-        self.accumulated = self.__pick_value(cmc["accumulated"])
-        self.unit_factor =      cmc["unit_factor"]
+        self.path_template   = self.__pick_value_by_parameter(cmc["path_template"])
+        self.init_interval   = self.__pick_value_by_parameter(cmc["init_interval"])
+        self.max_leadtime    = self.__pick_value_by_parameter(cmc["max_leadtime"])
+        self.output_interval = self.__pick_value_by_parameter(cmc["output_interval"])
+        self.accumulated     = self.__pick_value_by_parameter(cmc["accumulated"])
+        self.unit_factor     = self.__pick_value_by_parameter(cmc["unit_factor"])
         if self.__times_valid():
             if self.accumulated:
                 self.end_file = self.get_file_path(self.lead_end)
@@ -157,18 +162,31 @@ class ModelConfiguration:
                 self.experiment_name, self.init.strftime("%Y-%m-%d %H")))
 
 
-    def __pick_value(self, raw_value):
+    def __pick_value_by_parameter(self, custom_experiment_item):
         """ If path template is a dictionary, return the correct item for the given parameter
             if it is a string, return the string
             else raise a ValueError"""
-        print("Picking path template from")
-        print(raw_value)
-        if isinstance(raw_value, dict):
-            value = raw_value[self.parameter]
+        ret = None
+        if isinstance(custom_experiment_item, dict):
+            print(custom_experiment_item)
+            for key, item in custom_experiment_item.items():
+                print(key, item, self.parameter)
+                if self.parameter in key or self.parameter == key:
+                    print("Match found")
+                    ret = custom_experiment_item[self.parameter]
+                    print(ret)
+            print(ret)
+            if ret == None and 'else' in custom_experiment_item.keys():
+                ret = custom_experiment_item['else']
+            elif not 'else' in custom_experiment_item.keys():
+                logger.debug("Found invalid entry in custom_experiments for experiment {self.experiment_name}")
+                for key, item in custom_experiment_item.items():
+                    logger.debug(f"{str(key)}: {str(item)}")
+                logger.critical(f"If parameter is not a dict key, dict needs an 'else': .... entry to fall back onto.")
         else:
-            value = raw_value
-        print(f"returning {value}")
-        return value
+            ret = custom_experiment_item
+        logger.debug(f"Picked {ret} for {self.parameter} in experiment {self.experiment_name}")
+        return ret
 
         
     def __fill_cmc_with_base_values(self, cmc):
@@ -222,7 +240,7 @@ class ModelConfiguration:
     def get_data(self, param):
         if param == 'gusts':
             return self.__get_data_max()
-        elif 'precip' in param:
+        else:
             if self.accumulated:
                 return self.__get_data_accumulated()
             else:

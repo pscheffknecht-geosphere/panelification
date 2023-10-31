@@ -111,15 +111,21 @@ def INCA_grid(INCAplus=False):
 
 def read_INCA(data_list, start_date, end_date, args):
     first=True
-    if args.parameter == 'precip' or args.parameter == 'precip2' or args.parameter == 'gusts':
+    if args.parameter == 'precip' or args.parameter == 'precip2':
         read_dt = dt(hours=1)
         dtype = np.int16
     elif args.parameter == 'sunshine':
         read_dt = dt(minutes=15)
         dtype = np.int32
-    for read_inca_date in loop_datetime(start_date + dt(hours=1), end_date + dt(hours=1), read_dt):
+    elif args.parameter == 'gusts':
+        read_dt = dt(minutes=10)
+        dtype = np.int16
+    read_inca_date = start_date + read_dt
+    while read_inca_date <= end_date:
+    # for read_inca_date in loop_datetime(start_date + read_dt, end_date + read_dt, read_dt):
         datestring=read_inca_date.strftime("%Y%m%d%H")
-        logging.info("reading inca at "+str(read_inca_date))
+        dstr = read_inca_date.strftime("%Y-%m-%d %H:%M")
+        logging.info(f"reading inca at {dstr}")
         if "precip" in args.parameter:
             if first:
                 var_tmp = bO.bring(datestring, inca_file=None)
@@ -128,20 +134,12 @@ def read_INCA(data_list, start_date, end_date, args):
                 var_tmp = var_tmp + bO.bring(datestring, inca_file=None)
         elif args.parameter == "gusts":
             logging.info("reading INCA gusts")
-            inca_file_u = inca_ana_paths['gusts']['UU'].format(
+            inca_file = inca_ana_paths['gusts'].format(
                 read_inca_date.strftime("%Y%m%d"),
-                read_inca_date.strftime("%H"))
-            inca_file_v = inca_ana_paths['gusts']['VV'].format(
-                read_inca_date.strftime("%Y%m%d"),
-                read_inca_date.strftime("%H"))
-            logging.debug(inca_file_u)
-            logging.debug(inca_file_v)
-            u_tmp = bO.bring(datestring, inca_file=inca_file_u) 
-            v_tmp = bO.bring(datestring, inca_file=inca_file_v) 
-            print(u_tmp)
-            print(v_tmp)
-            f_tmp = np.sqrt(u_tmp ** 2 + v_tmp ** 2)
-            print(f_tmp)
+                read_inca_date.strftime("%H%M"))
+            logging.debug(f"reading INCA gusts from {inca_file}")
+            f_tmp = bO.bring(datestring, inca_file=inca_file) 
+            logger.debug(f_tmp)
             if first:
                 var_tmp = f_tmp
                 first = False
@@ -158,6 +156,7 @@ def read_INCA(data_list, start_date, end_date, args):
                 first = False
             else:
                 var_tmp += 1./3600.*bO.bring(datestring, inca_file=inca_file)
+        read_inca_date += read_dt
     lon, lat = INCA_grid()
     data_list.insert(0,{
         'conf' : 'INCA',
