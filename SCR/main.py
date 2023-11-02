@@ -149,7 +149,7 @@ def parse_arguments():
 
                 exiting...""")
             exit(1)
-        if len(args.lead) > 2 and len(args.lead) != 2*len(args.configs):
+        if len(args.lead) > 2 and len(args.lead) != 2*len(args.custom_experiments):
             logging.critical("""--lead must have one of the following:
                1 value 
                  maximum lead time before accumulation start period
