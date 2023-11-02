@@ -168,14 +168,14 @@ class ModelConfiguration:
             else raise a ValueError"""
         ret = None
         if isinstance(custom_experiment_item, dict):
-            print(custom_experiment_item)
+            # print(custom_experiment_item)
             for key, item in custom_experiment_item.items():
-                print(key, item, self.parameter)
+                # print(key, item, self.parameter)
                 if self.parameter in key or self.parameter == key:
-                    print("Match found")
+                    # print("Match found")
                     ret = custom_experiment_item[self.parameter]
-                    print(ret)
-            print(ret)
+                    # print(ret)
+            # print(ret)
             if ret == None and 'else' in custom_experiment_item.keys():
                 ret = custom_experiment_item['else']
             elif not 'else' in custom_experiment_item.keys():
@@ -320,14 +320,22 @@ class ModelConfiguration:
         return file_list
 
 
-def get_sims_and_file_list(data_list, args):
+def get_minmax_lead(args, ce):
     if len(args.lead) == 1:
         leadmin = 0
         leadmax = args.lead[0]
-    else:
+    elif len(args.lead) == 2:
         leadmin = args.lead[0]
         leadmax = args.lead[1]
-    for model_name in args.custom_experiments:
+    else:
+        leadmin = args.lead[::2][ce]
+        leadmax = args.lead[1::2][ce]
+    return leadmin, leadmax
+
+
+def get_sims_and_file_list(data_list, args):
+    for ce, model_name in enumerate(args.custom_experiments):
+        leadmin, leadmax = get_minmax_lead(args, ce)
         for exp_lead in reversed(range(leadmin, leadmax + 1)):
             max_lead = exp_lead + args.duration
             exp_init_date = dt.datetime.strptime(args.start, "%Y%m%d%H") - dt.timedelta(hours=exp_lead)
