@@ -19,6 +19,7 @@ import data_io
 import data_from_dcmdb
 import scan_obs
 import regions
+import prepare_for_web
 import parameter_settings
 
 # try avoiding hanging during parallelized portions of the program
@@ -134,33 +135,36 @@ def parse_arguments():
           debug, info, warning, error""")
     parser.add_argument('--rank_score_time_series', nargs='?', default=False, const=True, type=str2bool,
         help = """Draw line plots of model performance, init on x axis, score on y axis""")
+    parser.add_argument('--intranet_update', nargs='?', default=False, const=True, type=str2bool,
+        help = 'update panels on the intranet website')
     args = parser.parse_args()
     init_logging(args)
-    # replace the string object with a proper instance of Region
-    args.region = regions.Region(args.region, args.subdomains)
-    if args.subdomains == "Custom" and args.lonlat_limits is None:
-        logging.critical("""The subdomain is set to "Custom", then its limits need to be set!
-            Use the command line argument:
-              --lonlat_limits LonMin LonMax LatMin LatMax
+    if not args.intranet_update:  # ignore these conditions if only updating intranet
+        # replace the string object with a proper instance of Region
+        args.region = regions.Region(args.region, args.subdomains)
+        if args.subdomains == "Custom" and args.lonlat_limits is None:
+            logging.critical("""The subdomain is set to "Custom", then its limits need to be set!
+                Use the command line argument:
+                  --lonlat_limits LonMin LonMax LatMin LatMax
 
-            exiting...""")
-        exit(1)
-    if len(args.lead) > 2 and len(args.lead) != 2*len(args.configs):
-        logging.critical("""--lead must have one of the following:
-           1 value 
-             maximum lead time before accumulation start period
-           2 values
-             minimum and maximum lead time before accumulation start period
-           2*len(--config) values
-             minimum and maximum lead time for each config
+                exiting...""")
+            exit(1)
+        if len(args.lead) > 2 and len(args.lead) != 2*len(args.configs):
+            logging.critical("""--lead must have one of the following:
+               1 value 
+                 maximum lead time before accumulation start period
+               2 values
+                 minimum and maximum lead time before accumulation start period
+               2*len(--config) values
+                 minimum and maximum lead time for each config
 
-           exiting...""")
-        exit(1)
-    if len(args.name) > 0:
-        if args.name[-1] != '_':
-            args.name += '_' 
-    # hidden forces clean too:
-    args.clean = True if args.hidden else args.clean
+               exiting...""")
+            exit(1)
+        if len(args.name) > 0:
+            if args.name[-1] != '_':
+                args.name += '_' 
+        # hidden forces clean too:
+        args.clean = True if args.hidden else args.clean
 
 def get_lead_limits(args):
     lead_limits = args.lead
@@ -192,6 +196,13 @@ def print_some_basics(start_date, end_date, min_lead, max_lead):
 
 def main():
     parse_arguments()
+    if args.intranet_update:
+        print("Updating intranet...")
+        prepare_for_web.complete_blank_html()
+        prepare_for_web.send_panels_to_mgruppe()
+        prepare_for_web.send_html_to_mgruppe()
+        prepare_for_web.clean_old_panels
+        exit()
     region = args.region
     min_lead, max_lead = get_lead_limits(args)
     start_date = datetime.strptime(args.start, "%Y%m%d%H")
