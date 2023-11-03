@@ -120,7 +120,7 @@ def read_data(grib_file_path, parameter, get_lonlat_data=False):
     tmp_data_field = calc_data(tmp_data_list, parameter)
     logger.debug(type(tmp_data_field))
     logger.debug(tmp_data_field)
-    tmp_data_field = np.where(tmp_data_field==9999.0, np.nan, tmp_data_field)
+    tmp_data_field = np.where(tmp_data_field>=9000., np.nan, tmp_data_field)
     if get_lonlat_data:
         if tmp_data_list[0]['gridType'] == "lambert_lam":
             logger.info("gridType lambert_lam detected, going to fallback!")
