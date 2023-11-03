@@ -263,15 +263,10 @@ def draw_single_figure(sim, obs, r, jj, levels, cmap, norm, verification_subdoma
         ax_fss = fig.add_axes(fss_coords)
     if jj == 0 and not args.clean:
         ax_fss.axis('off')
-    #fig, ax = plt.subplots(1,1, figsize=(6.4, 4.0), dpi=120, subplot_kw={'projection': region.plot_projection})
     precip_data, lon, lat = prep_plot_data(sim, obs, args.mode)
-    precip_data = np.where(precip_data == np.nan, 0., precip_data)
-    precip_data = np.where(precip_data <0., 0., precip_data)
-    precip_data_smooth = precip_data #ndimage.gaussian_filter(precip_data, sigma=1., order=0)
-    c = ax.contourf(lon, lat, precip_data_smooth,
+    c = ax.contourf(lon, lat, precip_data,
                     levels,cmap=cmap,transform=args.region.data_projection,
                     norm=norm, extend='max')
-    # c.cmap.set_over('orange')
     ax.set_facecolor("silver")
     if args.draw_p90:
         p90 = np.percentile(np.copy(sim['precip_data_resampled']), 90) # circumvent numpy bug #21524

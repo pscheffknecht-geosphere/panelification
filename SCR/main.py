@@ -57,7 +57,7 @@ def parse_arguments():
         help = """select precip data set:
             INCA ... INCA analysis over Austria
             OPERA .. OPERA analysis over Europ (MUST be in ../OBS!!)""")
-    parser.add_argument('--region', type=str, default='Europe',
+    parser.add_argument('--region', type=str, default='Austria',
         help = 'select region for plot')
     parser.add_argument('--name', '-n', type=str, default='',
         help = 'name of the panels, if desired, will be used as prefix in the names of the saved files')
@@ -67,7 +67,9 @@ def parse_arguments():
         help = 'accumulation duration in hours')
     parser.add_argument('--lead', '-l', type=int, default=[12], nargs='+',
         help = 'maximum lead time up to starting time in hours')
-    parser.add_argument('--subdomains', '-u', type=str, default=["Default"], nargs='+',
+    parser.add_argument('--subdomains', '-u', type=str, default=[
+        "Default", "NorthWest", "SouthEast", "Lower_Austria"], 
+        nargs='+',
         help = """ Select verification subdomains
             Subdomains are defined in regions.py for each region""")
     parser.add_argument('--sorting', type=str, default='model',
