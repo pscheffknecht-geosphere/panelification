@@ -72,7 +72,9 @@ def resample_data(data_list, verification_subdomain, args):
     data_list = [resample_sim(sim, data_list[0], limits=limits, destination_grid=args.resample_target) for ii, sim in enumerate(data_list)]
     for sim in data_list:
         p90 = np.percentile(np.copy(sim['sim_param_resampled']), 90) # circumvent numpy bug #21524
-        #p90 = np.percentile(sim['sim_param_resampled'], 90)
+        if args.fix_nans:
+            sim['obs_param_resampled'] = np.where(np.isnan(sim['obs_param_resampled']), 0., sim['obs_param_resampled'])
+            sim['sim_param_resampled'] = np.where(np.isnan(sim['sim_param_resampled']), 0., sim['sim_param_resampled'])
         sim['rr90'] = np.where(sim['sim_param_resampled'] > p90, 1, 0)
         sim['p90_color'] = 'black' if p90 <= 10. else 'white'
     return data_list
@@ -98,14 +100,6 @@ def INCA_grid(INCAplus=False):
         Y=220.+np.arange(NY) #*1000.
     XX,YY=np.meshgrid(X,Y)
     lon_INCA,lat_INCA=myproj(XX,YY,inverse=True)
-    logging.debug("############################################################################")
-    logging.debug(lon_INCA)
-    logging.debug(lon_INCA.min())
-    logging.debug(lon_INCA.max())
-    logging.debug(lat_INCA)
-    logging.debug(lat_INCA.min())
-    logging.debug(lat_INCA.max())
-    logging.debug("############################################################################")
     return lon_INCA,lat_INCA
 
 
