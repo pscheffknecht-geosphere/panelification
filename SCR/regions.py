@@ -214,6 +214,7 @@ class Region():
                 logging.warning("--fix_nans is set to True, replaced {:d} NaNs with 0.!".format(
                     np.isnan(data_resampled).sum()))
                 data_resampled = np.where(np.isnan(data_resampled), 0., data_resampled)
+                data_resampled = np.where(data_resampled > 2500., 0., data_resampled)
             else:
                 logging.warning("""Your resampled data contains missing values! you can use --fix_nans to set them to 0., but this can change scores!""")
         return data_resampled, self.subdomains[subdomain_name]["lon"], self.subdomains[subdomain_name]["lat"]
