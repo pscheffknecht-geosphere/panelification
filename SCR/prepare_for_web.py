@@ -14,6 +14,8 @@ def today():
 
 def send_panels_to_mgruppe(d_curr=None):
     d_curr = today() - dt.timedelta(days=1) if not d_curr else d_curr
+    ttstr = d_curr.strftime("%Y%m%d")
+    print(f"checking for panels: ../PLOTS/*cast*{ttstr}*.png")
     flist = glob.glob('../PLOTS/*cast*'+d_curr.strftime("%Y%m%d")+"*png")
     if flist == []:
         print("No panels found for today, sending nothing.")
@@ -60,16 +62,15 @@ def make_file_list_html(flist):
     fstr = ''
     for fil in flist:
         parts = fil.split("_")
-        if len(parts) == 8:
-            pretty_str = dt.datetime.strptime(parts[3], "%Y%m%d").strftime("%Y-%m-%d") + " " + \
-                parts[4].replace("UTC", " UTC") + " " + \
-                parts[5].replace("0", "").replace("h", " hour accumulated rain") + " " + \
-                parts[7].replace(".png", "")
-        elif len(parts) == 9:
-            pretty_str = dt.datetime.strptime(parts[3], "%Y%m%d").strftime("%Y-%m-%d") + " " + \
-                parts[4].replace("UTC", " UTC") + " " + \
-                parts[5].replace("0", "").replace("h", " hour accumulated rain") + " " + \
-                parts[7] + " "+parts[8].replace(".png", "")
+        pidx = 0
+        for idx, part in enumerate(parts):
+            if part == "panel":
+                pidx = idx
+                break
+        pretty_str = dt.datetime.strptime(parts[pidx+1], "%Y%m%d").strftime("%Y-%m-%d") + " " + \
+            parts[pidx+2].replace("UTC", " UTC") + " " + \
+            parts[pidx+3].replace("0", "").replace("h", " hour accumulated rain") + " " + \
+            parts[pidx+5].replace(".png", "")
         fil = fil.replace("PLOTS", "PRECIP_VERIF_PANELS")    
         fstr += "<a href=\""+fil+"\" target=\"_blank=\" rel=\"noopener noreferrer\">"+pretty_str+"</a><br>\n"
     return fstr
@@ -94,3 +95,8 @@ if __name__ == "__main__":
     send_panels_to_mgruppe()
     send_html_to_mgruppe()
     clean_old_panels()
+    # upload backlog:
+    # tt = today()
+    # while tt >= dt.datetime(2023, 3, 31):
+    #     send_panels_to_mgruppe(tt)
+    #     tt -= dt.timedelta(days=1)
