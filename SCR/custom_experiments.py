@@ -19,10 +19,11 @@ experiment_configurations = {
         "max_leadtime"     : 60, 
         "accumulated"      : {'gusts': False,
                               'else': True},
-        "path_template"    : {'precip': "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/arome_%H+%LLLL.grb",
+        "path_template"    : {'precip': "/home/kmek/panelification/MODEL/arome/%Y%m%d/%H/arome_00+%LLLL.grb",
                               'else': "/arome_arch/aladin/ARCHIVE/AROMEaut/%Y%m%d/%H/AROMEaut+%LLLL.grb"},
         "unit_factor"      : {'sunshine': 1./3600.,
-                              'else': 1.}
+                              'else': 1.},
+        "on_mars"          : False
         },
     "aromeruc": {
         "base_experiment"  : "arome",
@@ -107,13 +108,64 @@ experiment_configurations = {
         "base_experiment"  : "link_ref",
         "path_template"    : "/ment_arch2/model/AROME_PLAYGROUND/EX182/GRIB/%Y%m%d/%H/AROMEaut+%LLLL.grb",
     },
-    "deode_test": {
+    "ifs-highres": {
         "init_interval"    : 24,
         "output_interval"  : 1,
-        "max_leadtime"     : 5, 
+        "max_leadtime"     : 120, 
         "accumulated"      : True,
-        "path_template"    : "/ment_arch2/aladin/DEODE/CASE_1/%Y%m%d_%H/GRIBPFDEODAUSTRIA_500m+%LLLLh00m00s",
+        # "path_template"    : "/ment_arch2/aladin/DEODE/CASE_1/%Y%m%d_%H/GRIBPFDEODAUSTRIA_500m+%LLLLh00m00s",
+        "path_template"    : "/home/kmek/panelification/MODEL/ifs-highres/ecmwf_precip_%Y%m%d_%H+%LLLL.grb",
+        "unit_factor"      : 1000.,
+        "on_mars"             : True
+        },
+    "deode_test": {
+        "init_interval"    : 3,
+        "output_interval"  : 1,
+        "max_leadtime"     : 96, 
+        "accumulated"      : True,
+        # "path_template"    : "/ment_arch2/aladin/DEODE/CASE_1/%Y%m%d_%H/GRIBPFDEODAUSTRIA_500m+%LLLLh00m00s",
+        "path_template"    : "/ec/res4/scratch/kmw/deode/CASE_1/archive/%Y/%m/%d/%H/GRIBPFDEODAUSTRIA_500m+%LLLLh00m00s",
         "unit_factor"      : 1.
+        },
+    "deode_arome_500_austria": {
+        "init_interval"    : 24,
+        "output_interval"  : 1,
+        "max_leadtime"     : 48, 
+        "accumulated"      : True,
+        # "path_template"    : "/ment_arch2/aladin/DEODE/CASE_1/%Y%m%d_%H/GRIBPFDEODAUSTRIA_500m+%LLLLh00m00s",
+        "path_template"    : "/home/kmek/panelification/MODEL/DEODE_AT_500m/%Y/%m/%d/%H/GRIBPFDEODAUSTRIA_CASES+%LLLLh00m00s",
+        "ecfs_path_template":"ectmp:/{USER}/deode/CY48t3_AROME_CASE{CASE}/archive/%Y/%m/%d/%H/GRIBPFDEODAUSTRIA_CASES+%LLLLh00m00s",
+        "unit_factor"      : 1.,
+        "on_mars"          : False
+        },
+    "ifs-dt": {
+        "base_experiment"  : "ifs-highres",
+        "path_template"    : "/home/kmek/panelification/MODEL/dt/ecmwf_precip_%Y%m%d_%H+%LLLL.grb",
+        },
+    "ifs-dt-nc": {
+        "base_experiment"  : "ifs-highres",
+        "path_template"    : "/home/kmek/panelification/MODEL/dt_nc/ecmwf_precip_%Y%m%d_%H+%LLLL.grb",
+        },
+    "arome-dt-48t3" : {
+        "base_experiment"   : "deode_arome_500_austria",
+        "path_template"    : "/home/kmek/panelification/MODEL/WITT_KSTMK/%Y/%m/%d/%H/GRIBPFDEODAUSTRIA_CASES+%LLLLh00m00s",
+        "ecfs_path_template" : "ec:/kay/deode/CY48t3_AROME_KSTMK/archive/%Y/%m/%d/%H/ICMSHDEOD+%LLLLh00m00s",
+        },
+    # "witt_kstmk2" : {
+    #     "base_experiment"   : "deode_arome_500_austria",
+    #     "path_template"    : "/home/kmek/panelification/MODEL/WITT_KSTMK2/%Y/%m/%d/%H/GRIBPFDEODAUSTRIA_CASES+%LLLLh00m00s",
+    #     "ecfs_path_template" : "ec:/kay/deode/CY48t3_AROME_KSTMK2/archive/%Y/%m/%d/%H/ICMSHDEOD+%LLLLh00m00s",
+    #     },
+    "witt_500m_cubic" : {
+        "base_experiment"   : "deode_arome_500_austria",
+        "path_template"    : "/home/kmek/panelification/MODEL/WITT_500m_CUBIC/%Y/%m/%d/%H/GRIBPFDEODAUSTRIA_CASES+%LLLLh00m00s",
+        "ecfs_path_template" : "ec:/kay/deode/CY48t3_AROME_CASE_CUBIC_NABORT/archive/%Y/%m/%d/%H/ICMSHDEOD+%LLLLh00m00s",
+        },
+    "witt_500m_cubic15" : {
+        "base_experiment"   : "deode_arome_500_austria",
+        "path_template"    : "/home/kmek/panelification/MODEL/WITT_500m_CUBIC15/%Y/%m/%d/%H/GRIBPFDEODAUSTRIA_CASES+%LLLLh00m00s",
+
+        "ecfs_path_template" : "ec:/kay/deode/CY48t3_AROME_CASE_CUBIC15/archive/%Y/%m/%d/%H/ICMSHDEOD+%LLLLh00m00s",
         },
 }
 
