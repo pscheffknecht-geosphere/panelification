@@ -8,6 +8,9 @@ import custom_experiments
 import datetime as dt
 import pygrib
 import numpy as np
+import pyresample
+import matplotlib.pyplot as plt
+from mars_request_templates import mars_request_templates
 
 import logging
 logger = logging.getLogger(__name__)
@@ -32,9 +35,13 @@ request_template = """retrieve,
   target = {target}"""
 
 
-def mars_request(init, step):
-    path = "../MODEL/IFS_HIGHRES/ecmwf_precip_{:s}+{:04d}.grb".format(
-        init.strftime("%Y%m%d_%H"), step) 
+def mars_request(exp_name, init, step,path=None):
+    if not path:
+        path = "../MODEL/{:s}/ecmwf_precip_{:s}+{:04d}.grb".format(
+            exp_name,
+            init.strftime("%Y%m%d_%H"), step) 
+    else:
+        path = fill_path_file_template(path, init, step)
     logger.info("Requesting from precipitation from MARS for {:s} +{:d}h".format(
         init.strftime("%Y-%m-%d %H"), step))
     logger.info("Target file: {:s}".format(path))
@@ -44,7 +51,7 @@ def mars_request(init, step):
         "{step}": "{:d}".format(step), 
         "{target}": "\"{:s}\"".format(path)
     } 
-    request = request_template
+    request = mars_request_templates[exp_name]
     for key, val in replace_dict.items(): 
         request = request.replace(key, val) 
     with open("../TMP/mars_request_tmp", "w") as f: 
@@ -54,6 +61,14 @@ def mars_request(init, step):
         return path
     else:
         return None
+
+
+def ecfs_request(ec_path_template, path_template, init, step):
+    # TODO: add failsafe of sorts
+    ecpath = fill_path_file_template(ec_path_template, init, step)
+    path = fill_path_file_template(path_template, init, step)
+    ret = os.system("ecp ecpath path")
+    return path if ret == 0 else None
 
 
 def get_lonlat_fallback(grb):
@@ -73,6 +88,18 @@ def get_lonlat_fallback(grb):
 def read_values_from_grib_field(grb):
     if grb['gridType'] == "lambert_lam": # new deode experiments
         return grb.values
+    elif grb['gridType'] == "reduced_gg":
+        # TODO: workaround for Austria, make this take values from the region!!!
+        grb.expand_grid(False)
+        data1d, lat1d, lon1d = grb.data()
+        lo = np.arange(0., 25.001, 0.025)
+        la = np.arange(40., 58.001, 0.025)
+        llo, lla = np.meshgrid(lo, la)
+        targ_def = pyresample.geometry.SwathDefinition(llo, lla)
+        orig_def = pyresample.geometry.SwathDefinition(lon1d, lat1d)
+        data = pyresample.kd_tree.resample_nearest(orig_def, data1d, targ_def, reduce_data=False, radius_of_influence=25000)
+        # exit()
+        return data
     else:
         return grb.data()[0]
 
@@ -125,6 +152,11 @@ def read_data(grib_file_path, parameter, get_lonlat_data=False):
         if tmp_data_list[0]['gridType'] == "lambert_lam":
             logger.info("gridType lambert_lam detected, going to fallback!")
             lon, lat = get_lonlat_fallback(tmp_data_list[0])
+        elif tmp_data_list[0]['gridType'] == "reduced_gg":
+            logger.info("gridType reduced_gg detected, making own!")
+            lo = np.arange(0., 25.001, 0.025)
+            la = np.arange(40., 58.001, 0.025)
+            lon, lat = np.meshgrid(lo, la)   
         else:
             lat, lon = tmp_data_list[0].latlons()
         return lon, lat, tmp_data_field
@@ -134,6 +166,7 @@ def read_data(grib_file_path, parameter, get_lonlat_data=False):
 
 class ModelConfiguration:
     def __init__(self, custom_experiment_name, init, lead, duration, parameter):
+        self.read = 0
         self.valid=False
         self.init = init #datetime
         self.lead = lead #int
@@ -149,14 +182,22 @@ class ModelConfiguration:
         self.output_interval = self.__pick_value_by_parameter(cmc["output_interval"])
         self.accumulated     = self.__pick_value_by_parameter(cmc["accumulated"])
         self.unit_factor     = self.__pick_value_by_parameter(cmc["unit_factor"])
+        self.on_mars         = self.__pick_value_by_parameter(cmc["on_mars"])
+        if "ecfs_path_template" in cmc:
+            self.ecfs_path_template = self.__pick_value_by_parameter(cmc["ecfs_path_template"])
+        else:
+            self.ecfs_path_template = None
         if self.__times_valid():
             if self.accumulated:
                 self.end_file = self.get_file_path(self.lead_end)
                 self.start_file = self.get_file_path(self.lead)
+                print(self.start_file)
             else:
                 self.file_list = self.get_file_list()
             self.valid = self.__files_valid()
             self.print()
+            print(self.valid)
+            print(self.__files_valid())
         else:
             logger.debug("Model {:s} with init {:s} has no output for the requested time window.".format(
                 self.experiment_name, self.init.strftime("%Y-%m-%d %H")))
@@ -168,14 +209,9 @@ class ModelConfiguration:
             else raise a ValueError"""
         ret = None
         if isinstance(custom_experiment_item, dict):
-            print(custom_experiment_item)
             for key, item in custom_experiment_item.items():
-                print(key, item, self.parameter)
                 if self.parameter in key or self.parameter == key:
-                    print("Match found")
                     ret = custom_experiment_item[self.parameter]
-                    print(ret)
-            print(ret)
             if ret == None and 'else' in custom_experiment_item.keys():
                 ret = custom_experiment_item['else']
             elif not 'else' in custom_experiment_item.keys():
@@ -201,6 +237,11 @@ class ModelConfiguration:
                     key, self.experiment_name, cmc["base_experiment"]))
                 cmc[key] = custom_experiments.experiment_configurations[cmc["base_experiment"]][key]
                 logger.debug("  {:s}".format(str(cmc[key])))
+        if not "on_mars" in cmc.keys():
+            if "on_mars" in custom_experiments.experiment_configurations[cmc["base_experiment"]].keys():
+                cmc["on_mars"] = custom_experiments.experiment_configurations[cmc["base_experiment"]]["on_mars"]
+            else:
+                cmc["on_mars"] = False
               
 
     def print(self):
@@ -228,6 +269,8 @@ class ModelConfiguration:
 
     def __files_valid(self):        
         files_to_check = [self.start_file, self.end_file] if self.accumulated else self.file_list
+        if self.accumulated and not self.end_file:
+            return False
         for fil in files_to_check:
             if fil:
                 if not os.path.isfile(str(fil)): 
@@ -276,6 +319,7 @@ class ModelConfiguration:
 
 
     def __get_data_accumulated(self):
+        self.read += 1
         logger.info("Reading end file: {:s}".format(self.end_file))
         lon, lat, tmp_data = read_data(self.end_file, self.parameter, get_lonlat_data=True)
         if self.start_file:
@@ -294,12 +338,42 @@ class ModelConfiguration:
         return lon, lat, self.unit_factor * tmp_data
 
 
+
+    def get_ecfs_file(self, init, l):
+        # pull some dirty tricks to search a bit
+        ret = 1
+        check_list = []
+        use_file = None
+        for user in ["kmek", "kay", "kmw"]:
+            for case in ["", "1", "2", "3"]:
+                user_case_path_template = self.ecfs_path_template.replace("{USER}", user).replace("{CASE}", case)
+                check_list.append(fill_path_file_template(user_case_path_template, self.init, l))
+        for fil in check_list:
+            ret = int(os.system(f"els {fil}") / 256)
+            if ret == 1:
+                print(fil)
+            elif ret == 0:
+                use_file = fil
+                break
+        if not use_file:
+            return None
+        return os.system("ecp {:s} {:s}".format(
+            use_file,
+            fill_path_file_template(self.path_template, self.init, l)))
+
     def get_file_path(self, l):
         if l == 0:
             return None
         path = fill_path_file_template(self.path_template, self.init, l)
-        if self.experiment_name == "ifs-highres" and not os.path.isfile(path):
-            path = mars_request(self.init, l)
+        if self.on_mars and not os.path.isfile(path):
+            if not os.path.isdir(f"/home/kmek/panelification/MODEL/{self.experiment_name}"):
+                logger.debug(f"MODEL/{self.experiment_name} not found, creating directory")
+                os.system(f"mkdir -p /home/kmek/panelification/MODEL/{self.experiment_name}")
+            path = mars_request(self.experiment_name, self.init, l)
+        if self.ecfs_path_template and not os.path.isfile(path):
+            ret = self.get_ecfs_file(self.init, l)
+            if ret != 0:
+                return None
         return path
             
     
