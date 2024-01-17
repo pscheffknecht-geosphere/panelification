@@ -95,7 +95,16 @@ regions = {
                 'x_size': 279, 'y_size': 145},
             "West": {
                 'central_longitude': 11.25, 'central_latitude': 47.45,
-                'x_size': 338, 'y_size': 234}
+                'x_size': 338, 'y_size': 234},
+            "O_KTN": {
+                'central_longitude': 13.5, 'central_latitude': 46.7, 
+                'x_size': 180, 'y_size': 90},
+            "U_KTN": {
+                'central_longitude': 14.5, 'central_latitude': 46.7, 
+                'x_size': 180, 'y_size': 90},
+            "SO_STMK": {
+                'central_longitude': 15.5, 'central_latitude': 46.85, 
+                'x_size': 180, 'y_size': 100},
             },
             # "Vienna" :        [16.,   16.66, 48., 4 8.4],
             # "Lower_Austria" : [14.33, 17.33, 47.4,  49.2],
