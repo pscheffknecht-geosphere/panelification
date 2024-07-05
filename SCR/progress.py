@@ -2,13 +2,17 @@ from __future__ import print_function
 import os
 import time
 
+try:
+    rows, cols = os.popen('stty size', 'r').read().split()
+except ValueError:
+    rows, cols = None, None
 
-rows, cols = os.popen('stty size', 'r').read().split()
 
 def progress_print(ii, imax, label="Hello! "):
     nmax = int(cols)-len(label)-3
     n = int((ii)/float(imax)*nmax)
-    print("\r"+label+"["+n*"="+(nmax-n)*" "+"]",end=' ')
+    if rows or cols:
+        print("\r"+label+"["+n*"="+(nmax-n)*" "+"]",end=' ')
 
 
 def double_progress_print(ii, imax, jj, jmax):
@@ -27,7 +31,8 @@ def main():
     for ii in range(30):
         for jj in range(50):
             strr = double_progress_print(ii, 29, jj, 49)
-            print(strr, end='')
+            if rows or cols:
+                print(strr, end='')
             time.sleep(0.002)
     print(" ")
 
