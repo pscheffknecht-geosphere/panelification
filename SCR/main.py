@@ -167,6 +167,12 @@ def parse_arguments():
                 args.name += '_' 
         # hidden forces clean too:
         args.clean = True if args.hidden else args.clean
+        for ii, entry in enumerate(args.custom_experiments):
+            if entry == "claef1k-all-members":
+                logging.info(f"Found cleaf1k-members at position {ii}, replacing...")
+                args.custom_experiments[ii] = "claef1k-m16"
+                for jj in range(15, 0, -1):
+                    args.custom_experiments.insert(ii, f"claef1k-m{jj:02d}")
 
 def get_lead_limits(args):
     lead_limits = args.lead
@@ -199,7 +205,7 @@ def print_some_basics(start_date, end_date, min_lead, max_lead):
 def main():
     parse_arguments()
     if args.intranet_update:
-        print("Updating intranet...")
+        logging.info("Updating intranet...")
         prepare_for_web.complete_blank_html()
         prepare_for_web.send_panels_to_mgruppe()
         prepare_for_web.send_html_to_mgruppe()
@@ -260,11 +266,11 @@ def main():
         if dom['score']:
             scoring.write_scores_to_csv(data_list, start_date, end_date, args, subdomain_name, windows, thresholds)
         # print new test scores
-        for sim in data_list:
-            print(sim['name'],
-                  sim['fss_total_abs_score'],     sim['rank_fss_total_abs_score'],
-                  sim['fss_condensed'],           sim['rank_fss_condensed'],
-                  sim['fss_condensed_weighted'],  sim['rank_fss_condensed_weighted'])
+        # for sim in data_list:
+        #     print(sim['name'],
+        #           sim['fss_total_abs_score'],     sim['rank_fss_total_abs_score'],
+        #           sim['fss_condensed'],           sim['rank_fss_condensed'],
+        #           sim['fss_condensed_weighted'],  sim['rank_fss_condensed_weighted'])
         if dom['draw']:
             plot_start = datetime.now()
             outfilename = panel_plotter.draw_panels(data_list, start_date, end_date, subdomain_name, args) #, mode=args.mode)

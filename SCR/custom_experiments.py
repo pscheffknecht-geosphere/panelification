@@ -18,6 +18,7 @@ experiment_configurations = {
         "output_interval"  : 1,
         "max_leadtime"     : 60, 
         "accumulated"      : {'gusts': False,
+                              'hail': True,
                               'else': True},
         "path_template"    : {'precip': "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/arome_%H+%LLLL.grb",
                               'else': "/arome_arch/aladin/ARCHIVE/AROMEaut/%Y%m%d/%H/AROMEaut+%LLLL.grb"},
@@ -44,9 +45,20 @@ experiment_configurations = {
         "accumulated"      : True,
         "unit_factor"      : 1000.,
     },
+    "graphcast": {
+        "init_interval"    : 24,
+        "output_interval"  : 6, # 3 for some lead times, but panelification can sort that out
+        "max_leadtime"     : 120,
+        "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/dmgc_%H+%LLLL.grb",
+        "accumulated"      : True,
+        "unit_factor"      : 1000.,
+    },
     "claef-control": {
         "base_experiment"  : "arome",
-        "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef-control_%H+%LLLL.grb",
+        # "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef-control_%H+%LLLL.grb",
+        "path_template"    : {'precip': "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef-control_%H+%LLLL.grb",
+                                      #/ment_arch2/pscheff/WEB_PAN/panelification/MODEL/2023081012/CLAEF_00_2023081012+31.grb
+                              'hail': "/ment_arch2/pscheff/WEB_PAN/panelification/MODEL/CLAEF_CONTROL/%Y%m%d%H/CLAEF_00_%Y%m%d%H+%LL.grb"},
     },
     "claef-mean": {
         "base_experiment"  : "arome",
@@ -92,29 +104,120 @@ experiment_configurations = {
         "unit_factor"      : 1.,
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/cosmo1e_%H+%LLLL.grb2",
     },
-    "link_ref": {
+    "claef1k-all-members": {
+        "dummy_val"        : "all claef members, this is replaced in main.py"
+    },
+    "claef1k-m01": {
         "base_experiment"  : "arome",
-        "init_interval"    : 12,
-        "max_leadtime"     : 12, 
-        "accumulated"      : True,
-        "path_template"    : "/ment_arch2/model/AROME_PLAYGROUND/EX180/GRIB/%Y%m%d/%H/AROMEaut+%LLLL.grb",
+        "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_01_%H+%LLLL.grb",
     },
-    "link_notok": {
-        "base_experiment"  : "link_ref",
-        "path_template"    : "/ment_arch2/model/AROME_PLAYGROUND/EX181/GRIB/%Y%m%d/%H/AROMEaut+%LLLL.grb",
+    "claef1k-m02": {
+        "base_experiment"  : "arome",
+        "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_02_%H+%LLLL.grb",
     },
-    "link_ok": {
-        "base_experiment"  : "link_ref",
-        "path_template"    : "/ment_arch2/model/AROME_PLAYGROUND/EX182/GRIB/%Y%m%d/%H/AROMEaut+%LLLL.grb",
+    "claef1k-m03": {
+        "base_experiment"  : "arome",
+        "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_03_%H+%LLLL.grb",
     },
-    "deode_test": {
-        "init_interval"    : 24,
-        "output_interval"  : 1,
-        "max_leadtime"     : 5, 
-        "accumulated"      : True,
-        "path_template"    : "/ment_arch2/aladin/DEODE/CASE_1/%Y%m%d_%H/GRIBPFDEODAUSTRIA_500m+%LLLLh00m00s",
-        "unit_factor"      : 1.
-        },
+    "claef1k-m04": {
+        "base_experiment"  : "arome",
+        "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_04_%H+%LLLL.grb",
+    },
+    "claef1k-m05": {
+        "base_experiment"  : "arome",
+        "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_05_%H+%LLLL.grb",
+    },
+    "claef1k-m06": {
+        "base_experiment"  : "arome",
+        "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_06_%H+%LLLL.grb",
+    },
+    "claef1k-m07": {
+        "base_experiment"  : "arome",
+        "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_07_%H+%LLLL.grb",
+    },
+    "claef1k-m08": {
+        "base_experiment"  : "arome",
+        "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_08_%H+%LLLL.grb",
+    },
+    "claef1k-m09": {
+        "base_experiment"  : "arome",
+        "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_09_%H+%LLLL.grb",
+    },
+    "claef1k-m10": {
+        "base_experiment"  : "arome",
+        "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_10_%H+%LLLL.grb",
+    },
+    "claef1k-m11": {
+        "base_experiment"  : "arome",
+        "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_11_%H+%LLLL.grb",
+    },
+    "claef1k-m12": {
+        "base_experiment"  : "arome",
+        "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_12_%H+%LLLL.grb",
+    },
+    "claef1k-m13": {
+        "base_experiment"  : "arome",
+        "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_13_%H+%LLLL.grb",
+    },
+    "claef1k-m14": {
+        "base_experiment"  : "arome",
+        "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_14_%H+%LLLL.grb",
+    },
+    "claef1k-m15": {
+        "base_experiment"  : "arome",
+        "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_15_%H+%LLLL.grb",
+    },
+    "claef1k-m16": {
+        "base_experiment"  : "arome",
+        "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_16_%H+%LLLL.grb",
+    },
+    # "link_ref": {
+    #     "base_experiment"  : "arome",
+    #     "init_interval"    : 12,
+    #     "max_leadtime"     : 12, 
+    #     "accumulated"      : True,
+    #     "path_template"    : "/ment_arch2/model/AROME_PLAYGROUND/EX180/GRIB/%Y%m%d/%H/AROMEaut+%LLLL.grb",
+    # },
+    # "link_notok": {
+    #     "base_experiment"  : "link_ref",
+    #     "path_template"    : "/ment_arch2/model/AROME_PLAYGROUND/EX181/GRIB/%Y%m%d/%H/AROMEaut+%LLLL.grb",
+    # },
+    # "link_ok": {
+    #     "base_experiment"  : "link_ref",
+    #     "path_template"    : "/ment_arch2/model/AROME_PLAYGROUND/EX182/GRIB/%Y%m%d/%H/AROMEaut+%LLLL.grb",
+    # },
+    # "deode_test": {
+    #     "init_interval"    : 24,
+    #     "output_interval"  : 1,
+    #     "max_leadtime"     : 5, 
+    #     "accumulated"      : True,
+    #     "path_template"    : "/ment_arch2/aladin/DEODE/CASE_1/%Y%m%d_%H/GRIBPFDEODAUSTRIA_500m+%LLLLh00m00s",
+    #     "unit_factor"      : 1.
+    #     },
+    # "exp1": {
+    #     "init_interval"    : 1,
+    #     "output_interval"  : 1,
+    #     "max_leadtime"     : 24, 
+    #     "accumulated"      : True,
+    #     "path_template"    : "/ment_arch2/aneduncheran/ectrans/exp1/AROMEaut_%H+%LLLL.grb",
+    #     "unit_factor"      : 1.
+    #     },
+    # "exp2": {
+    #     "base_experiment"  : "exp1",
+    #     "path_template"    : "/ment_arch2/aneduncheran/ectrans/exp2/AROMEaut_%H+%LLLL.grb",
+    #     },
+    # "exp2a": {
+    #     "base_experiment"  : "exp1",
+    #     "path_template"    : "/ment_arch2/aneduncheran/ectrans/exp2a/AROMEaut_%H+%LLLL.grb",
+    #     },
+    # "exp3": {
+    #     "base_experiment"  : "exp1",
+    #     "path_template"    : "/ment_arch2/aneduncheran/ectrans/exp3/AROMEaut_%H+%LLLL.grb",
+    #     },
+    # "exp3a": {
+    #     "base_experiment"  : "exp1",
+    #     "path_template"    : "/ment_arch2/aneduncheran/ectrans/exp3a/AROMEaut_%H+%LLLL.grb",
+    #     },
 }
 
 
