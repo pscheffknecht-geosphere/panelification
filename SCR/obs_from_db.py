@@ -130,7 +130,7 @@ def to_grid(df, table="hailw"):
         if progress_counter == progress_update_rate:
             progress_counter = 0
             progress.progress_print(idx, maxidx, label="Gridding Observations")
-    print("Added {:d} lightning events to the grid".format(event))
+    print(f"Added {event} {table} events to the grid")
     return(var)
 
 
