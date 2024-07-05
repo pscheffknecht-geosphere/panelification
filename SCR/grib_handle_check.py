@@ -83,6 +83,13 @@ def check_gust_fields(grb):
 
 def check_hail_fields(grb):
     try:
+        logger.debug("trying indicatorOfParamter 82")
+        grb.select(indicatorOfParameter=82) #, indicatorOfTypeOfLevel=1, level=0)
+        return [
+            {"indicatorOfParameter": 82}] #, "indicatorOfTypeOfLevel": 1, "level": 0},
+    except:
+        pass
+    try:
         logger.debug("trying indicatorOfParamter 196")
         grb.select(indicatorOfParameter=196) #, indicatorOfTypeOfLevel=1, level=0)
         return [
