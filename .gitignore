@@ -1,2 +1,9 @@
 PLOTS/*.png
 SCORES/*.csv
+SCR/__pycache__/*
+SCR/nohup.out
+SCR/subdomain_scale_factors.p
+TMP/*
+TMP/*/*
+SCR/test_web/__pycache__/*
+DATA/*
