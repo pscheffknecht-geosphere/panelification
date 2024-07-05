@@ -118,9 +118,13 @@ def read_data(grib_file_path, parameter, get_lonlat_data=False):
         logger.debug("Getting {:s} from file {:s}".format(repr(grib_handles), grib_file_path))
         tmp_data_list = read_list_of_fields(f, grib_handles)
     tmp_data_field = calc_data(tmp_data_list, parameter)
-    logger.debug(type(tmp_data_field))
-    logger.debug(tmp_data_field)
     tmp_data_field = np.where(tmp_data_field>=9000., np.nan, tmp_data_field)
+    logger.debug(f"DATA FROM {grib_file_path} parameter {parameter}:")
+    logger.debug(f"Type: {type(tmp_data_field)}")
+    logger.debug(f"Min: {tmp_data_field.min()}")
+    logger.debug(f"Max: {tmp_data_field.max()}")
+    logger.debug(f"Sample:")
+    logger.debug(tmp_data_field)
     if get_lonlat_data:
         if tmp_data_list[0]['gridType'] == "lambert_lam":
             logger.info("gridType lambert_lam detected, going to fallback!")
