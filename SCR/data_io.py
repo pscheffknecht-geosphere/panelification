@@ -168,6 +168,7 @@ class ModelConfiguration:
             else raise a ValueError"""
         ret = None
         if isinstance(custom_experiment_item, dict):
+            print(custom_experiment_item)
             # print(custom_experiment_item)
             for key, item in custom_experiment_item.items():
                 # print(key, item, self.parameter)

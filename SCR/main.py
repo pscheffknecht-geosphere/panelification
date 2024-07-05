@@ -14,6 +14,7 @@ from model_parameters import *
 import scoring
 import inca_functions as inca
 import read_opera as opera
+import obs_from_db as obs
 import panel_plotter
 import data_io
 import data_from_dcmdb
@@ -227,15 +228,16 @@ def main():
         exit()
     #data_list = data_from_dcmdb.read_data(data_list, args)
     # if args.parameter in ['precip', 'sunshine']:
-    if args.precip_verif_dataset == "INCA":
-        data_list = inca.read_INCA(data_list, start_date, end_date, args)
-    elif args.precip_verif_dataset == "OPERA":
-        data_list = opera.read_OPERA(data_list, start_date, end_date, args)
+    if args.parameter in ['precip', 'sunshine']:
+        if args.precip_verif_dataset == "INCA":
+            data_list = inca.read_INCA(data_list, start_date, end_date, args)
+        elif args.precip_verif_dataset == "OPERA":
+            data_list = opera.read_OPERA(data_list, start_date, end_date, args)
+    elif args.parameter == 'hail':
+        data_list = obs.read_hail(data_list, start_date, end_date)
     else:
         logging.critical("Unknown verification data set: {:s}, exiting...".format(
             args.precip_verif_dataset))
-    # elif args.parameter == 'hail':
-    #     data_list = obs.read_hail(data_list, start_date, end_date)
     # elif args.parameter == 'lightning':
     #     data_list = obs.read_lightning(data_list, start_date, end_date)
     # else:
