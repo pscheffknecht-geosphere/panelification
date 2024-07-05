@@ -95,7 +95,10 @@ regions = {
                 'x_size': 279, 'y_size': 145},
             "West": {
                 'central_longitude': 11.25, 'central_latitude': 47.45,
-                'x_size': 338, 'y_size': 234}
+                'x_size': 338, 'y_size': 234},
+            "Vorarlberg_North_Half": {
+                'central_longitude': 9.83, 'central_latitude': 47.55, 
+                'x_size': 75, 'y_size': 55},
             },
             # "Vienna" :        [16.,   16.66, 48., 4 8.4],
             # "Lower_Austria" : [14.33, 17.33, 47.4,  49.2],
