@@ -18,11 +18,12 @@ experiment_configurations = {
         "output_interval"  : 1,
         "max_leadtime"     : 60, 
         "accumulated"      : {'gusts': False,
-                              'hail': True,
+                              'hail': False,
                               'else': True},
         "path_template"    : {'precip': "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/arome_%H+%LLLL.grb",
                               'else': "/arome_arch/aladin/ARCHIVE/AROMEaut/%Y%m%d/%H/AROMEaut+%LLLL.grb"},
         "unit_factor"      : {'sunshine': 1./3600.,
+                              'hail': 1000.,
                               'else': 1.}
         },
     "aromeruc": {
@@ -54,11 +55,11 @@ experiment_configurations = {
         "unit_factor"      : 1000.,
     },
     "claef-control": {
+        "init_interval"    : 12,
         "base_experiment"  : "arome",
         # "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef-control_%H+%LLLL.grb",
-        "path_template"    : {'precip': "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef-control_%H+%LLLL.grb",
-                                      #/ment_arch2/pscheff/WEB_PAN/panelification/MODEL/2023081012/CLAEF_00_2023081012+31.grb
-                              'hail': "/ment_arch2/pscheff/WEB_PAN/panelification/MODEL/CLAEF_CONTROL/%Y%m%d%H/CLAEF_00_%Y%m%d%H+%LL.grb"},
+        "path_template"    : {'hail': "/ment_arch2/pscheff/WEB_PAN/panelification/MODEL/CLAEF_CONTROL/%Y%m%d%H/CLAEF_00_%Y%m%d%H+%LL.grb",
+                              'else': "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef-control_%H+%LLLL.grb"},
     },
     "claef-mean": {
         "base_experiment"  : "arome",

@@ -92,20 +92,10 @@ def get_axes_for_fss_rank_plot(args):
         },
     'hail' : {
         'xticks' : range(12),
-        'yticks' : range(15),
+        'yticks' : range(14),
         'ydict': {
-            0 : '0.1', 1 : '1', 2 : '5', 3 : '10', 4 : '25', 5 : '35', 6 : '50', 7 : '75', 
-            8 : '100', 9 : '', 10 : '25%', 11 : '50%', 12 : '75%', 13 : '90%', 14 : '95%'},
-        'xdict' : {
-            0 : '10', 1 : '20', 2 : '30', 3 : '40', 4 : '60', 5 : '80', 6 : '100', 7 : '120', 
-            8 : '140', 9 : '160', 10 : '180', 11 : '200'}
-        },
-    'gusts' : {
-        'xticks' : range(12),
-        'yticks' : range(15),
-        'ydict': {
-            0 : '5', 1 : '10', 2 : '15', 3 : '20', 4 : '25', 5 : '30', 6 : '40', 7 : '50', 
-            8 : '70', 9 : '', 10 : '25%', 11 : '50%', 12 : '75%', 13 : '90%', 14 : '95%'},
+            0 : '0.5', 1 : '1.0', 2 : '1.5', 3 : '2.0', 4 : '2.5', 5 : '3.0', 6 : '3.5', 7 : '4.0', 
+            8 : '', 9 : '25%', 10 : '50%', 11 : '75%', 12 : '90%', 13 : '95%'},
         'xdict' : {
             0 : '10', 1 : '20', 2 : '30', 3 : '40', 4 : '60', 5 : '80', 6 : '100', 7 : '120', 
             8 : '140', 9 : '160', 10 : '180', 11 : '200'}
@@ -141,6 +131,23 @@ warn_colors = [
     #( 83,   0,   0),
     ( 40,   0,   0)]
 
+hail_colors = [
+        (255, 255, 255),
+        (210, 210, 210),
+        (180, 180, 180),
+        (150, 150, 150),
+        (255, 255, 210),
+        (255, 255, 180),
+        (255, 255, 150),
+        (255, 255, 125),
+        (255, 210, 210),
+        (255, 180, 180),
+        (255, 150, 150),
+        (255, 120, 125),
+        (230, 210, 255),
+        (230, 180, 255),
+        (230, 150, 255),
+        (230, 120, 255)]
 
 def lightning_cmap_and_levels(args):
     levels = [0.1*x for x in [0., 5. , 10. ,  15.,  20.,  25.,  30.,  40.,  50., 70.]]
@@ -151,19 +158,24 @@ def lightning_cmap_and_levels(args):
     return levels, cmap, norm
 
 
+def hail_cmap_and_levels(args):
+    print("HELLO???")
+    #levels = [0., 1. , 3. ,  5.,  10.,  15.,  20.,  30.,  40.,  50.,  60.,  80., 100., 150.,  200., 250.]
+    levels = np.arange(0., 4.01, 0.25)
+    mycolors = hail_colors 
+    print(mycolors)
+    print(len(mycolors))
+    print(levels)
+    print(levels.shape)
+    mycolors2 = tuple(np.array(mycolors)/255.)
+    norm = bnorm(levels,ncolors=len(mycolors))
+    cmap = mplcolors.ListedColormap(mycolors2)
+    return levels, cmap, norm
+
 def gusts_cmap_and_levels(args):
     levels = [0., 1. , 2. ,  5.,  10.,  20.,  30.,  50.,  75., 100.]
     cmap = nclcmaps.cmap("WhiteBlueGreenYellowRed")
     norm = nnorm(vmin=0., vmax=100.)
-    return levels, cmap, norm
-
-
-def hail_cmap_and_levels(args):
-    levels = [0., 1. , 3. ,  5.,  10.,  15.,  20.,  30.,  40.,  50.,  60.,  80., 100., 150.,  200., 250.]
-    mycolors = warn_colors 
-    mycolors2 = tuple(np.array(mycolors)/255.)        
-    norm = bnorm(levels,ncolors=len(mycolors))
-    cmap = mplcolors.ListedColormap(mycolors2)
     return levels, cmap, norm
 
 
