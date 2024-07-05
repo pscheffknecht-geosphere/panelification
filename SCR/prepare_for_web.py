@@ -2,6 +2,8 @@ import os
 import glob
 import datetime as dt
 
+import logging
+logger = logging.getLogger(__name__)
 
 remote_base_path = "/modelle/prod/mgruppe/WEB/PRECIP_VERIF_PANELS/"
 
@@ -15,10 +17,10 @@ def today():
 def send_panels_to_mgruppe(d_curr=None):
     d_curr = today() - dt.timedelta(days=1) if not d_curr else d_curr
     ttstr = d_curr.strftime("%Y%m%d")
-    print(f"checking for panels: ../PLOTS/*cast*{ttstr}*.png")
+    logger.info(f"checking for panels: ../PLOTS/*cast*{ttstr}*.png")
     flist = glob.glob('../PLOTS/*cast*'+d_curr.strftime("%Y%m%d")+"*png")
     if flist == []:
-        print("No panels found for today, sending nothing.")
+        logger.info("No panels found for today, sending nothing.")
     else:
         for fil in flist:
             os.system("scp "+fil+" mgruppe@vvhmod-dev:"+remote_base_path+".")
@@ -27,12 +29,12 @@ def send_panels_to_mgruppe(d_curr=None):
 def clean_old_panels(d_curr=today()):
     for dd_diff in range(160, 167):  # do entire week, in case some days were skipped
         newday = d_curr - dt.timedelta(days=dd_diff)
-        print("Checking for "+remote_base_path+"*"+newday.strftime("%Y%m%d")+"*.png")
+        logger.info("Checking for "+remote_base_path+"*"+newday.strftime("%Y%m%d")+"*.png")
         old_files = glob.glob(remote_base_path+"*"+newday.strftime("%Y%m%d")+"*.png")
         if len(old_files) > 0:
             for fil in old_files:
                 delete_cmd = "ssh mgruppe@vvhmod-dev 'rm "+fil+"'"
-                print(delete_cmd)
+                logger.info(delete_cmd)
                 # os.system(delete_cmd)
 
 def send_html_to_mgruppe():
@@ -47,11 +49,11 @@ def get_file_lists(d_curr):
         _fclist = glob.glob('../PLOTS/*forecast*'+d_curr.strftime("%Y%m%d")+"*png")
         _nclist = glob.glob('../PLOTS/*nowcast*'+d_curr.strftime("%Y%m%d")+"*png")
         for _fc in _fclist:
-            print("Found panel: {file}".format(
+            logger.info("Found panel: {file}".format(
                 file = _fc))
             fclist.append(_fc)
         for _nc in _nclist:
-            print("Found panel: {file}".format(
+            logger.info("Found panel: {file}".format(
                 file = _nc))
             nclist.append(_nc)
         d_curr += -dt.timedelta(days=1)
