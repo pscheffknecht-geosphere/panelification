@@ -299,7 +299,7 @@ def calc_scores(sim, obs, args):
     windows=[10,20,30,40,60,80,100,120,140,160,180,200]
     ny, nx = sim["precip_data_resampled"].shape
     windows = prep_windows(windows, args.fss_calc_mode, nx, ny)
-    if sim['conf'] == 'INCA' or sim['conf'] == 'OPERA':
+    if sim['conf'] == 'INCA' or sim['conf'] == 'OPERA' or sim['conf'] == 'ANTILOPE':
         sim['bias'] = 999
         sim['mae'] = 999
         sim['rms'] = 999
