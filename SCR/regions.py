@@ -105,6 +105,15 @@ regions = {
             "SO_STMK": {
                 'central_longitude': 15.5, 'central_latitude': 46.85, 
                 'x_size': 180, 'y_size': 100},
+            "CarinthiaWest": {
+                "central_longitude": 13.49, "central_latitude": 46.75,
+                "x_size": 120., "y_size": 90.},
+            "CarinthiaEastL": {
+                "central_longitude": 14.8, "central_latitude": 47.0,
+                "x_size": 150., "y_size": 140.},
+            "TyrolNorth": {
+                "central_longitude": 11.67, "central_latitude": 47.6,
+                "x_size": 160., "y_size": 80.},
             },
             # "Vienna" :        [16.,   16.66, 48., 4 8.4],
             # "Lower_Austria" : [14.33, 17.33, 47.4,  49.2],
@@ -147,6 +156,24 @@ regions = {
             "Finland_Small": {
                 # works for the small 200m domain
                 "central_longitude": 25.5, "central_latitude": 60.35, "x_size": 220., "y_size": 220.
+            }
+        }
+    },
+    "France": {
+        "central_longitude": 2.,
+        "central_latitude" : 46.,
+        "extent": [-6, 10, 41, 51.5],
+        "verification_subdomains": {
+            "Default": {
+                "central_longitude": 2.,
+                "central_latitude": 46.0,
+                "x_size": 1000.,
+                "y_size": 1000.,
+                "thresholds": {'draw_avg' : 2., 'draw_max' : 25., 'score_avg' : 1., 'score_max' : 5.},
+            },
+            "Paris": {
+                # works for the small 200m domain
+                "central_longitude":  2.35, "central_latitude": 48.86, "x_size": 200., "y_size": 200.
             }
         }
     }
