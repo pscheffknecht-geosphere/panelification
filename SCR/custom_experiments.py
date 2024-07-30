@@ -19,7 +19,7 @@ experiment_configurations = {
         "max_leadtime"     : 60, 
         "accumulated"      : {'gusts': False,
                               'else': True},
-        "path_template"    : {'precip': "/home/kmek/panelification/MODEL/arome/%Y%m%d/%H/arome_00+%LLLL.grb",
+        "path_template"    : {'precip': "/perm/kmek/panelification/MODEL/arome/%Y%m%d/%H/arome_%H+%LLLL.grb",
                               'else': "/arome_arch/aladin/ARCHIVE/AROMEaut/%Y%m%d/%H/AROMEaut+%LLLL.grb"},
         "unit_factor"      : {'sunshine': 1./3600.,
                               'else': 1.},
@@ -59,7 +59,9 @@ experiment_configurations = {
     },
     "claef1k-control": {
         "base_experiment"  : "arome",
-        "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_%H+%LLLL.grb",
+        "path_template"    : "/ec/ws2/tc/zat2/tcwork/claef1k/DATA/%Y%m%d/%H/MEM_00/ADDGRIB/CLAEF00+%LLLL:00.grb",
+        "ecfs_path_template" : "/ec/ws2/tc/zat2/tcwork/claef1k/DATA/%Y%m%d/%H/MEM_00/ADDGRIB/CLAEF00+%LLLL:00.grb"
+        # "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_%H+%LLLL.grb",
     },
     "claef1k-mean": {
         "base_experiment"  : "arome",
@@ -93,21 +95,6 @@ experiment_configurations = {
         "unit_factor"      : 1.,
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/cosmo1e_%H+%LLLL.grb2",
     },
-    "link_ref": {
-        "base_experiment"  : "arome",
-        "init_interval"    : 12,
-        "max_leadtime"     : 12, 
-        "accumulated"      : True,
-        "path_template"    : "/ment_arch2/model/AROME_PLAYGROUND/EX180/GRIB/%Y%m%d/%H/AROMEaut+%LLLL.grb",
-    },
-    "link_notok": {
-        "base_experiment"  : "link_ref",
-        "path_template"    : "/ment_arch2/model/AROME_PLAYGROUND/EX181/GRIB/%Y%m%d/%H/AROMEaut+%LLLL.grb",
-    },
-    "link_ok": {
-        "base_experiment"  : "link_ref",
-        "path_template"    : "/ment_arch2/model/AROME_PLAYGROUND/EX182/GRIB/%Y%m%d/%H/AROMEaut+%LLLL.grb",
-    },
     "ifs-highres": {
         "init_interval"    : 24,
         "output_interval"  : 1,
@@ -133,8 +120,9 @@ experiment_configurations = {
         "max_leadtime"     : 48, 
         "accumulated"      : True,
         # "path_template"    : "/ment_arch2/aladin/DEODE/CASE_1/%Y%m%d_%H/GRIBPFDEODAUSTRIA_500m+%LLLLh00m00s",
-        "path_template"    : "/home/kmek/panelification/MODEL/DEODE_AT_500m/%Y/%m/%d/%H/GRIBPFDEODAUSTRIA_CASES+%LLLLh00m00s",
-        "ecfs_path_template":"ectmp:/{USER}/deode/CY48t3_AROME_CASE{CASE}/archive/%Y/%m/%d/%H/GRIBPFDEODAUSTRIA_CASES+%LLLLh00m00s",
+        "path_template"    : "/perm/kmek/deode500/CY48t3_AROME_CASES/%Y/%m/%d/%H/GRIBPFDEODAUSTRIA_CASES+%LLLLh00m00s",
+        # "path_template"    : "/home/kmek/panelification/MODEL/DEODE_AT_500m/%Y/%m/%d/%H/GRIBPFDEODAUSTRIA_CASES+%LLLLh00m00s",
+        # "ecfs_path_template":"ectmp:/{USER}/deode/CY48t3_AROME_CASE{CASE}/archive/%Y/%m/%d/%H/GRIBPFDEODAUSTRIA_CASES+%LLLLh00m00s",
         "unit_factor"      : 1.,
         "on_mars"          : False
         },
@@ -150,22 +138,6 @@ experiment_configurations = {
         "base_experiment"   : "deode_arome_500_austria",
         "path_template"    : "/home/kmek/panelification/MODEL/WITT_KSTMK/%Y/%m/%d/%H/GRIBPFDEODAUSTRIA_CASES+%LLLLh00m00s",
         "ecfs_path_template" : "ec:/kay/deode/CY48t3_AROME_KSTMK/archive/%Y/%m/%d/%H/ICMSHDEOD+%LLLLh00m00s",
-        },
-    # "witt_kstmk2" : {
-    #     "base_experiment"   : "deode_arome_500_austria",
-    #     "path_template"    : "/home/kmek/panelification/MODEL/WITT_KSTMK2/%Y/%m/%d/%H/GRIBPFDEODAUSTRIA_CASES+%LLLLh00m00s",
-    #     "ecfs_path_template" : "ec:/kay/deode/CY48t3_AROME_KSTMK2/archive/%Y/%m/%d/%H/ICMSHDEOD+%LLLLh00m00s",
-    #     },
-    "witt_500m_cubic" : {
-        "base_experiment"   : "deode_arome_500_austria",
-        "path_template"    : "/home/kmek/panelification/MODEL/WITT_500m_CUBIC/%Y/%m/%d/%H/GRIBPFDEODAUSTRIA_CASES+%LLLLh00m00s",
-        "ecfs_path_template" : "ec:/kay/deode/CY48t3_AROME_CASE_CUBIC_NABORT/archive/%Y/%m/%d/%H/ICMSHDEOD+%LLLLh00m00s",
-        },
-    "witt_500m_cubic15" : {
-        "base_experiment"   : "deode_arome_500_austria",
-        "path_template"    : "/home/kmek/panelification/MODEL/WITT_500m_CUBIC15/%Y/%m/%d/%H/GRIBPFDEODAUSTRIA_CASES+%LLLLh00m00s",
-
-        "ecfs_path_template" : "ec:/kay/deode/CY48t3_AROME_CASE_CUBIC15/archive/%Y/%m/%d/%H/ICMSHDEOD+%LLLLh00m00s",
         },
 }
 
