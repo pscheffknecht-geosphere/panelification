@@ -14,6 +14,7 @@ from model_parameters import *
 import scoring
 import inca_functions as inca
 import read_opera as opera
+import read_antilope as antilope
 import panel_plotter
 import data_io
 import data_from_dcmdb
@@ -212,6 +213,8 @@ def main():
         data_list = inca.read_INCA(data_list, start_date, end_date, args)
     elif args.precip_verif_dataset == "OPERA":
         data_list = opera.read_OPERA(data_list, start_date, end_date, args)
+    elif args.precip_verif_dataset == "ANTILOPE":
+        data_list = antilope.read_ANTILOPE(data_list, start_date, end_date, args)
     else:
         logging.critical("Unknown verification data set: {:s}, exiting...".format(
             args.precip_verif_dataset))
