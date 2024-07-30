@@ -294,7 +294,7 @@ def draw_single_figure(sim, obs, r, jj, levels, cmap, norm, verification_subdoma
     if args.hidden:
         panel_title = str(jj) if jj > 0 else sim['name']
         panel_title_fc = 'white'
-    elif args.clean or sim["conf"] == "INCA" or sim["conf"] == "OPERA":
+    elif args.clean or sim["conf"] == "INCA" or sim["conf"] == "OPERA" or sim["conf"] == "ANTILOPE":
         panel_title = sim['name']
         panel_title_fc = 'white'
     else:
@@ -312,7 +312,7 @@ def draw_single_figure(sim, obs, r, jj, levels, cmap, norm, verification_subdoma
     gl.top_labels=False
     plt.savefig('../TMP/'+tmp_string+'/'+str(jj).zfill(3)+".png")
     plt.close('all')
-    if sim['conf'] == 'INCA' or sim['conf'] == 'OPERA':
+    if sim['conf'] == 'INCA' or sim['conf'] == 'OPERA' or sim["conf"] == "ANTILOPE":
         draw_solo_colorbar(levels, cmap, norm, tmp_string, args)
 
 
