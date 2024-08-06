@@ -176,6 +176,24 @@ regions = {
                 "central_longitude":  2.35, "central_latitude": 48.86, "x_size": 200., "y_size": 200.
             }
         }
+    },
+    "France_North": {
+        "central_longitude": 2.,
+        "central_latitude" : 48.25,
+        "extent": [-4, 8, 46, 51.5],
+        "verification_subdomains": {
+            "Default": {
+                "central_longitude": 2.,
+                "central_latitude": 48.25,
+                "x_size": 500.,
+                "y_size": 500.,
+                "thresholds": {'draw_avg' : 2., 'draw_max' : 25., 'score_avg' : 1., 'score_max' : 5.},
+            },
+            "Paris": {
+                # works for the small 200m domain
+                "central_longitude":  2.35, "central_latitude": 48.86, "x_size": 200., "y_size": 200.
+            }
+        }
     }
 }
 
