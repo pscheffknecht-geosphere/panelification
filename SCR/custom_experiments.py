@@ -126,6 +126,11 @@ experiment_configurations = {
         "unit_factor"      : 1.,
         "on_mars"          : False
         },
+    "arome-paris" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/scratch/rm6/meteofrance/paris500/%Y%m%d00/rain%Y%m%d%H%LL.grib"
+        # "path_template"    : "/scratch/rm6/meteofrance/paris500/2024072700/rain202407270028.grib"
+    },
     "ifs-dt": {
         "base_experiment"  : "ifs-highres",
         "path_template"    : "/home/kmek/panelification/MODEL/dt/ecmwf_precip_%Y%m%d_%H+%LLLL.grb",

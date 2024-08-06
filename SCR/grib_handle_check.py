@@ -64,6 +64,12 @@ def check_precip_fields(grb):
         grb.select(shortName="SNOW_GSP")
     except:
         pass
+    try:
+        grb.select(shortName="tirf")
+        return [
+            {"shortName": "tirf"}]
+    except:
+        pass
     return None
 
 
