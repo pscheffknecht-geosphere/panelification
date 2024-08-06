@@ -27,6 +27,7 @@ def read_ANTILOPE(data_list, start_date, end_date, args):
         tt += read_dt
     logger.info("ANTILOPE max precip: {:f}".format(
         np.nanmax(rr)))
+    rr =  np.where(rr > 2000., np.nan, rr)
     data_list.insert(0,{
         'conf' : 'ANTILOPE',
         'name' : 'ANTILOPE',
