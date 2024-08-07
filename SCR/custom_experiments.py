@@ -115,7 +115,7 @@ experiment_configurations = {
         "unit_factor"      : 1.
         },
     "deode_arome_500_austria": {
-        "init_interval"    : 24,
+        "init_interval"    : 6,
         "output_interval"  : 1,
         "max_leadtime"     : 48, 
         "accumulated"      : True,
@@ -131,6 +131,17 @@ experiment_configurations = {
         "path_template"    : "/scratch/rm6/meteofrance/paris500/%Y%m%d00/rain%Y%m%d%H%LL.grib"
         # "path_template"    : "/scratch/rm6/meteofrance/paris500/2024072700/rain202407270028.grib"
     },
+    "arome-paris-rdp-500" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        # "path_template"    : "/scratch/snh02/deode/PARIS_RDP_CY46h1_500M_cold/archive/2024/08/05/06/GRIBPFDEODPARIS_LARGE+0003h00m00s"
+        "path_template"    : "/scratch/snh02/deode/PARIS_RDP_CY46h1_500M_cold/archive/%Y/%m/%d/%H/GRIBPFDEODPARIS_LARGE+%LLLLh00m00s"
+        # "path_template"    : "/scratch/rm6/meteofrance/paris500/2024072700/rain202407270028.grib"
+    },
+    "arome-paris-rdp-200" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/scratch/snh02/deode/PARIS_RDP_CY46h1_200M/archive/%Y/%m/%d/%H/GRIBPFDEODPARIS_LARGE_200m+%LLLLh00m00s"
+        # "path_template"    : "/scratch/rm6/meteofrance/paris500/2024072700/rain202407270028.grib"
+    },
     "ifs-dt": {
         "base_experiment"  : "ifs-highres",
         "path_template"    : "/home/kmek/panelification/MODEL/dt/ecmwf_precip_%Y%m%d_%H+%LLLL.grb",
@@ -142,7 +153,7 @@ experiment_configurations = {
     "arome-dt-48t3" : {
         "base_experiment"   : "deode_arome_500_austria",
         "path_template"    : "/home/kmek/panelification/MODEL/WITT_KSTMK/%Y/%m/%d/%H/GRIBPFDEODAUSTRIA_CASES+%LLLLh00m00s",
-        "ecfs_path_template" : "ec:/kay/deode/CY48t3_AROME_KSTMK/archive/%Y/%m/%d/%H/ICMSHDEOD+%LLLLh00m00s",
+        "ecfs_path_template" : "ec:/kay/deode/CY48t3_AROME_KSTMK/archive/%Y/%m/%d/%H/GRIBPFDEODPARIS_LARGE+%LLLLh00m00s",
         },
 }
 
