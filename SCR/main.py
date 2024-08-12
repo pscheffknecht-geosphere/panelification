@@ -140,6 +140,8 @@ def parse_arguments():
         help = """Draw line plots of model performance, init on x axis, score on y axis""")
     parser.add_argument('--intranet_update', nargs='?', default=False, const=True, type=str2bool,
         help = 'update panels on the intranet website')
+    parser.add_argument('--tile', nargs=2, default=[None, None], type=int,
+        help = "select N and M for the NxM panel, needs to fit the number of plots!")
     args = parser.parse_args()
     init_logging(args)
     if not args.intranet_update:  # ignore these conditions if only updating intranet

@@ -326,9 +326,14 @@ def define_panel_and_plot_dimensions(data_list, args, time_series_scores):
     N = len(data_list)
     if args.rank_score_time_series:
         N += len(time_series_scores)
-    cols = int(np.ceil(np.sqrt(float(N))))
-    lins = int(np.floor(np.sqrt(float(N))))
-    if cols*lins < N:
+    if args.tile[0] and args.tile[1]:
+        cols = args.tile[1]
+        lins = args.tile[0]
+    else:
+        cols = int(np.ceil(np.sqrt(float(N))))
+        lins = int(np.floor(np.sqrt(float(N))))
+    while cols*lins < N:
+        logger.info(f"Adding 1 line to panels because {lins} lines X {cols} columns < {N}")
         lins = lins + 1
     logger.debug("PLOT ASPECT: {:.2f}".format(r))
     return r, cols, lins, N
