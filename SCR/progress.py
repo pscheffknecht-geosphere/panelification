@@ -9,10 +9,11 @@ except ValueError:
 
 
 def progress_print(ii, imax, label="Hello! "):
-    nmax = int(cols)-len(label)-3
-    n = int((ii)/float(imax)*nmax)
-    if rows or cols:
-        print("\r"+label+"["+n*"="+(nmax-n)*" "+"]",end=' ')
+    if rows and cols:
+        nmax = int(cols)-len(label)-3
+        n = int((ii)/float(imax)*nmax)
+        if rows or cols:
+            print("\r"+label+"["+n*"="+(nmax-n)*" "+"]",end=' ')
 
 
 def double_progress_print(ii, imax, jj, jmax):
