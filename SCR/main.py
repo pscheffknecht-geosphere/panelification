@@ -238,6 +238,7 @@ def main():
             data_list = opera.read_OPERA(data_list, start_date, end_date, args)
     elif args.parameter == 'hail':
         data_list = obs.read_hail(data_list, start_date, end_date)
+        data_list = data_io.scale_hail(data_list) # scale all fields to 0...4
     else:
         logging.critical("Unknown verification data set: {:s}, exiting...".format(
             args.precip_verif_dataset))
