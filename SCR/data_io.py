@@ -98,6 +98,24 @@ def data_norm(tmp_data_list):
         return np.sqrt(read_values_from_grib_field(tmp_data_list[0]) ** 2 + read_values_from_grib_field(tmp_data_list[1]) ** 2)
 
 
+def scale_hail(data_list):
+    """ scale the hail data, PoH in obs is 0 ... 100, model is different. 
+    Scale to low, moderate, high:
+    Qualitative: zero ............ low ............. moderate ................ high 
+    OBS:         0 ............... 25 ............... 50 ..................... >75
+    AROME:       0 ............... 16 ............... 20 ..................... >24
+    New Scale:   0 ............... 1 ................ 2 ...................... >3"""
+    for sim in data_list:
+        new_arr = sim['precip_data']
+        if sim['conf'] == ['INCA']:
+            new_arr = sim['precip_data'] = 0.04 * new_arr # scale to [0, 4]
+        else:
+            new_arr = np.where(new_arr<16., 0.0625 * new_arr, new_arr)
+            new_arr = np.where(new_arr>=16., 1. + (new_arr - 16.) * 0.25, new_arr)
+            sim['precip_data'] = new_arr
+    return data_list
+
+
 def calc_data(tmp_data_list, parameter):
     calc_funcs = {
        "precip" : data_sum,
@@ -243,7 +261,7 @@ class ModelConfiguration:
 
 
     def get_data(self, param):
-        if param == 'gusts':
+        if param == 'gusts' or param == 'hail':
             return self.__get_data_max()
         else:
             if self.accumulated:
