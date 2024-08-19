@@ -158,12 +158,17 @@ def get_hail_from_sybase(start_date, end_date):
     end_dat, end_tim = convert_date_to_dat_tim(end_date)
     start_dat, start_tim = convert_date_to_dat_tim(start_date)
     hail_columns = ["Datum", "stdmin", "breite", "laenge", "poh"]
-    print(start_dat, start_tim, end_dat, end_tim)
+    # print(start_dat, start_tim, end_dat, end_tim)
+    if end_tim == "0000":
+        end_tim = "2400"
     logging.info("fetching hail from "+str(start_date)+" to "+str(end_date))
-    request = "SELECT Datum, stdmin, breite, laenge, poh from hagelw WHERE Datum BETWEEN {start_dat} AND {end_dat} AND stdmin BETWEEN {start_tim} AND {end_tim}".format(
+    if start_date.year < 2023:
+        database = "hagelw" + f"_{start_date.year}"
+    request = "SELECT Datum, stdmin, breite, laenge, poh from {database} WHERE Datum BETWEEN {start_dat} AND {end_dat} AND stdmin BETWEEN {start_tim} AND {end_tim}".format(
+        database = database,
         start_dat = start_dat,
         start_tim = start_tim,
-        end_dat = end_dat,
+        end_dat = start_dat,
         end_tim = end_tim)
     print("request: "+request)
     hail = clean_returns(exec_request_pymssl(request), columns=hail_columns)
@@ -237,32 +242,32 @@ def array_to_csv(arr, start_date, end_date, param):
         fmtstr = "%.0f"
     elif param == "hail":
         fmtstr = "%.5f"
-    print(arr)
+    # print(arr)
     np.savetxt(fil_nam, arr, fmt=fmtstr)
 
 
 def read_archived_file(start_date, end_date, param):
     fil_nam = "../OBS_archive/{:s}_{:s}_{:s}.csv".format(
         param, start_date.strftime("%Y%m%d%H%M"), end_date.strftime("%Y%m%d%H%M"))
-    print("Checking for archived obs in {:s}".format(fil_nam))
+    # print("Checking for archived obs in {:s}".format(fil_nam))
     if os.path.exists(fil_nam):
         if os.path.getsize(fil_nam) < 500000:
-            print("Archive found, but file siye is less than 500 kb")
+            # print("Archive found, but file siye is less than 500 kb")
             os.path.remove(fil_nam)
     if os.path.exists(fil_nam):
         exists = True
         var = np.genfromtxt(fil_nam, delimiter="")
         fail = True if np.isnan(var).any() or var.shape != (401, 701) or var.sum() < 10 else False
     else:
-        print("No archived data found, reading from DB")
+        # print("No archived data found, reading from DB")
         return None
     if fail and exists:
-        print("Read from archive failed, deleting archived file {:s} and getting values from DB".format(
-            fil_nam))
+        # print("Read from archive failed, deleting archived file {:s} and getting values from DB".format(
+        #     fil_nam))
         os.remove(fil_nam)
         return None
     elif not fail:
-        print("Archived data found, reading lightning from {:s}".format(fil_nam))
+        # print("Archived data found, reading lightning from {:s}".format(fil_nam))
         return var
   
 
@@ -299,8 +304,8 @@ def read_hail(data_list, start_date, end_date):
         'precip_data' : hail})
     print("Hail min={:.4f} max={:.4f}, avg={:.4f}".format(
         hail.min(), hail.max(), hail.mean()))
-    print("Hail overview:")
-    print(hail.min(), hail.max(), hail.mean())
+    # print("Hail overview:")
+    # print(hail.min(), hail.max(), hail.mean())
     return data_list
 
 def main(): 
