@@ -172,7 +172,7 @@ def parse_arguments():
         args.clean = True if args.hidden else args.clean
         for ii, entry in enumerate(args.custom_experiments):
             if entry == "claef1k-all-members":
-                logging.info(f"Found cleaf1k-members at position {ii}, replacing...")
+                logging.info(f"Found cleaf1k-all-members at position {ii}, replacing...")
                 args.custom_experiments[ii] = "claef1k-m16"
                 for jj in range(15, 0, -1):
                     args.custom_experiments.insert(ii, f"claef1k-m{jj:02d}")
