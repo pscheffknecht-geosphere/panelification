@@ -268,10 +268,9 @@ def draw_single_figure(sim, obs, r, jj, levels, cmap, norm, verification_subdoma
     precip_data = np.where(precip_data == np.nan, 0., precip_data)
     precip_data = np.where(precip_data <0., 0., precip_data)
     precip_data_smooth = precip_data #ndimage.gaussian_filter(precip_data, sigma=1., order=0)
-    c = ax.contourf(lon, lat, precip_data_smooth,
-                    levels,cmap=cmap,transform=args.region.data_projection,
-                    norm=norm, extend='max')
-    # c.cmap.set_over('orange')
+    c = ax.pcolormesh(lon, lat, precip_data_smooth,
+                    cmap=cmap,transform=args.region.data_projection,
+                    norm=norm)
     ax.set_facecolor("silver")
     if args.draw_p90:
         p90 = np.percentile(np.copy(sim['precip_data_resampled']), 90) # circumvent numpy bug #21524
