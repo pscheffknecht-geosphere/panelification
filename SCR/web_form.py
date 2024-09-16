@@ -123,7 +123,6 @@ def make_panelification_command(form):
         logfile_name = logfile_name if logfile_name.endwith(".log") else logfile_name + ".log"
         command_string += "--logfile " + logfile_name + " "
     command_string += "--loglevel " + form.loglevel.data + " "
-    print(form.mode.data)
     command_string += "--mode " + form.mode.data + " "
     command_string += "--rank_by_fss_metric " + form.rank_by_fss_metric.data + " "
     return command_string
@@ -143,8 +142,6 @@ def panelify():
     message = ""
     if form.validate_on_submit():
         message = make_panelification_command(form)
-        print("Executing panel command:")
-        print(message)
         proc = subprocess.Popen(
             message,
             # "for ii in $(seq 1 5); do sleep 1; echo $ii; done",
@@ -172,9 +169,7 @@ def panelify():
 
 @app.route('/browse_graphics')
 def browse_panels():
-    print('HELLO!')
     img_list = [x.replace("static/", "") for x in glob.glob("static/*.png")]
-    print(img_list)
     return render_template('panels.html', panel_list=img_list)
 
 

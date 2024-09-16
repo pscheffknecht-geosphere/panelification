@@ -159,14 +159,9 @@ def lightning_cmap_and_levels(args):
 
 
 def hail_cmap_and_levels(args):
-    print("HELLO???")
     #levels = [0., 1. , 3. ,  5.,  10.,  15.,  20.,  30.,  40.,  50.,  60.,  80., 100., 150.,  200., 250.]
     levels = np.arange(0., 4.01, 0.25)
     mycolors = hail_colors 
-    print(mycolors)
-    print(len(mycolors))
-    print(levels)
-    print(levels.shape)
     mycolors2 = tuple(np.array(mycolors)/255.)
     norm = bnorm(levels,ncolors=len(mycolors))
     cmap = mplcolors.ListedColormap(mycolors2)

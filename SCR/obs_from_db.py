@@ -110,7 +110,7 @@ def conv_lat_lon(df):
 
 def to_grid(df, table="hailw"):
     maxidx = len(df)
-    print("Generating gridded obs from {:d} point observations".format(maxidx))
+    logger.info("Generating gridded obs from {:d} point observations".format(maxidx))
     lon, lat = INCA_grid()
     var = np.zeros(lon.shape)
     event = 0
@@ -130,7 +130,7 @@ def to_grid(df, table="hailw"):
         if progress_counter == progress_update_rate:
             progress_counter = 0
             progress.progress_print(idx, maxidx, label="Gridding Observations")
-    print(f"Added {event} {table} events to the grid")
+    logger.info(f"Added {event} {table} events to the grid")
     return(var)
 
 
@@ -158,19 +158,17 @@ def get_hail_from_sybase(start_date, end_date):
     end_dat, end_tim = convert_date_to_dat_tim(end_date)
     start_dat, start_tim = convert_date_to_dat_tim(start_date)
     hail_columns = ["Datum", "stdmin", "breite", "laenge", "poh"]
-    # print(start_dat, start_tim, end_dat, end_tim)
     if end_tim == "0000":
         end_tim = "2400"
     logging.info("fetching hail from "+str(start_date)+" to "+str(end_date))
-    if start_date.year < 2023:
-        database = "hagelw" + f"_{start_date.year}"
+    database = "hagelw" + f"_{start_date.year}" if start_date.year < 2023 else "hagelw"
     request = "SELECT Datum, stdmin, breite, laenge, poh from {database} WHERE Datum BETWEEN {start_dat} AND {end_dat} AND stdmin BETWEEN {start_tim} AND {end_tim}".format(
         database = database,
         start_dat = start_dat,
         start_tim = start_tim,
         end_dat = start_dat,
         end_tim = end_tim)
-    print("request: "+request)
+    logger.debug("request: "+request)
     hail = clean_returns(exec_request_pymssl(request), columns=hail_columns)
     return(hail)
 
@@ -194,16 +192,16 @@ def get_lightning_from_db(start_dat, start_tim, end_dat, end_tim, retry=False):
             lonmax = lonmax,
             latmin = latmin,
             latmax = latmax)
-    print("request: "+request)
+    logger.debug("request: "+request)
     lightning = clean_returns(exec_request_pymssl(request), columns=lightning_columns)
     return lightning
 
 
 def check_dfs(dflist):
-    print("Read {:d} chunks from DB".format(len(dflist)))
+    logger.debug("Read {:d} chunks from DB".format(len(dflist)))
     lsum = 0
     for idx, df in enumerate(dflist):
-        print(" Chunk {:d} has {:d} entries".format(idx+1, len(df)))
+        logger.debug(" Chunk {:d} has {:d} entries".format(idx+1, len(df)))
         lsum += len(df)
     return lsum
 
@@ -212,23 +210,22 @@ def get_lightning_from_sybase(start_date, end_date):
     start_dats, start_tims, end_dats, end_tims = process_time_window_for_sql(start_date, end_date, "blitz2")
     #start_dat, start_tim = convert_date_to_dat_tim(start_date, table='blitz2')
     end_dat, end_tim = convert_date_to_dat_tim(end_date, table='blitz2')
-    print(start_dats, start_tims, end_dats, end_tims)
+    logger.debug(start_dats, start_tims, end_dats, end_tims)
     dflist=[]
     for start_dat, start_tim, end_dat, end_tim in zip(start_dats, start_tims, end_dats, end_tims):
         logging.info("fetching lightning from "+str(start_date)+" to "+str(end_date))
         dflist.append(get_lightning_from_db(start_dat, start_tim, end_dat, end_tim))
     lsum = check_dfs(dflist)
     if lsum < 10:
-        print("FEWER THAN 10 STRIKES FOUND FOR PERIOD! IS THE DATE AND TIME CORRECT???")
-        print("Retrying more general db read")
+        logger.warning("FEWER THAN 10 STRIKES FOUND FOR PERIOD! IS THE DATE AND TIME CORRECT???")
+        logger.warning("Retrying more general db read")
         for start_dat, start_tim, end_dat, end_tim in zip(start_dats, start_tims, end_dats, end_tims):
             logging.info("fetching lightning from "+str(start_date)+" to "+str(end_date))
             dflist.append(get_lightning_from_db(start_dat, start_tim, end_dat, end_tim, retry=True))
         lsum = check_dfs(dflist)
     if lsum < 10:
-        print("ALL SOURCES CONTAIN LESS THAN 10 STRIKES. THERE IS NOT POINT IN CONTINUING")
+        logger.warning("ALL SOURCES CONTAIN LESS THAN 10 STRIKES. THERE IS NOT POINT IN CONTINUING")
     lightningdf=pd.concat(dflist)
-    print(len(lightningdf))
     return(lightningdf)
 
 
@@ -237,37 +234,36 @@ def array_to_csv(arr, start_date, end_date, param):
         param,
         start_date.strftime("%Y%m%d%H%M"),
         end_date.strftime("%Y%m%d%H%M"))
-    print("Writing {:s} data to {:s}".format(param, fil_nam))
+    logger.info("Writing {:s} data to {:s}".format(param, fil_nam))
     if param == "lightning":
         fmtstr = "%.0f"
     elif param == "hail":
         fmtstr = "%.5f"
-    # print(arr)
     np.savetxt(fil_nam, arr, fmt=fmtstr)
 
 
 def read_archived_file(start_date, end_date, param):
     fil_nam = "../OBS_archive/{:s}_{:s}_{:s}.csv".format(
         param, start_date.strftime("%Y%m%d%H%M"), end_date.strftime("%Y%m%d%H%M"))
-    # print("Checking for archived obs in {:s}".format(fil_nam))
+    logger.info("Checking for archived obs in {:s}".format(fil_nam))
     if os.path.exists(fil_nam):
         if os.path.getsize(fil_nam) < 500000:
-            # print("Archive found, but file siye is less than 500 kb")
+            logger.info("Archive found, but file siye is less than 500 kb")
             os.path.remove(fil_nam)
     if os.path.exists(fil_nam):
         exists = True
         var = np.genfromtxt(fil_nam, delimiter="")
         fail = True if np.isnan(var).any() or var.shape != (401, 701) or var.sum() < 10 else False
     else:
-        # print("No archived data found, reading from DB")
+        logger.info("No archived data found, reading from DB")
         return None
     if fail and exists:
-        # print("Read from archive failed, deleting archived file {:s} and getting values from DB".format(
-        #     fil_nam))
+        logger.debug("Read from archive failed, deleting archived file {:s} and getting values from DB".format(
+            fil_nam))
         os.remove(fil_nam)
         return None
     elif not fail:
-        # print("Archived data found, reading lightning from {:s}".format(fil_nam))
+        logger.debug("Archived data found, reading lightning from {:s}".format(fil_nam))
         return var
   
 
@@ -284,7 +280,7 @@ def read_lightning(data_list, start_date, end_date):
         'lat' : np.asarray(lat),
         'lon' : np.asarray(lon),
         'precip_data' : lightning})
-    print("Lightning min={:.4f} max={:.4f}, avg={:.4f}, sum={:.2f}".format(
+    logger.debug("Lightning min={:.4f} max={:.4f}, avg={:.4f}, sum={:.2f}".format(
         lightning.min(), lightning.max(), lightning.mean(), lightning.sum()))
     return data_list
 
@@ -302,15 +298,13 @@ def read_hail(data_list, start_date, end_date):
         'lat' : np.asarray(lat),
         'lon' : np.asarray(lon),
         'precip_data' : hail})
-    print("Hail min={:.4f} max={:.4f}, avg={:.4f}".format(
+    logger.debug("Hail min={:.4f} max={:.4f}, avg={:.4f}".format(
         hail.min(), hail.max(), hail.mean()))
-    # print("Hail overview:")
-    # print(hail.min(), hail.max(), hail.mean())
     return data_list
 
 def main(): 
     lon, lat = INCA_grid()
-    print(lon.min(), lon.max(), lat.min(), lat.max())
+    logger.debug(lon.min(), lon.max(), lat.min(), lat.max())
     haildf = get_hail_from_sybase(dt.datetime(2021,7,1,9), dt.datetime(2021,7,1,10))
     hail = to_grid(haildf, table='hailw')
     #plt.imshow(hail)
@@ -321,7 +315,7 @@ def main():
     #plt.imshow(lightning)
     plt.colorbar()
     plt.show()
-    print(lightningdf)
+    logger.debug(lightningdf)
 
 
 if __name__ == "__main__":
