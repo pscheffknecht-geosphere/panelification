@@ -190,15 +190,9 @@ class ModelConfiguration:
             else raise a ValueError"""
         ret = None
         if isinstance(custom_experiment_item, dict):
-            print(custom_experiment_item)
-            # print(custom_experiment_item)
             for key, item in custom_experiment_item.items():
-                # print(key, item, self.parameter)
                 if self.parameter in key or self.parameter == key:
-                    # print("Match found")
                     ret = custom_experiment_item[self.parameter]
-                    # print(ret)
-            # print(ret)
             if ret == None and 'else' in custom_experiment_item.keys():
                 ret = custom_experiment_item['else']
             elif not 'else' in custom_experiment_item.keys():
