@@ -264,9 +264,12 @@ def draw_single_figure(sim, obs, r, jj, levels, cmap, norm, verification_subdoma
     if jj == 0 and not args.clean:
         ax_fss.axis('off')
     precip_data, lon, lat = prep_plot_data(sim, obs, args.mode)
-    c = ax.contourf(lon, lat, precip_data,
-                    levels,cmap=cmap,transform=args.region.data_projection,
-                    norm=norm, extend='max')
+    c = ax.pcolormesh(lon, lat, precip_data,
+                    cmap=cmap,transform=args.region.data_projection,
+                    norm=norm) #, extend='max')
+    # c = ax.contourf(lon, lat, precip_data,
+    #                 levels,cmap=cmap,transform=args.region.data_projection,
+    #                 norm=norm, extend='max')
     ax.set_facecolor("silver")
     if args.draw_p90:
         p90 = np.percentile(np.copy(sim['precip_data_resampled']), 90) # circumvent numpy bug #21524
