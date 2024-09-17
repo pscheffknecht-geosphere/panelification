@@ -7,3 +7,7 @@ TMP/*
 TMP/*/*
 SCR/test_web/__pycache__/*
 DATA/*
+SCR/*.pyc
+SCR/*.asc
+SCR/diagnostics/*
+SCR/*.ipynb
