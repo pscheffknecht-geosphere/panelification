@@ -158,10 +158,7 @@ def rank_fss_all(data_list):
     for metric in ['fss_total_abs_score', 'fss_total_rel_score', 'fss_success_rate_abs', 'fss_success_rate_rel']:
         rank=1
         rank_name='rank_'+metric
-        # if metric == 'fss_success_rate_abs' or metric == 'fss_success_rate_rel':
         data_list_metric = sorted(data_list, key=lambda k: -k[metric])
-        # else:
-        #     data_list_metric = sorted(data_list, key=lambda k: k[metric])
         for data_entry in data_list_metric:
             data_list[namelist.index(data_entry['name'])][rank_name] = rank
             rank = rank + 1
