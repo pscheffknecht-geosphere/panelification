@@ -21,6 +21,7 @@ MODIFY AT YOUR OWN RISK!!!
 title_part = {
     'precip': 'Acc. Precip. [mm]',
     'precip2': 'Acc. Precip. [mm]',
+    'precip3': 'Acc. Precip. [mm]',
     'sunshine': 'Acc. Sunshine Duration [h]',
     'lightning': 'lightning strikes [km$^{-2}$]',
     'gusts': 'wind gusts [m s$^{-1}$]',
@@ -30,6 +31,7 @@ title_part = {
 colorbar_label = {
     'precip': 'accumulated precipitation [mm]',
     'precip2': 'accumulated precipitation [mm]',
+    'precip3': 'accumulated precipitation [mm]',
     'sunshine': 'sunshine duration [h]',
     'lightning': 'lightning strikes [km$^{-2}$]',
     'gusts': 'gust speed [m s$^{-1}$]',
@@ -39,8 +41,9 @@ colorbar_label = {
 # thresholds for the calculation of the FSS depending on the parameter
 def get_fss_thresholds(args):
     thresholds_for_fss = {
-        'precip' : [0.1,1.,5.,10.,25.,35.,50.,75.,100., 99999.],
-        'precip2' : [0.2,2.,10.,20.,50.,70.,100.,150.,200., 99999.],
+        'precip' :  [0.1, 1.,   5., 10.,  25.,  35.,  50.,  75., 100., 99999.],
+        'precip2' : [0.2, 2.,  10., 20.,  50.,  70., 100., 150., 200., 99999.],
+        'precip3' : [5.0, 10., 20., 50., 100., 150., 200., 300., 400., 99999.], # for EXTREME events or LONG windows
         'sunshine' : list(np.arange(0., 1., 1/6.)) + [999999],
         'hail' : [1, 2, 5, 10, 25, 35, 50, 75, 100, 99999],
         'gusts' : [5, 10, 15, 20, 25, 30, 40, 50, 70, 99999],
@@ -78,6 +81,16 @@ def get_axes_for_fss_rank_plot(args):
         'ydict': {
             0 : '0.2', 1 : '2', 2 : '10', 3 : '20', 4 : '50', 5 : '70', 6 : '100', 7 : '150', 
             8 : '200', 9 : '', 10 : '25%', 11 : '50%', 12 : '75%', 13 : '90%', 14 : '95%'},
+        'xdict' : {
+            0 : '10', 1 : '20', 2 : '30', 3 : '40', 4 : '60', 5 : '80', 6 : '100', 7 : '120', 
+            8 : '140', 9 : '160', 10 : '180', 11 : '200'}
+        },
+    'precip3' : {
+        'xticks' : range(12),
+        'yticks' : range(15),
+        'ydict': {
+            0 : '5', 1 : '10', 2 : '20', 3 : '50', 4 : '100', 5 : '150', 6 : '200', 7 : '300', 
+            8 : '400', 9 : '', 10 : '25%', 11 : '50%', 12 : '75%', 13 : '90%', 14 : '95%'},
         'xdict' : {
             0 : '10', 1 : '20', 2 : '30', 3 : '40', 4 : '60', 5 : '80', 6 : '100', 7 : '120', 
             8 : '140', 9 : '160', 10 : '180', 11 : '200'}
@@ -149,6 +162,26 @@ hail_colors = [
         (230, 150, 255),
         (230, 120, 255)]
 
+precip3_colors = np.array([
+    [1.00, 1.00, 1.00], # blue
+    [0.85, 0.90, 1.00],
+    [0.65, 0.70, 0.85],
+    [0.55, 0.55, 0.80],
+    [0.35, 0.35, 0.55],
+    [0.85, 1.00, 0.85], # green
+    [0.55, 0.90, 0.55],
+    [0.30, 0.75, 0.30],
+    [0.05, 0.45, 0.05],
+    [1.00, 1.00, 0.55], # yellow
+    [0.90, 0.70, 0.35],
+    [0.85, 0.45, 0.25],
+    [0.75, 0.15, 0.05],
+    [1.00, 0.85, 1.00], # purple
+    [0.95, 0.75, 0.95],
+    [0.70, 0.45, 0.70],
+    [0.40, 0.15, 0.40]])
+
+
 def lightning_cmap_and_levels(args):
     levels = [0.1*x for x in [0., 5. , 10. ,  15.,  20.,  25.,  30.,  40.,  50., 70.]]
     mycolors =  warn_colors
@@ -184,6 +217,12 @@ def sunshine_cmap_and_levels(args):
     return levels, cmap, norm
 
 
+def precip3_cmap_and_levels(args):
+    levels = [0.1, 0.2, 0.5, 1., 2., 5., 10., 15., 25., 35., 50., 75., 100., 150., 200., 300., 400., 500.]
+    norm = bnorm(levels,ncolors=len(precip3_colors))
+    cmap = mplcolors.ListedColormap(precip3_colors)
+    return levels, cmap, norm
+
 
 def precip_cmap_and_levels(args):
     mycolors = None # only change if required
@@ -217,6 +256,8 @@ def get_cmap_and_levels(args):
         return precip_cmap_and_levels(args)
     elif args.parameter == 'precip2':
         return precip_cmap_and_levels(args)
+    elif args.parameter == 'precip3':
+        return precip3_cmap_and_levels(args)
     elif args.parameter == 'hail':
         return hail_cmap_and_levels(args)
     elif args.parameter == 'lightning':

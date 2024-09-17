@@ -231,7 +231,7 @@ def main():
         exit()
     #data_list = data_from_dcmdb.read_data(data_list, args)
     # if args.parameter in ['precip', 'sunshine']:
-    if args.parameter in ['precip', 'sunshine']:
+    if args.parameter in ['precip', 'precip2', 'precip3', 'sunshine']:
         if args.precip_verif_dataset == "INCA":
             data_list = inca.read_INCA(data_list, start_date, end_date, args)
         elif args.precip_verif_dataset == "OPERA":

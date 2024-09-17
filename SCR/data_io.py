@@ -120,6 +120,7 @@ def calc_data(tmp_data_list, parameter):
     calc_funcs = {
        "precip" : data_sum,
        "precip2" : data_sum,
+       "precip3" : data_sum,
        "sunshine": data_sum,
        "lightning": data_sum,
        "hail": data_sum,
