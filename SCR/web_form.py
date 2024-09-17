@@ -23,7 +23,7 @@ csrf = CSRFProtect(app)
 foo = secrets.token_urlsafe(16)
 app.secret_key = foo
 
-ALL_PARAMETERS = ["precip" , "precip2" , "sunshine" , "lightnning" , "hail" , "gusts"]
+ALL_PARAMETERS = ["precip" , "precip2" , "precip3", "sunshine" , "lightnning" , "hail" , "gusts"]
 
 def get_default_name():
     return "MyPanel_{:s}".format(dt.datetime.now().strftime("%Y-%m-%d_%H%M%S"))

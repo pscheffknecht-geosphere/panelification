@@ -128,6 +128,7 @@ def find_grib_handles(grb, param):
     check_function = {
         'precip': check_precip_fields,
         'precip2': check_precip_fields,
+        'precip3': check_precip_fields,
         'sunshine': check_sunshine_fields,
         'hail': check_hail_fields,
         'lightning': check_lightning_fields,

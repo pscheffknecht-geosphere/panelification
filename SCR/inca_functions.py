@@ -105,7 +105,7 @@ def INCA_grid(INCAplus=False):
 
 def read_INCA(data_list, start_date, end_date, args):
     first=True
-    if args.parameter == 'precip' or args.parameter == 'precip2':
+    if args.parameter == 'precip' or args.parameter == 'precip2' or args.parameter == 'precip3':
         read_dt = dt(hours=1)
         dtype = np.int16
     elif args.parameter == 'sunshine':
