@@ -1,4 +1,5 @@
 import pyresample
+import os
 import numpy as np
 import pygrib
 from datetime import datetime
@@ -10,6 +11,8 @@ import glob
 from misc import loop_datetime
 from model_parameters import verification_subdomains, inca_ana_paths
 import grib_handles
+from netCDF4 import Dataset
+import urllib.request
 
 import logging
 logger = logging.getLogger(__name__)
@@ -275,3 +278,53 @@ def read_INCA_plus(inca_file, k_start, k_end):
             rr_tmp += f.select(**grib_handle)[0]
     return rr_tmp.values
     
+
+def fetch_inca(month):
+    """ fetch INCA netcdf from GeoSphere archive
+    example file: https://public.hub.geosphere.at/datahub/resources/inca-v1-1h-1km/filelisting/RR/INCAL_HOURLY_RR_201106.nc"""
+    dt_string = month.strftime("%Y%m")
+    fetch_file = f"https://public.hub.geosphere.at/datahub/resources/inca-v1-1h-1km/filelisting/RR/INCAL_HOURLY_RR_{dt_string}.nc"
+    local_file = f"../OBS/INCA_netcdf/INCAL_HOURLY_RR_{dt_string}.nc"
+    logger.info(f"did not find {local_file}")
+    logger.info(f"downloading {fetch_file}")
+    urllib.request.urlretrieve(fetch_file, local_file)
+    return 0
+
+
+def read_inca_netcdf_archive(data_list, start_date, end_date, args):
+    """ read INCA data from netcdf hourly archive"""
+    tt = start_date
+    # 1. check if all necessary files exist and are up to date:
+    fetched_current = False # if current month is found, was it updated?
+    rr_tmp = 'None'
+    data_tmp = None
+    previous_file = None
+    this_month = datetime(datetime.now().year, datetime.now().month, 1)
+    while tt < end_date:
+        tt_str = tt.strftime("%Y%m")
+        read_file = f"../OBS/INCA_netcdf/INCAL_HOURLY_RR_{tt_str}.nc"
+        if not read_file == previous_file:
+            if datetime(tt.year, tt.month, 1) == this_month and not fetched_current:
+                fetch_inca(tt)
+                fetched_current = True
+            elif not os.path.isfile(read_file):
+                fetch_inca(tt)
+            data_tmp = Dataset(read_file, "r")
+            previous_file = read_file
+        read_hour = int((tt - datetime(tt.year, tt.month, 1)).total_seconds() / 3600)
+        if rr_tmp == 'None':
+            rr_tmp = data_tmp.variables['RR'][read_hour, :, :]
+        else:
+            rr_tmp += data_tmp.variables['RR'][read_hour, :, :]
+        tt += dt(hours=1)
+    lon, lat = INCA_grid()
+    data_list.insert(0,{
+        'conf' : 'INCA',
+        'name' : 'INCA',
+        'lat' : np.asarray(lat),
+        'lon' : np.asarray(lon),
+        'precip_data': rr_tmp})
+    logger.debug(data_list[0]["precip_data"])
+    logger.debug(data_list[0]["precip_data"].max())
+    logger.debug(data_list[0]["precip_data"].min())
+    return data_list
