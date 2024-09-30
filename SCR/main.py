@@ -135,6 +135,8 @@ def parse_arguments():
           debug, info, warning, error""")
     parser.add_argument('--rank_score_time_series', nargs='?', default=False, const=True, type=str2bool,
         help = """Draw line plots of model performance, init on x axis, score on y axis""")
+    parser.add_argument('--highlight_threshold', '-u', type=int, default=[], nargs='+',
+        help = """ Highlight specific precipitation contour line""")
     args = parser.parse_args()
     init_logging(args)
     # replace the string object with a proper instance of Region
@@ -162,6 +164,9 @@ def parse_arguments():
             args.name += '_' 
     # hidden forces clean too:
     args.clean = True if args.hidden else args.clean
+    if args.duration >= 24 and args.parameter == "precip":
+        logging.info("Switching from paramter 'precip' to 'precip2' due to long accumulation window")
+        args.parameter = "precip2"
 
 def get_lead_limits(args):
     lead_limits = args.lead
@@ -211,6 +216,8 @@ def main():
     # if args.parameter in ['precip', 'sunshine']:
     if args.precip_verif_dataset == "INCA":
         data_list = inca.read_INCA(data_list, start_date, end_date, args)
+    elif args.precip_verif_dataset == "INCA_archive":
+        data_list = inca.read_inca_netcdf_archive(data_list, start_date, end_date, args)
     elif args.precip_verif_dataset == "OPERA":
         data_list = opera.read_OPERA(data_list, start_date, end_date, args)
     elif args.precip_verif_dataset == "ANTILOPE":
