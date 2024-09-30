@@ -282,6 +282,10 @@ def draw_single_figure(sim, obs, r, jj, levels, cmap, norm, verification_subdoma
             levels=[0.5, 1.5], transform=args.region.data_projection, colors='none', hatches=['/////'])
         ax.contour(sim['lon_resampled'], sim['lat_resampled'], sim['rr90'], 
             linewidths = 0.5, levels=[0.5], transform=args.region.data_projection, colors=[sim['p90_color']])
+    if len(args.highlight_threshold) > 0:
+        ax.contour(sim['lon_resampled'], sim['lat_resampled'], sim['precip_data_resampled'],
+            linewidths = 1.5, levels=args.highlight_threshold, colors=['limegreen'], zorder=99,
+            transform=args.region.data_projection)
     # limit drawn area, make the plot nicer and add some info
     ax.set_extent(args.region.extent)
     add_borders(ax)
