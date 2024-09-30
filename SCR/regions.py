@@ -114,6 +114,12 @@ regions = {
             "TyrolNorth": {
                 "central_longitude": 11.67, "central_latitude": 47.6,
                 "x_size": 160., "y_size": 80.},
+            "LowerUpper_Austria": {
+                "central_longitude": 14.83, "central_latitude": 48.31,
+                "x_size": 322., "y_size": 200.},
+            "HPE_extreme": {
+                "central_longitude": 15.28, "central_latitude": 48.06,
+                "x_size": 222., "y_size": 100.},
             },
             # "Vienna" :        [16.,   16.66, 48., 4 8.4],
             # "Lower_Austria" : [14.33, 17.33, 47.4,  49.2],
@@ -159,6 +165,29 @@ regions = {
             }
         }
     },
+    "France_WestMed": {
+        "central_longitude": 6.,
+        "central_latitude" : 43.,
+        # "extent": [-80., 80., -0., 80.],
+        "extent": [-1., 11, 40.5, 45.0],
+        "verification_subdomains": {
+            "Default": {
+                "central_longitude": -6.,
+                "central_latitude": 43.0,
+                "x_size":  600.,
+                "y_size": 1000.,
+                "thresholds": {'draw_avg' : 2., 'draw_max' : 25., 'score_avg' : 1., 'score_max' : 5.},
+            },
+            "Languedoc-Roussillon": {
+                # works for the small 200m domain
+                "central_longitude":  4.00, "central_latitude": 43.00, "x_size": 360., "y_size": 260.
+            },
+            "Corsica": {
+                # works for the small 200m domain
+                "central_longitude":  9.00, "central_latitude": 42.15, "x_size": 120., "y_size": 220.
+            },
+        }
+    },
     "France": {
         "central_longitude": 2.,
         "central_latitude" : 46.,
@@ -171,6 +200,10 @@ regions = {
                 "y_size": 1000.,
                 "thresholds": {'draw_avg' : 2., 'draw_max' : 25., 'score_avg' : 1., 'score_max' : 5.},
             },
+            "South": {
+                # works for the small 200m domain
+                "central_longitude":  2.50, "central_latitude": 44.00, "x_size": 200., "y_size": 200.
+            },
             "Paris": {
                 # works for the small 200m domain
                 "central_longitude":  2.35, "central_latitude": 48.86, "x_size": 200., "y_size": 200.
@@ -180,7 +213,7 @@ regions = {
     "France_North": {
         "central_longitude": 2.,
         "central_latitude" : 48.25,
-        "extent": [-4, 8, 46, 51.5],
+        "extent": [-2, 6, 46.5, 51.],
         "verification_subdomains": {
             "Default": {
                 "central_longitude": 2.,
