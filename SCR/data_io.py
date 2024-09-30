@@ -45,11 +45,13 @@ def mars_request(exp_name, init, step,path=None):
     logger.info("Requesting from precipitation from MARS for {:s} +{:d}h".format(
         init.strftime("%Y-%m-%d %H"), step))
     logger.info("Target file: {:s}".format(path))
+    stream = "oper" if init.hour in [0, 12] else "scda"
     replace_dict = { 
         "{date}": init.strftime("%Y%m%d"), 
-        "{time}": "{:04d}".format(init.hour),
+        "{time}": "{:02d}".format(init.hour),
         "{step}": "{:d}".format(step), 
-        "{target}": "\"{:s}\"".format(path)
+        "{target}": "\"{:s}\"".format(path),
+        "{stream}": stream
     } 
     request = mars_request_templates[exp_name]
     for key, val in replace_dict.items(): 
@@ -79,6 +81,9 @@ def get_lonlat_fallback(grb):
         Nx, Ny = grb['Nx'], grb['Ny']
         lon = grb.longitudes.reshape((Ny, Nx))
         lat = grb.latitudes.reshape((Ny, Nx))
+        logger.debug(f"Nx: {Nx}, Ny: {Ny}")
+        logger.debug(f"lat: {lat}\nlon: {lon}")
+        logger.debug(f"lat.shape: {lat.shape}")
     except:
         logger.critical("Fallback failed on unknown grid type, exiting!!!")
         raise
@@ -92,7 +97,11 @@ def read_values_from_grib_field(grb):
         # TODO: workaround for Austria, make this take values from the region!!!
         grb.expand_grid(False)
         data1d, lat1d, lon1d = grb.data()
-        lo = np.arange(0., 25.001, 0.025)
+        if lon1d.max() > 180.:
+            lon1d -= 360.
+        logger.debug(f"Nx: {lon1d.shape}, Ny: {lat1d.shape}")
+        logger.debug(f"lat: {lat1d}\nlon: {lon1d}")
+        lo = np.arange(-8., 25.001, 0.025)
         la = np.arange(40., 58.001, 0.025)
         llo, lla = np.meshgrid(lo, la)
         targ_def = pyresample.geometry.SwathDefinition(llo, lla)
@@ -154,7 +163,7 @@ def read_data(grib_file_path, parameter, get_lonlat_data=False):
             lon, lat = get_lonlat_fallback(tmp_data_list[0])
         elif tmp_data_list[0]['gridType'] == "reduced_gg":
             logger.info("gridType reduced_gg detected, making own!")
-            lo = np.arange(0., 25.001, 0.025)
+            lo = np.arange(-8., 25.001, 0.025)
             la = np.arange(40., 58.001, 0.025)
             lon, lat = np.meshgrid(lo, la)   
         else:
