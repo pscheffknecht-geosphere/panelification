@@ -8,6 +8,9 @@ import progress
 from inca_functions import INCA_grid
 # import matplotlib.pyplot as plt
 
+import logging
+logger = logging.getLogger(__name__)
+
 server_to_hostname = {
     'SYBWIEN1': {
         'name': 'zaadbs3.zamg.ac.at',
