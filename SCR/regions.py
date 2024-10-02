@@ -118,8 +118,8 @@ regions = {
                 "central_longitude": 14.83, "central_latitude": 48.31,
                 "x_size": 322., "y_size": 200.},
             "HPE_extreme": {
-                "central_longitude": 15.28, "central_latitude": 48.06,
-                "x_size": 222., "y_size": 100.},
+                "central_longitude": 15.78, "central_latitude": 48.16,
+                "x_size":  95., "y_size":  65.},
             },
             # "Vienna" :        [16.,   16.66, 48., 4 8.4],
             # "Lower_Austria" : [14.33, 17.33, 47.4,  49.2],
