@@ -218,9 +218,16 @@ def sunshine_cmap_and_levels(args):
 
 
 def precip3_cmap_and_levels(args):
-    levels = [0.1, 0.2, 0.5, 1., 2., 5., 10., 15., 25., 35., 50., 75., 100., 150., 200., 300., 400., 500.]
-    norm = bnorm(levels,ncolors=len(precip3_colors))
-    cmap = mplcolors.ListedColormap(precip3_colors)
+    # levels = [0.1, 0.2, 0.5, 1., 2., 5., 10., 15., 25., 35., 50., 75., 100., 150., 200., 300., 400., 500.]
+    levels = [0., 0.5, 1.0, 2.0, 5.0,  10.0,  25.0, 50.0, 75.0, 100.0, 150.0, 200.0, 250.0, 300.0, 350.0,  400.0]
+    # norm = bnorm(levels,ncolors=len(precip3_colors))
+    # cmap = mplcolors.ListedColormap(precip3_colors)
+    mycolors = [(255.,255.,255.),(0,254,150),(0,254,200),(0,254,254),(0,200,254),(0,150,254),
+            (0,50,254),(50,0,254),(100,0,254),(150,0,254),(200,0,254),(250,0,254),(200,0,200),
+            (150,0,150),(255,0,0)]
+    mycolors2 = tuple(np.array(mycolors)/255.)        
+    norm = bnorm(levels,ncolors=len(mycolors))
+    cmap = mplcolors.ListedColormap(mycolors2)
     return levels, cmap, norm
 
 
