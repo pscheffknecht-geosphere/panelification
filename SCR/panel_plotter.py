@@ -270,7 +270,7 @@ def draw_single_figure(sim, obs, r, jj, levels, cmap, norm, verification_subdoma
     precip_data_smooth = precip_data #ndimage.gaussian_filter(precip_data, sigma=1., order=0)
     c = ax.pcolormesh(lon, lat, precip_data_smooth,
                     cmap=cmap,transform=args.region.data_projection,
-                    norm=norm)
+                    norm=norm, shading='auto')
     ax.set_facecolor("silver")
     if args.draw_p90:
         p90 = np.percentile(np.copy(sim['precip_data_resampled']), 90) # circumvent numpy bug #21524
@@ -342,13 +342,24 @@ def define_panel_and_plot_dimensions(data_list, args, time_series_scores):
     return r, cols, lins, N
 
 
-def score_time_series(data_list, r, tmp_string, time_series_scores):
+def score_time_series(data_list, r, tmp_string, time_series_scores, args):
     score_names = {
         "fss_total_abs_score": "Old FSS Rank Score", 
         "fss_condensed": "New FSS Score", 
-        "fss_condensed_weighted": "New FSS Score Weighted"}
+        "fss_condensed_weighted": "FSS Rank Score"}
+    total_height = 3.5 
+    pad = total_height / 12.
+    height = total_height - 2. * pad
+    if args.clean:
+        total_width = (total_height - 2 * pad) / r + 2 * pad
+    else:
+        total_width = 0.5 * height + height / r + 2 * pad
     for sidx, s in enumerate(time_series_scores):
-        fig, ax = plt.subplots(1, 1, figsize=(3.5/r, 3.5), dpi=150)
+        # fig, ax = plt.subplots(1, 1, figsize=(total_width, total_height), dpi=150)
+        fig = plt.figure(figsize=(total_width, total_height), dpi=150)
+        print(f"Creating figure with {total_width} and {total_height}")
+        plot_width = 0.7 if not args.time_series_panel_width else args.time_series_panel_width
+        ax = fig.add_axes([0.10, 0.15, args.time_series_panel_width, 0.7])
         logger.info("Making time series plot for " + score_names[s])
         score = {}
         init = {}
@@ -360,10 +371,11 @@ def score_time_series(data_list, r, tmp_string, time_series_scores):
             init[sim['conf']].append(sim['init'])
         for key, ss in score.items():
             ax.plot(init[key], ss, 'o-', label=key)
-        ax.legend()
+        ax.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
         ax.set_ylabel("score")
         ax.set_xlabel("model init time")
-        title = score_names[s] + " by model and init"
+        title = score_names[s] + " for each model and init time"
+        ax.tick_params(axis='x', labelrotation=45)
         ax.set_title(title, loc='left')
         plt.savefig('../TMP/' + tmp_string + '/' + str(990 + sidx) + '.png')
         # exit()
@@ -405,7 +417,7 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
     logger.debug('mkdir ../TMP/'+tmp_string)
     # dump data for each model into a single pickle file
     if args.rank_score_time_series:
-        score_time_series(data_list, r, tmp_string, time_series_scores)
+        score_time_series(data_list, r, tmp_string, time_series_scores, args)
     for jj, sim in enumerate(data_list):
         pickle.dump([sim, data_list[0], r, jj, levels, cmap,
             norm, verification_subdomain, rank_colors, data_list[0]['max_rank'], args, tmp_string], 
