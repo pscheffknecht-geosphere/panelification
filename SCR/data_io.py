@@ -8,6 +8,8 @@ import custom_experiments
 import datetime as dt
 import pygrib
 import numpy as np
+import urllib.request
+from pathlib import Path
 
 import logging
 logger = logging.getLogger(__name__)
@@ -172,6 +174,12 @@ class ModelConfiguration:
         self.output_interval = self.__pick_value_by_parameter(cmc["output_interval"])
         self.accumulated     = self.__pick_value_by_parameter(cmc["accumulated"])
         self.unit_factor     = self.__pick_value_by_parameter(cmc["unit_factor"])
+        if "url_template" in cmc.keys():
+            print("FOUND url_template")
+            self.url_template = cmc["url_template"]
+            print("cmc.url_template")
+        else:
+            self.url_template = None
         if self.__times_valid():
             if self.accumulated:
                 self.end_file = self.get_file_path(self.lead_end)
@@ -219,6 +227,8 @@ class ModelConfiguration:
                     key, self.experiment_name, cmc["base_experiment"]))
                 cmc[key] = custom_experiments.experiment_configurations[cmc["base_experiment"]][key]
                 logger.debug("  {:s}".format(str(cmc[key])))
+        if not "url_template" in cmc.keys():
+            cmc["url_template"] = None
               
 
     def print(self):
@@ -318,6 +328,17 @@ class ModelConfiguration:
         path = fill_path_file_template(self.path_template, self.init, l)
         if self.experiment_name == "ifs-highres" and not os.path.isfile(path):
             path = mars_request(self.init, l)
+        print("PATH: ", path)
+        print("URL:", self.url_template)
+        if not os.path.isfile(path) and self.url_template:
+            file_url = fill_path_file_template(self.url_template, self.init, l)
+            logger.info(f"File {path} not found, but url_template is present")
+            logger.info(f"Attempting to download from {file_url}")
+            parent_directory_path = str(Path(path).parent)
+            if not os.path.isdir(parent_directory_path):
+                logger.info(f"Path {parent_directory_path} does not exist, creating it now")
+                os.makedirs(parent_directory_path)
+            urllib.request.urlretrieve(file_url, path)
         return path
             
     

@@ -21,6 +21,13 @@ def check_precip_fields(grb):
     except:
         pass
     try:
+        grb.select(shortName="RAIN_CON")
+        grb.select(shortName="RAIN_GSP")
+        grb.select(shortName="SNOW_CON")
+        grb.select(shortName="SNOW_GSP")
+    except:
+        pass
+    try:
         grb.select(shortName='tp')
         return [{"shortName": "tp"}]
     except:
@@ -55,13 +62,6 @@ def check_precip_fields(grb):
             {"parameterNumber": 56},
             {"parameterNumber": 76},
             {"parameterNumber": 77}]
-    except:
-        pass
-    try:
-        grb.select(shortName="RAIN_CON")
-        grb.select(shortName="RAIN_GSP")
-        grb.select(shortName="SNOW_CON")
-        grb.select(shortName="SNOW_GSP")
     except:
         pass
     return None
