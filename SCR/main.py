@@ -136,7 +136,10 @@ def parse_arguments():
     parser.add_argument('--rank_score_time_series', nargs='?', default=False, const=True, type=str2bool,
         help = """Draw line plots of model performance, init on x axis, score on y axis""")
     parser.add_argument('--highlight_threshold', '-u', type=int, default=[], nargs='+',
-        help = """ Highlight specific precipitation contour line""")
+        help = """Highlight specific precipitation contour line""")
+    parser.add_argument('--time_series_panel_width', default=0.66, type=float,
+        help = """Move the default width of the score time series panel, can be sued
+        if config names are too long to fit onto the panel.""")
     args = parser.parse_args()
     init_logging(args)
     # replace the string object with a proper instance of Region
