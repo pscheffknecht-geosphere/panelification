@@ -46,6 +46,26 @@ experiment_configurations = {
         "accumulated"      : True,
         "unit_factor"      : 1000.,
     },
+    "gfs": {
+        "init_interval"    : 6,
+        "output_interval"  : 3, # 6 for some lead times, but panelification can sort that out
+        "max_leadtime"     : 192,
+        # "url_template"     : "https://data.rda.ucar.edu/d084001/%Y/%Y%m%d/gfs.0p25.%Y%m%d%H.f%LLL.grib2",
+        "path_template"    : "/ment_arch2/pscheff/event_archive/GFS/%Y/%m/%d/%H/GFS+%LLLL.grb2",
+        # "path_template"    : "../MODEL/gfs/%Y/%m/%d/gfs.0p25.%Y%m%d%H.f%LLL.grib2",
+        "accumulated"      : False,
+        "unit_factor"      : 1.
+    },
+    "icon_global_long": {
+        "init_interval"    : 6,
+        "output_interval"  : 1, # 6 for some lead times, but panelification can sort that out
+        "max_leadtime"     : 120,
+        # "url_template"     : "https://data.rda.ucar.edu/d084001/%Y/%Y%m%d/gfs.0p25.%Y%m%d%H.f%LLL.grib2",
+        "path_template"    : "/ment_arch2/pscheff/event_archive/ICON/%Y/%m/%d/%H/ICON+%LLLL.grb",
+        # "path_template"    : "../MODEL/gfs/%Y/%m/%d/gfs.0p25.%Y%m%d%H.f%LLL.grib2",
+        "accumulated"      : False,
+        "unit_factor"      : 1.
+    },
     "graphcast": {
         "init_interval"    : 24,
         "output_interval"  : 6, # 3 for some lead times, but panelification can sort that out
