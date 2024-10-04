@@ -9,6 +9,7 @@ def check_precip_fields(grb):
     """Try a number of known passible grib handles that can be used to store precipitation
     in grib files. Return a list of valid handles if found"""
     try:
+        logger.debug("Trying shortName twatp + tsnowp")
         grb.select(shortName='twatp')
         grb.select(shortName='tsnowp')
         return [{"shortName": "twatp"},
@@ -16,23 +17,41 @@ def check_precip_fields(grb):
     except:
         pass
     try:
+        logger.debug("Trying twatp + tsnowp")
         grb.select(parameterNumber=8)
         return [{"parameterNumber": 8}]
     except:
         pass
     try:
+        logger.debug("Trying shortName RAIN_CON + RAIN_GSP + SNOW_CON + SNOW_GSP")
         grb.select(shortName="RAIN_CON")
         grb.select(shortName="RAIN_GSP")
         grb.select(shortName="SNOW_CON")
         grb.select(shortName="SNOW_GSP")
+        return [{"shortName": "RAIN_CON"},
+                {"shortName": "RAIN_GSP"},
+                {"shortName": "SNOW_CON"},
+                {"shortName": "SNOW_GSP"}]
     except:
         pass
     try:
+        logger.debug("Trying shortName RAIN_CON + RAIN_GSP + SNOW_GSP")
+        grb.select(shortName="RAIN_CON")
+        grb.select(shortName="RAIN_GSP")
+        grb.select(shortName="SNOW_GSP")
+        return [{"shortName": "RAIN_CON"},
+                {"shortName": "RAIN_GSP"},
+                {"shortName": "SNOW_GSP"}]
+    except:
+        pass
+    try:
+        logger.debug("Trying shortName tp")
         grb.select(shortName='tp')
         return [{"shortName": "tp"}]
     except:
         pass
     try:
+        logger.debug("Trying indicatorOfParameter 197 + 198 + 199")
         grb.select(indicatorOfParameter=197) #, indicatorOfTypeOfLevel=1, level=0)
         grb.select(indicatorOfParameter=198) #, indicatorOfTypeOfLevel=1, level=0)
         grb.select(indicatorOfParameter=199) #, indicatorOfTypeOfLevel=1, level=0)
@@ -43,6 +62,7 @@ def check_precip_fields(grb):
     except:
         pass
     try:
+        logger.debug("Trying parameterNumber 65 + 66 + 75")
         grb.select(parameterNumber=65)
         grb.select(parameterNumber=66)
         grb.select(parameterNumber=75)
@@ -53,6 +73,7 @@ def check_precip_fields(grb):
     except:
         pass
     try:
+        logger.debug("Trying parameterNumber 55 + 56 + 76 + 77")
         grb.select(parameterNumber=55)
         grb.select(parameterNumber=56)
         grb.select(parameterNumber=76)
@@ -64,6 +85,9 @@ def check_precip_fields(grb):
             {"parameterNumber": 77}]
     except:
         pass
+    for g in grb:
+        logger.debug(g)
+        logger.debug(g.shortName)
     return None
 
 
