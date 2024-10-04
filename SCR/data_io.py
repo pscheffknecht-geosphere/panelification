@@ -169,6 +169,8 @@ class ModelConfiguration:
         if "base_experiment" in cmc:
             self.__fill_cmc_with_base_values(cmc)
         self.path_template   = self.__pick_value_by_parameter(cmc["path_template"])
+        if not isinstance(self.path_template, list):
+            self.path_template = [self.path_template]
         self.init_interval   = self.__pick_value_by_parameter(cmc["init_interval"])
         self.max_leadtime    = self.__pick_value_by_parameter(cmc["max_leadtime"])
         self.output_interval = self.__pick_value_by_parameter(cmc["output_interval"])
@@ -211,7 +213,7 @@ class ModelConfiguration:
                 logger.critical(f"If parameter is not a dict key, dict needs an 'else': .... entry to fall back onto.")
         else:
             ret = custom_experiment_item
-        logger.debug(f"Picked {ret} for {self.parameter} in experiment {self.experiment_name}")
+        # logger.debug(f"Picked {ret} for {self.parameter} in experiment {self.experiment_name}")
         return ret
 
         
@@ -259,8 +261,10 @@ class ModelConfiguration:
         for fil in files_to_check:
             if fil:
                 if not os.path.isfile(str(fil)): 
+                    logger.debug(f"File {fil} not found, discarding experiment {self.experiment_name} {self.init}")
                     return False
                 elif os.path.getsize(fil) == 0:
+                    logger.debug(f"File {fil} was found but has size 0, discarding experiment {self.experiment_name}")
                     return False
         return True
 
@@ -325,21 +329,24 @@ class ModelConfiguration:
     def get_file_path(self, l):
         if l == 0:
             return None
-        path = fill_path_file_template(self.path_template, self.init, l)
-        if self.experiment_name == "ifs-highres" and not os.path.isfile(path):
-            path = mars_request(self.init, l)
-        print("PATH: ", path)
-        print("URL:", self.url_template)
-        if not os.path.isfile(path) and self.url_template:
-            file_url = fill_path_file_template(self.url_template, self.init, l)
-            logger.info(f"File {path} not found, but url_template is present")
-            logger.info(f"Attempting to download from {file_url}")
-            parent_directory_path = str(Path(path).parent)
-            if not os.path.isdir(parent_directory_path):
-                logger.info(f"Path {parent_directory_path} does not exist, creating it now")
-                os.makedirs(parent_directory_path)
-            urllib.request.urlretrieve(file_url, path)
-        return path
+        for path_template in self.path_template:
+            path = fill_path_file_template(path_template, self.init, l)
+            if self.experiment_name == "ifs-highres" and not os.path.isfile(path):
+                path = mars_request(self.init, l)
+            if not os.path.isfile(path) and self.url_template:
+                file_url = fill_path_file_template(self.url_template, self.init, l)
+                logger.info(f"File {path} not found, but url_template is present")
+                logger.info(f"Attempting to download from {file_url}")
+                parent_directory_path = str(Path(path).parent)
+                if not os.path.isdir(parent_directory_path):
+                    logger.info(f"Path {parent_directory_path} does not exist, creating it now")
+                    os.makedirs(parent_directory_path)
+                urllib.request.urlretrieve(file_url, path)
+            if os.path.isfile(path):#  and self.url_template:
+                return path
+            else:
+               logger.info(f"File {path} was not found, {self.experiment_name} {self.init} will not be used.")
+        return 'None'
             
     
     def file_path(self, lead):
