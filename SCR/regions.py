@@ -99,6 +99,12 @@ regions = {
             "Vorarlberg_North_Half": {
                 'central_longitude': 9.83, 'central_latitude': 47.55, 
                 'x_size': 75, 'y_size': 55},
+            "LowerUpper_Austria": {
+                "central_longitude": 14.83, "central_latitude": 48.31,
+                "x_size": 322., "y_size": 200.},
+            "HPE_extreme": {
+                "central_longitude": 15.78, "central_latitude": 48.16,
+                "x_size":  95., "y_size":  65.},
             },
             # "Vienna" :        [16.,   16.66, 48., 4 8.4],
             # "Lower_Austria" : [14.33, 17.33, 47.4,  49.2],
