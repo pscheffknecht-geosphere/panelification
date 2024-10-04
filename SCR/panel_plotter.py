@@ -363,8 +363,10 @@ def score_time_series(data_list, r, tmp_string, time_series_scores):
         ax.legend()
         ax.set_ylabel("score")
         ax.set_xlabel("model init time")
+        ax.tick_params(axis='x', labelrotation=30)
         title = score_names[s] + " by model and init"
         ax.set_title(title, loc='left')
+        plt.tight_layout()
         plt.savefig('../TMP/' + tmp_string + '/' + str(990 + sidx) + '.png')
         # exit()
         
