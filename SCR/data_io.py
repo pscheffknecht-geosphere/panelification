@@ -58,6 +58,24 @@ def mars_request(init, step):
         return None
 
 
+# def get_inca_rain_accumulated(fil, t_start, t_end):
+def get_inca_rain_accumulated(mod):
+    grb = pygrib.open(mod.end_file)
+    idx_start = 4 * mod.lead + 1
+    idx_end = 4 * mod.lead_end + 1
+    first = True
+    for idx in range(idx_start, idx_end + 1):
+        if first:
+            rr, lat, lon = grb[idx].data()
+            first = False
+            # print(f"idx = {idx}, rr_max = {rr.max()}")
+        else:
+            rr_, _, _ = grb[idx].data()
+            rr += rr_
+            # print(f"idx = {idx}, rr_max = {rr.max():.03f}, rr_avg = {rr.mean():.03f} (Step: {rr_.max():.03f}, rr_.mean():.03f})")
+    return lon, lat, rr
+
+
 def get_lonlat_fallback(grb):
     Nx = None
     Ny = None
@@ -131,11 +149,11 @@ def calc_data(tmp_data_list, parameter):
     return calc_funcs[parameter](tmp_data_list)
 
 
-def read_data(grib_file_path, parameter, get_lonlat_data=False):
+def read_data(grib_file_path, parameter, lead, get_lonlat_data=False):
     """ calls the grib handle check and returns fields with or without lon and lat data,
     depending on selection"""
     with pygrib.open(grib_file_path) as f:
-        grib_handles = find_grib_handles(f, parameter)
+        grib_handles = find_grib_handles(f, parameter, lead)
         logger.debug("Getting {:s} from file {:s}".format(repr(grib_handles), grib_file_path))
         tmp_data_list = read_list_of_fields(f, grib_handles)
     tmp_data_field = calc_data(tmp_data_list, parameter)
@@ -273,6 +291,8 @@ class ModelConfiguration:
         if param == 'gusts' or param == 'hail':
             return self.__get_data_max()
         else:
+            if self.experiment_name == "inca-opt":
+                return get_inca_rain_accumulated(self)
             if self.accumulated:
                 return self.__get_data_accumulated()
             else:
@@ -284,7 +304,7 @@ class ModelConfiguration:
         for i, fil in enumerate(self.file_list):
             logger.info("Reading file ({:d}): {:s}".format(i, fil))
             if first:
-                lon, lat, tmp_data = read_data(fil, self.parameter, get_lonlat_data=True)
+                lon, lat, tmp_data = read_data(fil, self.parameter, 0, get_lonlat_data=True) # 0 for lead time, unused for unaccmulated models
                 first = False
             else:
                 tmp_data += read_data(fil, self.parameter)
@@ -309,10 +329,10 @@ class ModelConfiguration:
 
     def __get_data_accumulated(self):
         logger.info("Reading end file: {:s}".format(self.end_file))
-        lon, lat, tmp_data = read_data(self.end_file, self.parameter, get_lonlat_data=True)
+        lon, lat, tmp_data = read_data(self.end_file, self.parameter, self.lead_end, get_lonlat_data=True)
         if self.start_file:
             logger.info("Reading start file: {:s}".format(self.start_file))
-            start_tmp_data = read_data(self.start_file, self.parameter)
+            start_tmp_data = read_data(self.start_file, self.parameter, self.lead)
             tmp_data -= start_tmp_data
         # clamp to 0 because apparently this difference can be negative???
         # this is NOT a pygrib or panelification problem, also happens when
