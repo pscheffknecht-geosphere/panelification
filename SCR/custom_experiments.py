@@ -34,6 +34,15 @@ experiment_configurations = {
         "accumulated"      : True,
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/aromeruc_%H+%LLLL.00.grb",
         },
+    "inca-opt": {
+        "init_interval"    : 1,
+        "output_interval"  : 1,
+        "max_leadtime"     : 47,
+        "accumulated"      : True, # technically not, but does not matter
+        "unit_factor"      : 1.,
+        # "path_template"    : "/incaplus_arch1/iplus/out/INCA_15m/2024/09/13/INCA_15m_RR_FC_202409130000.grb2"
+        "path_template"    : "/incaplus_arch1/iplus/out/INCA_15m/%Y/%m/%d/INCA_15m_RR_FC_%Y%m%d%H00.grb2"
+    },
     "aromeesuite": {
         "base_experiment"  : "arome",
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/aromeesuite_%H+%LLLL.grb"
@@ -51,10 +60,10 @@ experiment_configurations = {
         "init_interval"    : 6,
         "output_interval"  : 3, # 6 for some lead times, but panelification can sort that out
         "max_leadtime"     : 192,
-        # "url_template"     : "https://data.rda.ucar.edu/d084001/%Y/%Y%m%d/gfs.0p25.%Y%m%d%H.f%LLL.grib2",
+        "url_template"     : "https://data.rda.ucar.edu/d084001/%Y/%Y%m%d/gfs.0p25.%Y%m%d%H.f%LLL.grib2",
         "path_template"    : "/ment_arch2/pscheff/event_archive/GFS/%Y/%m/%d/%H/GFS+%LLLL.grb2",
         # "path_template"    : "../MODEL/gfs/%Y/%m/%d/gfs.0p25.%Y%m%d%H.f%LLL.grib2",
-        "accumulated"      : False,
+        "accumulated"      : True,
         "unit_factor"      : 1.
     },
     "icon_global_long": {
@@ -72,6 +81,14 @@ experiment_configurations = {
         "output_interval"  : 6, # 3 for some lead times, but panelification can sort that out
         "max_leadtime"     : 120,
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/dmgc_%H+%LLLL.grb",
+        "accumulated"      : True,
+        "unit_factor"      : 1000.,
+    },
+    "aifs": {
+        "init_interval"    : 24,
+        "output_interval"  : 6, # 3 for some lead times, but panelification can sort that out
+        "max_leadtime"     : 120,
+        "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/aifs_%H+%LLLL.grb",
         "accumulated"      : True,
         "unit_factor"      : 1000.,
     },
