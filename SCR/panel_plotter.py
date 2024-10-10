@@ -352,14 +352,16 @@ def score_time_series(data_list, r, tmp_string, time_series_scores):
         logger.info("Making time series plot for " + score_names[s])
         score = {}
         init = {}
+        color = {}
         for sim in data_list[1::]:
             if not sim['conf'] in score.keys():
+                color[sim['conf']] = sim['color']
                 score[sim['conf']] = []
                 init[sim['conf']] = []
             score[sim['conf']].append(sim[s])
             init[sim['conf']].append(sim['init'])
         for key, ss in score.items():
-            ax.plot(init[key], ss, 'o-', label=key)
+            ax.plot(init[key], ss, 'o-', color=color[key], label=key)
         ax.legend()
         ax.set_ylabel("score")
         ax.set_xlabel("model init time")
