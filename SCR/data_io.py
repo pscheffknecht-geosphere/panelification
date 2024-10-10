@@ -68,11 +68,9 @@ def get_inca_rain_accumulated(mod):
         if first:
             rr, lat, lon = grb[idx].data()
             first = False
-            # print(f"idx = {idx}, rr_max = {rr.max()}")
         else:
             rr_, _, _ = grb[idx].data()
             rr += rr_
-            # print(f"idx = {idx}, rr_max = {rr.max():.03f}, rr_avg = {rr.mean():.03f} (Step: {rr_.max():.03f}, rr_.mean():.03f})")
     return lon, lat, rr
 
 
@@ -194,10 +192,9 @@ class ModelConfiguration:
         self.output_interval = self.__pick_value_by_parameter(cmc["output_interval"])
         self.accumulated     = self.__pick_value_by_parameter(cmc["accumulated"])
         self.unit_factor     = self.__pick_value_by_parameter(cmc["unit_factor"])
+        self.color           = self.__pick_value_by_parameter(cmc["color"])
         if "url_template" in cmc.keys():
-            print("FOUND url_template")
             self.url_template = cmc["url_template"]
-            print("cmc.url_template")
         else:
             self.url_template = None
         if self.__times_valid():
@@ -207,6 +204,8 @@ class ModelConfiguration:
             else:
                 self.file_list = self.get_file_list()
             self.valid = self.__files_valid()
+            if self.experiment_name == "inca-opt" and self.lead_end > 48:
+                self.valid = False
             self.print()
         else:
             logger.debug("Model {:s} with init {:s} has no output for the requested time window.".format(
@@ -240,13 +239,20 @@ class ModelConfiguration:
         need values, only experiments which do not refer to a base_experiment
         need all their values filled"""
         keys = ["path_template", "init_interval", "max_leadtime", 
-                "output_interval", "unit_factor", "accumulated"]
+                "output_interval", "unit_factor", "accumulated", "color"]
         for key in keys:
+            logger.debug(f"Setting key {key}")
             if not key in cmc.keys():
-                logger.debug("Replacing {:s} in {:s} with value from base_experiment {:s}:".format(
-                    key, self.experiment_name, cmc["base_experiment"]))
-                cmc[key] = custom_experiments.experiment_configurations[cmc["base_experiment"]][key]
-                logger.debug("  {:s}".format(str(cmc[key])))
+                if key in custom_experiments.experiment_configurations[cmc["base_experiment"]]:
+                    logger.debug("Replacing {:s} in {:s} with value from base_experiment {:s}:".format(
+                        key, self.experiment_name, cmc["base_experiment"]))
+                    cmc[key] = custom_experiments.experiment_configurations[cmc["base_experiment"]][key]
+                    logger.debug("  {:s}".format(str(cmc[key])))
+                else:
+                    cmc[key] = None
+                    logger.debug("Not in base experiment, setting {:s} in {:s} to None:".format(
+                        key, self.experiment_name))
+
         if not "url_template" in cmc.keys():
             cmc["url_template"] = None
               
@@ -421,7 +427,8 @@ def get_sims_and_file_list(data_list, args):
                     # "grib_handles": mod.grib_handles,
                     "lon": lon,
                     "lat": lat,
-                    "precip_data": precip}
+                    "precip_data": precip,
+                    "color" : mod.color}
                 data_list.append(sim)
     return data_list
 
@@ -431,7 +438,7 @@ def get_sims_and_file_list(data_list, args):
 def save_data(data_list, verification_subdomain, start_date, end_date, args):
     """ write all data to a pickle file """
     start_date_str = start_date.strftime("%Y%m%d_%HUTC_")
-    outfilename = "../DATA/{args.name}RR_data_{start_date_str}{args.duration:02d}h_acc_{verification_subdomain}.p"
+    outfilename = f"../DATA/{args.name}RR_data_{start_date_str}{args.duration:02d}h_acc_{verification_subdomain}.p"
     with open(outfilename, 'wb') as f:
         pickle.dump(data_list, f)
     logger.info(outfilename+" written sucessfully.")
