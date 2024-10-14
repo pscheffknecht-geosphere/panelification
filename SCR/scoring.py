@@ -128,7 +128,8 @@ def weighted_fss_condensed(sim, levels):
         if t == 1.: #catch cases where the entire domain is above the precip threshold
             a = np.where(a == 1., 1. ,0.) #???
         else:
-            s = 1. / (1. - t)
+            s = 1. / (1. - 0.5)
+            # s = 1. / (1. - t)
             a = s * (a - 1) + 1
         a = clamp_array(a)
         l = levels[ii]
@@ -396,4 +397,4 @@ def fss_d90(rrm, rro, args):
     d = windows[ii-1]+t*float(windows[ii]-windows[ii-1])
     if d < 0:
         d = 0.
-    return d
+    return 0.5 * d
