@@ -352,6 +352,30 @@ class ModelConfiguration:
         return lon, lat, self.unit_factor * tmp_data
 
 
+    def download_file(self, path, l):
+        file_url = fill_path_file_template(self.url_template, self.init, l)
+        logger.info(f"File {path} not found, but url_template is present")
+        logger.info(f"Attempting to download from {file_url}")
+        parent_directory_path = str(Path(path).parent)
+        if not os.path.isdir(parent_directory_path):
+            logger.info(f"Path {parent_directory_path} does not exist, creating it now")
+            os.makedirs(parent_directory_path)
+        urllib.request.urlretrieve(file_url, path)
+        directory_path, file_name = os.path.split(path)
+        grib_copy_command = f"grib_copy -w shortName=tp,stepRange=0-{l} {path} {directory_path}/tmp_rr.grb2"
+        logger.debug(grib_copy_command)
+        os.system(grib_copy_command)
+        cdo_command = f"cdo sellonlatbox,0,30,40,60 {directory_path}/tmp_rr.grb2 {directory_path}/tmp_rr_small.grb2"
+        logger.debug(cdo_command)
+        os.system(cdo_command)
+        os.system(f"rm {path} {directory_path}/tmp_rr.grb2")
+        logger.debug(f"rm {path} {directory_path}/tmp_rr.grb2")
+        os.system(f"mv {directory_path}/tmp_rr_small.grb2 {path}")
+        logger.debug(f"mv {directory_path}/tmp_rr_small.grb2 {path}")
+        logger.debug({path})
+        return f"{directory_path}/GFS+{l:04d}_rr.grb2"
+
+
     def get_file_path(self, l):
         if l == 0:
             return None
@@ -360,14 +384,7 @@ class ModelConfiguration:
             if self.experiment_name == "ifs-highres" and not os.path.isfile(path):
                 path = mars_request(self.init, l)
             if not os.path.isfile(path) and self.url_template:
-                file_url = fill_path_file_template(self.url_template, self.init, l)
-                logger.info(f"File {path} not found, but url_template is present")
-                logger.info(f"Attempting to download from {file_url}")
-                parent_directory_path = str(Path(path).parent)
-                if not os.path.isdir(parent_directory_path):
-                    logger.info(f"Path {parent_directory_path} does not exist, creating it now")
-                    os.makedirs(parent_directory_path)
-                urllib.request.urlretrieve(file_url, path)
+                path = self.download_file(path, l)
             if os.path.isfile(path):#  and self.url_template:
                 return path
             else:
