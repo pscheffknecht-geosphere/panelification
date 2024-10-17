@@ -136,7 +136,7 @@ def parse_arguments():
     parser.add_argument('--loglevel', type=str, default='info',
         help = """Logging level:
           debug, info, warning, error""")
-    parser.add_argument('--rank_score_time_series', nargs='?', default=False, const=True, type=str2bool,
+    parser.add_argument('--rank_score_time_series', nargs='+', default=['None'], type=str,
         help = """Draw line plots of model performance, init on x axis, score on y axis""")
     parser.add_argument('--intranet_update', nargs='?', default=False, const=True, type=str2bool,
         help = 'update panels on the intranet website')
