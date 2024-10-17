@@ -327,7 +327,7 @@ def define_panel_and_plot_dimensions(data_list, args, time_series_scores):
     r = ax.get_data_ratio()
     # Automatically determine necessary size of the panel plot
     N = len(data_list)
-    if args.rank_score_time_series:
+    if not args.rank_score_time_series[0] == 'None':
         N += len(time_series_scores)
     if args.tile[0] and args.tile[1]:
         cols = args.tile[1]
@@ -347,9 +347,15 @@ def score_time_series(data_list, r, tmp_string, time_series_scores):
         "fss_total_abs_score": "Old FSS Rank Score", 
         "fss_condensed": "New FSS Score", 
         "fss_condensed_weighted": "New FSS Score Weighted"}
+    print(time_series_scores)
     for sidx, s in enumerate(time_series_scores):
+        s = 'bias_real' if s == 'bias' else s
+        if s in score_names.keys():
+            nam_str = score_names[s]
+        else:
+            nam_str = s
         fig, ax = plt.subplots(1, 1, figsize=(3.5/r, 3.5), dpi=150)
-        logger.info("Making time series plot for " + score_names[s])
+        logger.info("Making time series plot for " + nam_str)
         score = {}
         init = {}
         color = {}
@@ -359,15 +365,24 @@ def score_time_series(data_list, r, tmp_string, time_series_scores):
                 score[sim['conf']] = []
                 init[sim['conf']] = []
             score[sim['conf']].append(sim[s])
+            if score[sim['conf']][-1] == 9999 and s == 'd90':
+                score[sim['conf']][-1] = np.nan
             init[sim['conf']].append(sim['init'])
+        dt_min = dt.datetime(2100, 1, 1)
+        dt_max = dt.datetime(1970, 1, 1)
         for key, ss in score.items():
             ax.plot(init[key], ss, 'o-', color=color[key], label=key)
+            dt_min = init[key][0] if init[key][0] < dt_min else dt_min
+            dt_max = init[key][-1] if init[key][-1] > dt_max else dt_max
+        if s == 'bias_real':
+            ax.plot([dt_min, dt_max], [0., 0.], 'k', lw=0.5)
         ax.legend()
         ax.set_ylabel("score")
         ax.set_xlabel("model init time")
         ax.tick_params(axis='x', labelrotation=30)
-        title = score_names[s] + " by model and init"
+        title = nam_str + " by model and init"
         ax.set_title(title, loc='left')
+        # ax.set_ylim([0., 122])
         plt.tight_layout()
         plt.savefig('../TMP/' + tmp_string + '/' + str(990 + sidx) + '.png')
         # exit()
@@ -385,7 +400,7 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
     args ............. command line arguments
     mode ............. string, resampled or original data to be drawn"""
     logger.debug(args.region.extent)
-    time_series_scores = [args.rank_by_fss_metric]
+    time_series_scores = args.rank_score_time_series
     r, cols, lins, nplots = define_panel_and_plot_dimensions(data_list, args, time_series_scores)
     if args.panel_rows_columns:
         lins_new, cols_new = args.panel_rows_columns
