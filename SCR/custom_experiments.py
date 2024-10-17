@@ -66,8 +66,8 @@ experiment_configurations = {
         "output_interval"  : 3, # 6 for some lead times, but panelification can sort that out
         "max_leadtime"     : 192,
         "url_template"     : "https://data.rda.ucar.edu/d084001/%Y/%Y%m%d/gfs.0p25.%Y%m%d%H.f%LLL.grib2",
-        "path_template"    : "/ment_arch2/pscheff/event_archive/GFS/%Y/%m/%d/%H/GFS+%LLLL.grb2",
-        # "path_template"    : "../MODEL/gfs/%Y/%m/%d/gfs.0p25.%Y%m%d%H.f%LLL.grib2",
+        "path_template"    : ["/ment_arch2/pscheff/event_archive/GFS/%Y/%m/%d/%H/GFS+%LLLL_rr.grb2",
+                              "/ment_arch2/pscheff/event_archive/GFS/%Y/%m/%d/%H/GFS+%LLLL.grb2"],
         "accumulated"      : True,
         "unit_factor"      : 1.,
         "color"            : "gray"
