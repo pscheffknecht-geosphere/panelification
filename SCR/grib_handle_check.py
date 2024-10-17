@@ -79,6 +79,17 @@ def check_precip_fields(grb, lead):
     except:
         pass
     try:
+        logger.debug("Trying parameterNumber 65 + 66 + 75")
+        grb.select(parameterNumber=76)
+        grb.select(parameterNumber=77)
+        grb.select(parameterNumber=56)
+        return [
+            {"parameterNumber": 76},
+            {"parameterNumber": 77},
+            {"parameterNumber": 56}]
+    except:
+        pass
+    try:
         logger.debug("Trying parameterNumber 55 + 56 + 76 + 77")
         grb.select(parameterNumber=55)
         grb.select(parameterNumber=56)
