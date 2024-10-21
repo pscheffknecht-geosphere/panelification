@@ -169,7 +169,7 @@ regions = {
         "central_longitude": 6.,
         "central_latitude" : 43.,
         # "extent": [-80., 80., -0., 80.],
-        "extent": [-1., 11, 40.5, 45.0],
+        "extent": [-1., 11, 40.5, 46.0],
         "verification_subdomains": {
             "Default": {
                 "central_longitude": -6.,
@@ -185,6 +185,10 @@ regions = {
             "Corsica": {
                 # works for the small 200m domain
                 "central_longitude":  9.00, "central_latitude": 42.15, "x_size": 120., "y_size": 220.
+            },
+            "Cevenol": {
+                # works for the small 200m domain
+                "central_longitude":  4.00, "central_latitude": 44.50, "x_size": 200., "y_size": 200.
             },
         }
     },
