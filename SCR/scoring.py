@@ -192,15 +192,6 @@ def rank_scores(data_list):
         for data_entry in data_list_metric:
             data_list[namelist.index(data_entry['name'])][rank_name] = rank
             rank = rank + 1
-    for sim in data_list:
-        sim['average_rank'] = 0.25*(float(sim['rank_bias']) + float(sim['rank_mae']) + float(sim['rank_rms']) + float(sim['rank_corr']))
-    for metric in ['average_rank']:
-        rank=1
-        rank_name='rank_'+metric
-        data_list_metric = sorted(data_list, key=lambda k: k[metric])
-        for data_entry in data_list_metric:
-            data_list[namelist.index(data_entry['name'])][rank_name] = rank
-            rank = rank + 1
     fss_list = []
     for sim in data_list[1:]:
         fss_list.append(np.asarray(sim['fssf'].values, dtype=float))
