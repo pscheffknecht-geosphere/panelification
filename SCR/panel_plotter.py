@@ -263,12 +263,8 @@ def draw_single_figure(sim, obs, r, jj, levels, cmap, norm, verification_subdoma
         ax_fss = fig.add_axes(fss_coords)
     if jj == 0 and not args.clean:
         ax_fss.axis('off')
-    #fig, ax = plt.subplots(1,1, figsize=(6.4, 4.0), dpi=120, subplot_kw={'projection': region.plot_projection})
     precip_data, lon, lat = prep_plot_data(sim, obs, args.mode)
-    precip_data = np.where(precip_data == np.nan, 0., precip_data)
-    precip_data = np.where(precip_data <0., 0., precip_data)
-    precip_data_smooth = precip_data #ndimage.gaussian_filter(precip_data, sigma=1., order=0)
-    c = ax.pcolormesh(lon, lat, precip_data_smooth,
+    c = ax.pcolormesh(lon, lat, precip_data,
                     cmap=cmap,transform=args.region.data_projection,
                     norm=norm, shading='auto')
     ax.set_facecolor("silver")
@@ -332,53 +328,63 @@ def define_panel_and_plot_dimensions(data_list, args, time_series_scores):
     r = ax.get_data_ratio()
     # Automatically determine necessary size of the panel plot
     N = len(data_list)
-    if args.rank_score_time_series:
+    if not args.rank_score_time_series[0] == 'None':
         N += len(time_series_scores)
-    cols = int(np.ceil(np.sqrt(float(N))))
-    lins = int(np.floor(np.sqrt(float(N))))
-    if cols*lins < N:
+    if args.tile[0] and args.tile[1]:
+        cols = args.tile[1]
+        lins = args.tile[0]
+    else:
+        cols = int(np.ceil(np.sqrt(float(N))))
+        lins = int(np.floor(np.sqrt(float(N))))
+    while cols*lins < N:
+        logger.info(f"Adding 1 line to panels because {lins} lines X {cols} columns < {N}")
         lins = lins + 1
     logger.debug("PLOT ASPECT: {:.2f}".format(r))
     return r, cols, lins, N
 
 
-def score_time_series(data_list, r, tmp_string, time_series_scores, args):
++def score_time_series(data_list, r, tmp_string, time_series_scores):
     score_names = {
         "fss_total_abs_score": "Old FSS Rank Score", 
         "fss_condensed": "New FSS Score", 
         "fss_condensed_weighted": "FSS Rank Score"}
-    total_height = 3.5 
-    pad = total_height / 12.
-    height = total_height - 2. * pad
-    if args.clean:
-        total_width = (total_height - 2 * pad) / r + 2 * pad
-    else:
-        total_width = 0.5 * height + height / r + 2 * pad
+    logger.info(time_series_scores)
     for sidx, s in enumerate(time_series_scores):
-        # fig, ax = plt.subplots(1, 1, figsize=(total_width, total_height), dpi=150)
-        fig = plt.figure(figsize=(total_width, total_height), dpi=150)
-        print(f"Creating figure with {total_width} and {total_height}")
-        plot_width = 0.7 if not args.time_series_panel_width else args.time_series_panel_width
-        ax = fig.add_axes([0.10, 0.15, args.time_series_panel_width, 0.7])
-        logger.info("Making time series plot for " + score_names[s])
+        s = 'bias_real' if s == 'bias' else s
+        if s in score_names.keys():
+            nam_str = score_names[s]
+        else:
+            nam_str = s
+        fig, ax = plt.subplots(1, 1, figsize=(3.5/r, 3.5), dpi=150)
+        logger.info("Making time series plot for " + nam_str)
         score = {}
         init = {}
+        color = {}
         for sim in data_list[1::]:
             if not sim['conf'] in score.keys():
+                color[sim['conf']] = sim['color']
                 score[sim['conf']] = []
                 init[sim['conf']] = []
             score[sim['conf']].append(sim[s])
+            if score[sim['conf']][-1] == 9999 and s == 'd90':
+                score[sim['conf']][-1] = np.nan
             init[sim['conf']].append(sim['init'])
+        dt_min = dt.datetime(2100, 1, 1)
+        dt_max = dt.datetime(1970, 1, 1)
         for key, ss in score.items():
-            ax.plot(init[key], ss, 'o-', label=key)
-        ax.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
+            ax.plot(init[key], ss, 'o-', color=color[key], label=key)
+            dt_min = init[key][0] if init[key][0] < dt_min else dt_min
+            dt_max = init[key][-1] if init[key][-1] > dt_max else dt_max
+        if s == 'bias_real':
+            ax.plot([dt_min, dt_max], [0., 0.], 'k', lw=0.5)
+        ax.legend()
         ax.set_ylabel("score")
         ax.set_xlabel("model init time")
-        title = score_names[s] + " for each model and init time"
-        ax.tick_params(axis='x', labelrotation=45)
+        ax.tick_params(axis='x', labelrotation=30)
+        title = nam_str + " by model and init"
         ax.set_title(title, loc='left')
+        plt.tight_layout()
         plt.savefig('../TMP/' + tmp_string + '/' + str(990 + sidx) + '.png')
-        # exit()
         
 
 def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
@@ -393,7 +399,7 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
     args ............. command line arguments
     mode ............. string, resampled or original data to be drawn"""
     logger.debug(args.region.extent)
-    time_series_scores = [args.rank_by_fss_metric]
+    time_series_scores = args.rank_score_time_series
     r, cols, lins, nplots = define_panel_and_plot_dimensions(data_list, args, time_series_scores)
     if args.panel_rows_columns:
         lins_new, cols_new = args.panel_rows_columns
@@ -417,7 +423,7 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
     logger.debug('mkdir ../TMP/'+tmp_string)
     # dump data for each model into a single pickle file
     if args.rank_score_time_series:
-        score_time_series(data_list, r, tmp_string, time_series_scores, args)
+        score_time_series(data_list, r, tmp_string, time_series_scores)
     for jj, sim in enumerate(data_list):
         pickle.dump([sim, data_list[0], r, jj, levels, cmap,
             norm, verification_subdomain, rank_colors, data_list[0]['max_rank'], args, tmp_string], 
