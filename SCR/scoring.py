@@ -108,7 +108,7 @@ def fss_condensed(sim):
         if t == 1.: #catch cases where the entire domain is above the precip threshold
             a = np.where(a == 1., 1. ,0.) #???
         else:
-            s = 1. / (1. - t)
+            s = 1. / (1. - 0.5)
             a = s * (a - 1) + 1
         a = clamp_array(a)
         score_arr [ii, :] = a
@@ -390,4 +390,4 @@ def fss_d90(rrm, rro, args):
     d = windows[ii-1]+t*float(windows[ii]-windows[ii-1])
     if d < 0:
         d = 0.
-    return d
+    return 0.5 * d
