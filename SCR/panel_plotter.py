@@ -343,7 +343,7 @@ def define_panel_and_plot_dimensions(data_list, args, time_series_scores):
     return r, cols, lins, N
 
 
-+def score_time_series(data_list, r, tmp_string, time_series_scores):
+def score_time_series(data_list, r, tmp_string, time_series_scores):
     score_names = {
         "fss_total_abs_score": "Old FSS Rank Score", 
         "fss_condensed": "New FSS Score", 
