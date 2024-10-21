@@ -25,7 +25,8 @@ experiment_configurations = {
                               'else': "/arome_arch/aladin/ARCHIVE/AROMEaut/%Y%m%d/%H/AROMEaut+%LLLL.grb"},
         "unit_factor"      : {'sunshine': 1./3600.,
                               'else': 1.},
-        "on_mars"          : False
+        "on_mars"          : False,
+        "color"            : "blue"
         },
     "aromeruc": {
         "base_experiment"  : "arome",
@@ -34,11 +35,23 @@ experiment_configurations = {
         "max_leadtime"     : 12, 
         "accumulated"      : True,
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/aromeruc_%H+%LLLL.00.grb",
+        "color"            : "navy"
         },
     "aromeesuite": {
         "base_experiment"  : "arome",
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/aromeesuite_%H+%LLLL.grb"
         },
+    "gfs": {
+        "init_interval"    : 6,
+        "output_interval"  : 3, # 6 for some lead times, but panelification can sort that out
+        "max_leadtime"     : 192,
+        "url_template"     : "https://data.rda.ucar.edu/d084001/%Y/%Y%m%d/gfs.0p25.%Y%m%d%H.f%LLL.grib2",
+        "path_template"    : ["/ment_arch2/pscheff/event_archive/GFS/%Y/%m/%d/%H/GFS+%LLLL_rr.grb2",
+                              "/ment_arch2/pscheff/event_archive/GFS/%Y/%m/%d/%H/GFS+%LLLL.grb2"],
+        "accumulated"      : True,
+        "unit_factor"      : 1.,
+        "color"            : "gray"
+    },
     "ecmwf": {
         "init_interval"    : 6,
         "output_interval"  : 1, # 3 for some lead times, but panelification can sort that out
@@ -46,61 +59,46 @@ experiment_configurations = {
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/ecmwf_%H+%LLLL.grb",
         "accumulated"      : True,
         "unit_factor"      : 1000.,
+        "color"            : "black"
     },
     "claef-control": {
         "base_experiment"  : "arome",
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef-control_%H+%LLLL.grb",
+        "color"            : "skyblue"
     },
     "claef-mean": {
         "base_experiment"  : "arome",
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef-mean_%H+%LLLL.grb",
+        "color"            : "skyblue"
     },
     "claef-median": {
         "base_experiment"  : "arome",
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef-median_%H+%LLLL.grb",
+        "color"            : "skyblue"
     },
     "claef1k-control": {
         "base_experiment"  : "arome",
         "path_template"    : "/ec/ws2/tc/zat2/tcwork/claef1k/DATA/%Y%m%d/%H/MEM_00/ADDGRIB/CLAEF00+%LLLL:00.grb",
         "ecfs_path_template" : "/ec/ws2/tc/zat2/tcwork/claef1k/DATA/%Y%m%d/%H/MEM_00/ADDGRIB/CLAEF00+%LLLL:00.grb"
         # "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_%H+%LLLL.grb",
+        "color"            : "dodgerblue"
     },
     "claef1k-control-arch": {
-        "base_experiment"  : "arome",
+        "base_experiment"  : "claef1k-control",
         "path_template"    : "/perm/kmek/panelification/MODEL/claef1k/%Y%m%d/claef_1k_%H+%LLLL.grb",
         # "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_%H+%LLLL.grb",
     },
     "claef1k-mean": {
-        "base_experiment"  : "arome",
+        "base_experiment"  : "claef1k-control",
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef1k-mean_%H+%LLLL.grb",
     },
     "claef1k-median": {
-        "base_experiment"  : "arome",
+        "base_experiment"  : "claef1k-control",
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef1k-median_%H+%LLLL.grb",
     },
     "icon": {
         "base_experiment"  : "arome",
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/icon_%H+%LLLL.grb",
-    },
-    "icond2": {
-        "base_experiment"  : "arome",
-        "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/icond2_%H+%LLLL.grb",
-    },
-    "icon-eu": {
-        "base_experiment"  : "arome",
-        "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/icon-eu_%H+%LLLL.grb",
-    },
-    "arpege": {
-        "base_experiment"  : "arome",
-        "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/arpege_%H+%LLLL.grb",
-    },
-    "cosmo1e": {
-        "init_interval"    : 3,
-        "output_interval"  : 1, 
-        "max_leadtime"     : 33,
-        "accumulated"      : False,
-        "unit_factor"      : 1.,
-        "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/cosmo1e_%H+%LLLL.grb2",
     },
     "ifs-highres": {
         "init_interval"    : 6,
@@ -110,7 +108,8 @@ experiment_configurations = {
         # "path_template"    : "/ment_arch2/aladin/DEODE/CASE_1/%Y%m%d_%H/GRIBPFDEODAUSTRIA_500m+%LLLLh00m00s",
         "path_template"    : "/home/kmek/panelification/MODEL/ifs-highres/ecmwf_precip_%Y%m%d_%H+%LLLL.grb",
         "unit_factor"      : 1000.,
-        "on_mars"             : True
+        "on_mars"          : True,
+        "color"            : "black"
         },
     "deode_test": {
         "init_interval"    : 3,
@@ -119,7 +118,8 @@ experiment_configurations = {
         "accumulated"      : True,
         # "path_template"    : "/ment_arch2/aladin/DEODE/CASE_1/%Y%m%d_%H/GRIBPFDEODAUSTRIA_500m+%LLLLh00m00s",
         "path_template"    : "/ec/res4/scratch/kmw/deode/CASE_1/archive/%Y/%m/%d/%H/GRIBPFDEODAUSTRIA_500m+%LLLLh00m00s",
-        "unit_factor"      : 1.
+        "unit_factor"      : 1.,
+        "color"            : "navy"
         },
     "deode_arome_500_austria": {
         "init_interval"    : 6,
@@ -131,7 +131,8 @@ experiment_configurations = {
         # "path_template"    : "/home/kmek/panelification/MODEL/DEODE_AT_500m/%Y/%m/%d/%H/GRIBPFDEODAUSTRIA_CASES+%LLLLh00m00s",
         # "ecfs_path_template":"ectmp:/{USER}/deode/CY48t3_AROME_CASE{CASE}/archive/%Y/%m/%d/%H/GRIBPFDEODAUSTRIA_CASES+%LLLLh00m00s",
         "unit_factor"      : 1.,
-        "on_mars"          : False
+        "on_mars"          : False,
+        "color"            : "navy"
         },
     "arome-paris" : {
         "base_experiment"  : "deode_arome_500_austria",
@@ -156,9 +157,6 @@ experiment_configurations = {
         "path_template"    : "/scratch/nhad/deode/CY48t3_AROME_corsica_flooding/archive/%Y/%m/%d/%H/GRIBPFDEODCUBIC_1500x1500_500m+%LLLLh00m00s"
         # "path_template"    : "/scratch/nhad/deode/CY48t3_AROME_corsica_flooding/archive/2024/08/15/00/GRIBPFDEODCUBIC_1500x1500_500m+0014h00m00s"
     },
- #/scratch/kay/deode/CY48t3_AROME_d2_500m
- #/scratch/kay/deode/CY48t3_AROME_d2a5_1000m
- #/scratch/kay/deode/CY48t3_AROME_d5_500
 
     "arome_500_d2" : {
         "base_experiment"  : "deode_arome_500_austria",
