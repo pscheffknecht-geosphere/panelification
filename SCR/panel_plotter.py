@@ -282,7 +282,7 @@ def draw_single_figure(sim, obs, r, jj, levels, cmap, norm, verification_subdoma
         ax.contour(sim['lon_resampled'], sim['lat_resampled'], sim['rr90'], 
             linewidths = 0.5, levels=[0.5], transform=args.region.data_projection, colors=[sim['p90_color']])
     # limit drawn area, make the plot nicer and add some info
-    ax.set_extent(args.region.extent)
+    ax.set_extent(sim['plot_extent'])
     add_borders(ax)
     ax.plot(get_array_edge(sim['lon']), get_array_edge(sim['lat']), 'k--', lw=0.5,
                 transform = args.region.data_projection)
@@ -314,7 +314,7 @@ def draw_single_figure(sim, obs, r, jj, levels, cmap, norm, verification_subdoma
         draw_solo_colorbar(levels, cmap, norm, tmp_string, args)
 
 
-def define_panel_and_plot_dimensions(data_list, args, time_series_scores):
+def define_panel_and_plot_dimensions(data_list, args):
     """ Make a dummy map to obtain the aspect ratio, calculate lines
     and columns. This happens in the same function to make use of
     the aspect ratio when determining the cols/lins (not implemented
@@ -323,12 +323,12 @@ def define_panel_and_plot_dimensions(data_list, args, time_series_scores):
     args.region .....instance of Region class, contains info on the map
                      that is being drawn"""
     ax = plt.axes(projection=args.region.plot_projection)
-    ax.set_extent(args.region.extent)
+    ax.set_extent(data_list[0]['plot_extent'])
     r = ax.get_data_ratio()
     # Automatically determine necessary size of the panel plot
     N = len(data_list)
     if not args.rank_score_time_series[0] == 'None':
-        N += len(time_series_scores)
+        N += len(args.rank_score_time_series)
     if args.tile[0] and args.tile[1]:
         cols = args.tile[1]
         lins = args.tile[0]
@@ -342,19 +342,25 @@ def define_panel_and_plot_dimensions(data_list, args, time_series_scores):
     return r, cols, lins, N
 
 
-def score_time_series(data_list, r, tmp_string, time_series_scores):
+def score_time_series(data_list, r, tmp_string, args):
     score_names = {
         "fss_total_abs_score": "Old FSS Rank Score", 
-        "fss_condensed": "New FSS Score", 
-        "fss_condensed_weighted": "New FSS Score Weighted"}
-    print(time_series_scores)
-    for sidx, s in enumerate(time_series_scores):
+        "fss_condensed": "FSS Condensed", 
+        "fss_condensed_weighted": "FSS Condensed Weighted",
+        "bias_real": "Bias",
+        "bias": "Absolute Value of Bias",
+        "rms": "Root Mean Squared Error",
+        "mae": "Mean Absolute Error",
+        "d90": "90th Percentile Displacement",
+        "corr": "Pearson Correlation"}
+    total_width, total_height, _, _, _ = arrange_subplots(r, clean=args.clean)
+    for sidx, s in enumerate(args.rank_score_time_series):
         s = 'bias_real' if s == 'bias' else s
         if s in score_names.keys():
             nam_str = score_names[s]
         else:
             nam_str = s
-        fig, ax = plt.subplots(1, 1, figsize=(3.5/r, 3.5), dpi=150)
+        fig, ax = plt.subplots(1, 1, figsize=(total_width, total_height), dpi=150)
         logger.info("Making time series plot for " + nam_str)
         score = {}
         init = {}
@@ -401,7 +407,17 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
     mode ............. string, resampled or original data to be drawn"""
     logger.debug(args.region.extent)
     time_series_scores = args.rank_score_time_series
-    r, cols, lins, nplots = define_panel_and_plot_dimensions(data_list, args, time_series_scores)
+    if args.zoom_to_subdomain:
+        print("Zooming to Subdomain")
+        plot_extent=[data_list[1]['lon_resampled'].min()-0.25, data_list[1]['lon_resampled'].max()+0.25,
+                     data_list[1]['lat_resampled'].min()-0.25, data_list[1]['lat_resampled'].max()+0.25]
+        print("New extent:")
+        print(plot_extent)
+    else:
+        plot_extent = sim[0].region.extent
+    for sim in data_list:
+        sim['plot_extent'] = plot_extent
+    r, cols, lins, nplots = define_panel_and_plot_dimensions(data_list, args)
     if args.panel_rows_columns:
         lins_new, cols_new = args.panel_rows_columns
         min_lines = nplots // cols_new + 1
@@ -424,7 +440,7 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
     logger.debug('mkdir ../TMP/'+tmp_string)
     # dump data for each model into a single pickle file
     if args.rank_score_time_series:
-        score_time_series(data_list, r, tmp_string, time_series_scores)
+        score_time_series(data_list, r, tmp_string, args)
     for jj, sim in enumerate(data_list):
         pickle.dump([sim, data_list[0], r, jj, levels, cmap,
             norm, verification_subdomain, rank_colors, data_list[0]['max_rank'], args, tmp_string], 
