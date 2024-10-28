@@ -11,9 +11,13 @@ import numpy as np
 import pyresample
 import matplotlib.pyplot as plt
 from mars_request_templates import mars_request_templates
+import urllib.request
+from pathlib import Path
+
 
 import logging
 logger = logging.getLogger(__name__)
+
 
 # template to request precipitation over Europe on a Full Gaussian grid
 request_template = """retrieve,
@@ -239,7 +243,7 @@ class ModelConfiguration:
         need values, only experiments which do not refer to a base_experiment
         need all their values filled"""
         keys = ["path_template", "init_interval", "max_leadtime", 
-                "output_interval", "unit_factor", "accumulated"]
+                "output_interval", "unit_factor", "accumulated", "color"]
         for key in keys:
             if not key in cmc.keys():
                 logger.debug("Replacing {:s} in {:s} with value from base_experiment {:s}:".format(
@@ -440,7 +444,7 @@ def get_sims_and_file_list(data_list, args):
 def save_data(data_list, verification_subdomain, start_date, end_date, args):
     """ write all data to a pickle file """
     start_date_str = start_date.strftime("%Y%m%d_%HUTC_")
-    outfilename = "../DATA/{args.name}RR_data_{start_date_str}{args.duration:02d}h_acc_{verification_subdomain}.p"
+    outfilename = f"../DATA/{args.name}RR_data_{start_date_str}{args.duration:02d}h_acc_{verification_subdomain}.p"
     with open(outfilename, 'wb') as f:
         pickle.dump(data_list, f)
     logger.info(outfilename+" written sucessfully.")
