@@ -422,7 +422,7 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
     os.system('mkdir ../TMP/'+tmp_string)
     logger.debug('mkdir ../TMP/'+tmp_string)
     # dump data for each model into a single pickle file
-    if args.rank_score_time_series:
+    if not args.rank_score_time_series[0] == 'None':
         score_time_series(data_list, r, tmp_string, time_series_scores)
     for jj, sim in enumerate(data_list):
         pickle.dump([sim, data_list[0], r, jj, levels, cmap,
