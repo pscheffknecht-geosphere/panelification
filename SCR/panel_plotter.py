@@ -414,7 +414,7 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
         print("New extent:")
         print(plot_extent)
     else:
-        plot_extent = sim[0].region.extent
+        plot_extent = args.region.extent
     for sim in data_list:
         sim['plot_extent'] = plot_extent
     r, cols, lins, nplots = define_panel_and_plot_dimensions(data_list, args)
@@ -439,7 +439,7 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
     os.system('mkdir ../TMP/'+tmp_string)
     logger.debug('mkdir ../TMP/'+tmp_string)
     # dump data for each model into a single pickle file
-    if args.rank_score_time_series:
+    if not args.rank_score_time_series[0] == 'None':
         score_time_series(data_list, r, tmp_string, args)
     for jj, sim in enumerate(data_list):
         pickle.dump([sim, data_list[0], r, jj, levels, cmap,
