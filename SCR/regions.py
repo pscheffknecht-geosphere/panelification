@@ -169,7 +169,8 @@ regions = {
         "central_longitude": 6.,
         "central_latitude" : 43.,
         # "extent": [-80., 80., -0., 80.],
-        "extent": [-1., 11, 40.5, 46.0],
+        "extent": [ 0., 8., 42.0, 46.5],
+        # "extent": [-1., 11, 40.5, 46.0],
         "verification_subdomains": {
             "Default": {
                 "central_longitude": -6.,
