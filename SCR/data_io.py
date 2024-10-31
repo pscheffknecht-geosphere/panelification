@@ -69,14 +69,6 @@ def mars_request(exp_name, init, step,path=None):
         return None
 
 
-def ecfs_request(ec_path_template, path_template, init, step):
-    # TODO: add failsafe of sorts
-    ecpath = fill_path_file_template(ec_path_template, init, step)
-    path = fill_path_file_template(path_template, init, step)
-    ret = os.system("ecp ecpath path")
-    return path if ret == 0 else None
-
-
 def get_lonlat_fallback(grb):
     Nx = None
     Ny = None
@@ -352,29 +344,6 @@ class ModelConfiguration:
         return lon, lat, self.unit_factor * tmp_data
 
 
-
-    def get_ecfs_file(self, init, l):
-        # pull some dirty tricks to search a bit
-        ret = 1
-        check_list = []
-        use_file = None
-        for user in ["kmek", "kay", "kmw"]:
-            for case in ["", "1", "2", "3"]:
-                user_case_path_template = self.ecfs_path_template.replace("{USER}", user).replace("{CASE}", case)
-                check_list.append(fill_path_file_template(user_case_path_template, self.init, l))
-        for fil in check_list:
-            ret = int(os.system(f"els {fil}") / 256)
-            if ret == 1:
-                print(fil)
-            elif ret == 0:
-                use_file = fil
-                break
-        if not use_file:
-            return None
-        return os.system("ecp {:s} {:s}".format(
-            use_file,
-            fill_path_file_template(self.path_template, self.init, l)))
-
     def get_file_path(self, l):
         if l == 0:
             return None
@@ -385,9 +354,7 @@ class ModelConfiguration:
                 os.system(f"mkdir -p /home/kmek/panelification/MODEL/{self.experiment_name}")
             path = mars_request(self.experiment_name, self.init, l)
         if self.ecfs_path_template and not os.path.isfile(path):
-            ret = self.get_ecfs_file(self.init, l)
-            if ret != 0:
-                return None
+            # TODO: add ecfs stuff
         return path
             
     
