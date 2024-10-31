@@ -62,7 +62,9 @@ def read_OPERA(data_list, start_date, end_date, args):
     idx = 0
     read_dt = dt.timedelta(minutes=60)
     for read_opera_date in loop_datetime(start_date + dt.timedelta(minutes=0), end_date, read_dt):
-        opera_file_name = "../OBS/OPERA/ODC.LAM_{:s}_000100.h5".format(read_opera_date.strftime("%Y%m%d%H%M"))
+        dat_str = read_opera_date.strftime("%Y%m%d%H%M")
+        opera_file_name = f"/ec/res4/scratch/esp0754/auto_obs_db/OPERA/T_PASH22_C_EUOC_{dat_str}00.hdf"
+        # opera_file_name = "../OBS/OPERA/ODC.LAM_{:s}_000100.h5".format(read_opera_date.strftime("%Y%m%d%H%M"))
         logger.info("reading OPERA for {:s} ".format(read_opera_date.strftime("%Y-%m-%d %H:%M")))
         data[idx, :, :] = read_from_hdf(opera_file_name)
         idx += 1
