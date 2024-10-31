@@ -16,7 +16,9 @@ def check_precip_fields(grb):
     except:
         pass
     try:
-        grb.select(parameterNumber=8)
+        g = grb.select(parameterNumber=8)
+        if len(g) > 1:
+            raise valueError()
         return [{"parameterNumber": 8}]
     except:
         pass
