@@ -144,6 +144,8 @@ def parse_arguments():
         if config names are too long to fit onto the panel.""")
     parser.add_argument('--tile', nargs=2, default=[None, None], type=int,
         help = "select N and M for the NxM panel, needs to fit the number of plots!")
+    parser.add_argument('--zoom_to_subdomain', nargs='?', default=False, const=True, type=str2bool,
+        help = 'zoom in to subdomain regardless of region extent')
     args = parser.parse_args()
     init_logging(args)
     # replace the string object with a proper instance of Region
