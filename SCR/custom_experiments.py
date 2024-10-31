@@ -84,24 +84,27 @@ experiment_configurations = {
         "color"            : "dodgerblue"
     },
     "claef1k-control-arch": {
-        "base_experiment"  : "claef1k-control",
+        "base_experiment"  : "arome",
         "path_template"    : "/perm/kmek/panelification/MODEL/claef1k/%Y%m%d/claef_1k_%H+%LLLL.grb",
         # "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_%H+%LLLL.grb",
+        "color"            : "dodgerblue"
     },
     "claef1k-mean": {
-        "base_experiment"  : "claef1k-control",
+        "base_experiment"  : "arome",
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef1k-mean_%H+%LLLL.grb",
+        "color"            : "dodgerblue"
     },
     "claef1k-median": {
-        "base_experiment"  : "claef1k-control",
+        "base_experiment"  : "arome",
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef1k-median_%H+%LLLL.grb",
+        "color"            : "dodgerblue"
     },
     "icon": {
         "base_experiment"  : "arome",
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/icon_%H+%LLLL.grb",
     },
     "ifs-highres": {
-        "init_interval"    : 6,
+        "init_interval"    : 24,
         "output_interval"  : 1,
         "max_leadtime"     : 240, 
         "accumulated"      : True,
@@ -183,6 +186,7 @@ experiment_configurations = {
         "init_interval"    : 24,
         "max_leadtime"     : 120, 
         "path_template"    : "/home/kmek/panelification/MODEL/ifs-dt/ecmwf_precip_%Y%m%d_%H+%LLLL.grb",
+        "color"            : "darkgreen"
         },
     "ifs-dt-nc": {
         "base_experiment"  : "ifs-highres",
@@ -194,11 +198,17 @@ experiment_configurations = {
         "path_template"    : "/home/kmek/panelification/MODEL/WITT_KSTMK/%Y/%m/%d/%H/GRIBPFDEODAUSTRIA_CASES+%LLLLh00m00s",
         "ecfs_path_template" : "ec:/kay/deode/CY48t3_AROME_KSTMK/archive/%Y/%m/%d/%H/GRIBPFDEODPARIS_LARGE+%LLLLh00m00s",
         },
-    # /scratch/sp3c/deode/CY48t3_AROME_nwp_PRT_500m_20241015/archive/2024/10/15
-    "CY48t3_AROME_nwp_PRT_500m_20241015" : {
-        "base_experiment"  : "deode_arome_500_austria",
-        "path_template"    : "/scratch/sp3c/deode/CY48t3_AROME_nwp_PRT_500m_20241015/archive/%Y/%m/%d/%H/GRIBPFDEOD+%LLLLh00m00s"
-    },
+    "arome-france" : {
+        "base_experiment"   : "deode_arome_500_austria",
+        "path_template"    : "/scratch/rm6/meteofrance/arome/%Y%m%d%H/grid.arome-forecast.eurw1s100+%LLLL:00.grib",
+        "color"            : "purple"
+        },
+    "arome-france-alpes" : {
+        "base_experiment"   : "deode_arome_500_austria",
+        "path_template"    : "/scratch/rm6/meteofrance/medalp/%Y%m%d%H/grid.arome-forecast.medalp1s100+%LLLL:00.grib",
+        "color"            : "orchid",
+        # "unit_factor"      : 1000.,
+        },
     # /scratch/sink/deode/CY48t3_AROME_nwp_DEMO_60x80_2500m_20241015/archive/2024/10/15
     "CY48t3_AROME_nwp_DEMO_60x80_2500m_20241015" : {
         "base_experiment"  : "deode_arome_500_austria",
@@ -235,9 +245,10 @@ experiment_configurations = {
         "path_template"    : "/scratch/aut6432/deode/CY46h1_HARMONIE_AROME_nwp_ESP_500m_20241016/archive/%Y/%m/%d/%H/GRIBPFDEOD+%LLLLh00m00s"
     },
     # /scratch/aut6432/deode/CY48t3_AROME_nwp_FRA_500m_20241018/archive/2024/10/18
-    "CY48t3_AROME_nwp_FRA_500m_20241018" : {
+    "AROME_FRA_500m" : {
         "base_experiment"  : "deode_arome_500_austria",
-        "path_template"    : "/scratch/aut6432/deode/CY48t3_AROME_nwp_FRA_500m_20241018/archive/%Y/%m/%d/%H/GRIBPFDEOD+%LLLLh00m00s"
+        "path_template"    : "/scratch/aut6432/deode/CY48t3_AROME_nwp_FRA_500m_%Y%m%d/archive/%Y/%m/%d/%H/GRIBPFDEOD+%LLLLh00m00s",
+        "color"            : "orange"
     },
     # /scratch/aut6432/deode/CY46h1_HARMONIE_AROME_nwp_IRL_500m_storm_1_20241018/archive/2024/10/18
     "CY46h1_HARMONIE_AROME_nwp_IRL_500m_storm_1_20241018" : {
@@ -247,7 +258,8 @@ experiment_configurations = {
     # /scratch/aut6432/deode/CY48t3_AROME_nwp_FRA_500m_20241015/archive/2024/10/15
     "CY48t3_AROME_nwp_FRA_500m_20241015" : {
         "base_experiment"  : "deode_arome_500_austria",
-        "path_template"    : "/scratch/aut6432/deode/CY48t3_AROME_nwp_FRA_500m_20241015/archive/%Y/%m/%d/%H/GRIBPFDEOD+%LLLLh00m00s"
+        "path_template"    : "/scratch/aut6432/deode/CY48t3_AROME_nwp_FRA_500m_20241015/archive/%Y/%m/%d/%H/GRIBPFDEOD+%LLLLh00m00s",
+        "color"            : "red"
     },
     # /scratch/aut6432/deode/CY46h1_HARMONIE_AROME_nwp_ISL_500m_20241017/archive/2024/10/17
     "CY46h1_HARMONIE_AROME_nwp_ISL_500m_20241017" : {
@@ -257,16 +269,106 @@ experiment_configurations = {
     # /scratch/aut6432/deode/CY48t3_AROME_nwp_FRA_500m_20241016/archive/2024/10/16
     "CY48t3_AROME_nwp_FRA_500m_20241016" : {
         "base_experiment"  : "deode_arome_500_austria",
-        "path_template"    : "/scratch/aut6432/deode/CY48t3_AROME_nwp_FRA_500m_20241016/archive/%Y/%m/%d/%H/GRIBPFDEOD+%LLLLh00m00s"
+        "path_template"    : "/scratch/aut6432/deode/CY48t3_AROME_nwp_FRA_500m_20241016/archive/%Y/%m/%d/%H/GRIBPFDEOD+%LLLLh00m00s",
+        "color"            : "darkorange",
     },
     # /scratch/aut6432/deode/CY48t3_AROME_nwp_FRA_500m_20241017/archive/2024/10/17
     "CY48t3_AROME_nwp_FRA_500m_20241017" : {
         "base_experiment"  : "deode_arome_500_austria",
-        "path_template"    : "/scratch/aut6432/deode/CY48t3_AROME_nwp_FRA_500m_20241017/archive/%Y/%m/%d/%H/GRIBPFDEOD+%LLLLh00m00s"
+        "path_template"    : "/scratch/aut6432/deode/CY48t3_AROME_nwp_FRA_500m_20241017/archive/%Y/%m/%d/%H/GRIBPFDEOD+%LLLLh00m00s",
+        "color"            : "palegoldenrod"
     },
     # /scratch/aut6432/deode/CY48t3_AROME_nwp_IT_500m_storm_4_20241016/archive/2024/10/16
     "CY48t3_AROME_nwp_IT_500m_storm_4_20241016" : {
         "base_experiment"  : "deode_arome_500_austria",
         "path_template"    : "/scratch/aut6432/deode/CY48t3_AROME_nwp_IT_500m_storm_4_20241016/archive/%Y/%m/%d/%H/GRIBPFDEOD+%LLLLh00m00s"
+    },
+    "CY48t3_ALARO_Austria_fl_d02_1000m" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/scratch/dnk9255/deode/CY48t3_ALARO_Austria_fl_d02_1000m/archive/%Y/%m/%d/%H/GRIBPFDEODAustria_fl_d02_1000m+%LLLLh00m00s"
+    },
+    "CY48t3_AROME_Austria_fl_d03_1000m" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/scratch/dnk9255/deode/CY48t3_AROME_Austria_fl_d03_1000m/archive/%Y/%m/%d/%H/GRIBDEOD+%LLLLh00m00s"
+    },
+    "CY48t3_AROME_IT_flood_20240905" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/scratch/ic0/deode/CY48t3_AROME_IT_flood_20240905/archive/%Y/%m/%d/%H/GRIBPFDEODIT_flood_20240905+%LLLLh00m00s"
+    },
+    "CY48t3_AROME_CEurope_fl_d02_500m" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/scratch/sp0c/deode/CY48t3_AROME_CEurope_fl_d02_500m/archive/%Y/%m/%d/%H/GRIBPFDEODCEurope_fl_d02_500m+%LLLLh00m00s"
+    },
+    "CY48t3_ALARO_Austria_fl_d01_500m" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/scratch/sp0c/deode/CY48t3_ALARO_Austria_fl_d01_500m/archive/%Y/%m/%d/%H/GRIBPFDEODAustria_fl_d01_500m+%LLLLh00m00s"
+    },
+    "CY48t3_AROME_Bulgaria_fl_d02_500m" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/scratch/sp0c/deode/CY48t3_AROME_Bulgaria_fl_d02_500m/archive/%Y/%m/%d/%H/GRIBPFDEODBulgaria_fl_d02_500m+%LLLLh00m00s"
+    },
+    "CY48t3_AROME_CEurope_fl_d01_500m" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/scratch/sp0c/deode/CY48t3_AROME_CEurope_fl_d01_500m/archive/%Y/%m/%d/%H/GRIBPFDEODCEurope_fl_d01_500m+%LLLLh00m00s"
+    },
+    "CY48t3_AROME_AU_1500x1500_1000m" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/scratch/nhe/deode/CY48t3_AROME_AU_1500x1500_1000m/archive/%Y/%m/%d/%H/GRIBDEOD+%LLLLh00m00s"
+    },
+    "CY48t3_AROME_AU_750x750_2000m" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/scratch/nhe/deode/CY48t3_AROME_AU_750x750_2000m/archive/%Y/%m/%d/%H/GRIBDEOD+%LLLLh00m00s"
+    },
+    "CY46h1_HARMONIE_AROME_AU_384x384_2000m" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/scratch/nhe/deode/CY46h1_HARMONIE_AROME_AU_384x384_2000m/archive/%Y/%m/%d/%H/GRIBDEOD+%LLLLh00m00s"
+    },
+    "CY46h1_HARMONIE_AROME_AU_1500x1500_500m" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/scratch/nhe/deode/CY46h1_HARMONIE_AROME_AU_1500x1500_500m/archive/%Y/%m/%d/%H/GRIBDEOD+%LLLLh00m00s"
+    },
+    "CY48t3_AROME_AU_1500x1500_500m" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/scratch/nhe/deode/CY48t3_AROME_AU_1500x1500_500m/archive/%Y/%m/%d/%H/GRIBDEOD+%LLLLh00m00s"
+    },
+    "CY48t3_ALARO_AU_1500x1500_500m" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/scratch/nhe/deode/CY48t3_ALARO_AU_1500x1500_500m/archive/%Y/%m/%d/%H/GRIBPFDEODAU_1500x1500_500m+%LLLLh00m00s"
+    },
+    "CY48t3_AROME_CEurope_fl_d01_500m" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/scratch/sp3c/deode/CY48t3_AROME_CEurope_fl_d01_500m/archive/%Y/%m/%d/%H/GRIBPFDEODCEurope_fl_d01_500m+%LLLLh00m00s"
+    },
+    "CY48t3_AROME_fl_0914_2000m" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/scratch/sink/deode/CY48t3_AROME_fl_0914_2000m/archive/%Y/%m/%d/%H/GRIBPFDEODfl_0914_2000m+%LLLLh00m00s"
+    },
+    "CY48t3_AROME_fl_0912_2000m" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/scratch/sink/deode/CY48t3_AROME_fl_0912_2000m/archive/%Y/%m/%d/%H/GRIBPFDEODfl_0912_2000m+%LLLLh00m00s"
+    },
+    "CY46h1_HARMONIE_AROME_es_fl_20240920" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/scratch/nhac/deode/CY46h1_HARMONIE_AROME_es_fl_20240920/archive/%Y/%m/%d/%H/GRIBDEOD+%LLLLh00m00s"
+    },
+    "CY48t3_AROME_fl_0914_500m" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/scratch/nhac/deode/CY48t3_AROME_fl_0914_500m/archive/%Y/%m/%d/%H/GRIBPFDEODfl_0914_500m+%LLLLh00m00s"
+    },
+    "CY48t3_AROME_fl_0912_1000m" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/scratch/nhac/deode/CY48t3_AROME_fl_0912_1000m/archive/%Y/%m/%d/%H/GRIBPFDEODfl_0914_1000m+%LLLLh00m00s"
+    },
+    "AUT_flooding_CY48t3_1000M" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/scratch/nhac/deode/AUT_flooding_CY48t3_1000M/archive/%Y/%m/%d/%H/GRIBPFDEODAustria_fl_d03_1000m+%LLLLh00m00s"
+    },
+    "CY48t3_AROME_fl_0912_500m" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/scratch/nhac/deode/CY48t3_AROME_fl_0912_500m/archive/%Y/%m/%d/%H/GRIBPFDEODfl_0914_500m+%LLLLh00m00s"
+    },
+    "CY48t3_AROME_fl_0914_1000m" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/scratch/nhac/deode/CY48t3_AROME_fl_0914_1000m/archive/%Y/%m/%d/%H/GRIBPFDEODfl_0914_1000m+%LLLLh00m00s"
     },
 }
