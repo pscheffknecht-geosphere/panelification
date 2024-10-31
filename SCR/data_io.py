@@ -196,6 +196,7 @@ class ModelConfiguration:
         self.accumulated     = self.__pick_value_by_parameter(cmc["accumulated"])
         self.unit_factor     = self.__pick_value_by_parameter(cmc["unit_factor"])
         self.on_mars         = self.__pick_value_by_parameter(cmc["on_mars"])
+        self.color           = self.__pick_value_by_parameter(cmc["color"])
         if "ecfs_path_template" in cmc:
             self.ecfs_path_template = self.__pick_value_by_parameter(cmc["ecfs_path_template"])
         else:
@@ -434,7 +435,8 @@ def get_sims_and_file_list(data_list, args):
                     # "grib_handles": mod.grib_handles,
                     "lon": lon,
                     "lat": lat,
-                    "precip_data": precip}
+                    "precip_data": precip,
+                    "color": mod.color}
                 data_list.append(sim)
     return data_list
 
