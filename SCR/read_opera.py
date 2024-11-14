@@ -76,6 +76,7 @@ def read_OPERA(data_list, start_date, end_date, args):
         np.nanmax(tmp_precip)))
     data_list.insert(0,{
         'conf' : 'OPERA',
+        'type' : 'obs',
         'name' : 'OPERA',
         'lat' : np.asarray(lat),
         'lon' : np.asarray(lon),

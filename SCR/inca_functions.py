@@ -163,6 +163,7 @@ def read_INCA(data_list, start_date, end_date, args):
     lon, lat = INCA_grid()
     data_list.insert(0,{
         'conf' : 'INCA',
+        'type' : 'obs',
         'name' : 'INCA',
         'lat' : np.asarray(lat),
         'lon' : np.asarray(lon),
@@ -320,6 +321,7 @@ def read_inca_netcdf_archive(data_list, start_date, end_date, args):
     lon, lat = INCA_grid()
     data_list.insert(0,{
         'conf' : 'INCA',
+        'type' : 'obs',
         'name' : 'INCA',
         'lat' : np.asarray(lat),
         'lon' : np.asarray(lon),

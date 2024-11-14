@@ -30,6 +30,7 @@ def read_ANTILOPE(data_list, start_date, end_date, args):
     rr =  np.where(rr > 2000., np.nan, rr)
     data_list.insert(0,{
         'conf' : 'ANTILOPE',
+        'type' : 'obs',
         'name' : 'ANTILOPE',
         'lat' : np.asarray(lat),
         'lon' : np.asarray(lon),
