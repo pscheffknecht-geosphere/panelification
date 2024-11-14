@@ -72,6 +72,12 @@ def check_precip_fields(grb):
             {"shortName": "tirf"}]
     except:
         pass
+    try:
+        grb.select(indicatorOfParameter=61) #, indicatorOfTypeOfLevel=1, level=0)
+        return [
+            {"indicatorOfParameter": 61}] #, "indicatorOfTypeOfLevel": 1, "level": 0}]
+    except:
+        pass
     return None
 
 
