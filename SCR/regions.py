@@ -165,6 +165,30 @@ regions = {
             }
         }
     },
+    "SpainCoast": {
+        "central_longitude": -0.66,
+        "central_latitude" : 39.5,
+        # "extent": [-80., 80., -0., 80.],
+        "extent": [ -5., 5., 37., 42.0],
+        # "extent": [-1., 11, 40.5, 46.0],
+        "verification_subdomains": {
+            "Default": {
+                "central_longitude": -6.,
+                "central_latitude": 43.0,
+                "x_size":  600.,
+                "y_size": 1000.,
+                "thresholds": {'draw_avg' : 2., 'draw_max' : 25., 'score_avg' : 1., 'score_max' : 5.},
+            },
+            "Valencia": {
+                # works for the small 200m domain
+                "central_longitude":  -0.66, "central_latitude": 39.70, "x_size": 300., "y_size": 300.
+            },
+            "Valencia2": {
+                # works for the small 200m domain
+                "central_longitude":  -2.33, "central_latitude": 39.20, "x_size": 500., "y_size": 500.
+            },
+        }
+    },
     "France_WestMed": {
         "central_longitude": 6.,
         "central_latitude" : 43.,
