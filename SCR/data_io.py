@@ -97,13 +97,12 @@ def read_values_from_grib_field(grb):
             lon1d -= 360.
         logger.debug(f"Nx: {lon1d.shape}, Ny: {lat1d.shape}")
         logger.debug(f"lat: {lat1d}\nlon: {lon1d}")
-        lo = np.arange(-8., 25.001, 0.025)
-        la = np.arange(40., 58.001, 0.025)
+        lo = np.arange(-10., 25.001, 0.025)
+        la = np.arange(30., 58.001, 0.025)
         llo, lla = np.meshgrid(lo, la)
         targ_def = pyresample.geometry.SwathDefinition(llo, lla)
         orig_def = pyresample.geometry.SwathDefinition(lon1d, lat1d)
         data = pyresample.kd_tree.resample_nearest(orig_def, data1d, targ_def, reduce_data=False, radius_of_influence=25000)
-        # exit()
         return data
     else:
         return grb.data()[0]
@@ -159,25 +158,28 @@ def read_data(grib_file_path, parameter, get_lonlat_data=False):
             lon, lat = get_lonlat_fallback(tmp_data_list[0])
         elif tmp_data_list[0]['gridType'] == "reduced_gg":
             logger.info("gridType reduced_gg detected, making own!")
-            lo = np.arange(-8., 25.001, 0.025)
-            la = np.arange(40., 58.001, 0.025)
+            lo = np.arange(-10., 25.001, 0.025)
+            la = np.arange(30., 58.001, 0.025)
             lon, lat = np.meshgrid(lo, la)   
         else:
             lat, lon = tmp_data_list[0].latlons()
+        if lon.max() > 180.:
+            lon = np.where(lon > 180., lon - 360., lon)
         return lon, lat, tmp_data_field
     else:
         return tmp_data_field
 
 
 class ModelConfiguration:
-    def __init__(self, custom_experiment_name, init, lead, duration, parameter):
+    def __init__(self, custom_experiment_name, init, lead, args):
         self.read = 0
         self.valid=False
         self.init = init #datetime
         self.lead = lead #int
-        self.lead_end = lead + duration
+        self.lead_end = lead + args.duration
         self.experiment_name = custom_experiment_name
-        self.parameter = parameter
+        self.parameter = args.parameter
+        self.check_ecfs = args.check_ecfs
         cmc = custom_experiments.experiment_configurations[custom_experiment_name]
         if "base_experiment" in cmc:
             self.__fill_cmc_with_base_values(cmc)
@@ -192,7 +194,7 @@ class ModelConfiguration:
         if "ecfs_path_template" in cmc:
             self.ecfs_path_template = self.__pick_value_by_parameter(cmc["ecfs_path_template"])
         else:
-            self.ecfs_path_template = None
+            self.ecfs_path_template = self.path_template.replace("/scratch", "")
         if self.__times_valid():
             if self.accumulated:
                 self.end_file = self.get_file_path(self.lead_end)
@@ -202,8 +204,6 @@ class ModelConfiguration:
                 self.file_list = self.get_file_list()
             self.valid = self.__files_valid()
             self.print()
-            print(self.valid)
-            print(self.__files_valid())
         else:
             logger.debug("Model {:s} with init {:s} has no output for the requested time window.".format(
                 self.experiment_name, self.init.strftime("%Y-%m-%d %H")))
@@ -343,18 +343,57 @@ class ModelConfiguration:
             self.experiment_name, self.unit_factor * tmp_data.min(), self.unit_factor * tmp_data.max()))
         return lon, lat, self.unit_factor * tmp_data
 
+    def gen_panelification_path(self, l):
+        init_str = self.init.strftime("%Y%m%d")
+        hour_str = self.init.strftime("%H")
+        tmp_dir = f"/perm/kmek/panelification/MODEL/{self.experiment_name}/{init_str}/{hour_str}"
+        tmp_fil = f"{self.experiment_name}_{l:04d}.grb"
+        return f"{tmp_dir}/{tmp_fil}"
+
+
+    def get_file_from_ecfs(self, l):
+        logger.debug(f"{self.experiment_name} {self.init} has no existing files, trying ecfs")
+        logger.debug(f"template: {self.path_template}")
+        logger.debug(f"ecfs template: {self.ecfs_path_template}")
+        init_str = self.init.strftime("%Y%m%d")
+        hour_str = self.init.strftime("%H")
+        tmp_dir = f"/perm/kmek/panelification/MODEL/{self.experiment_name}/{init_str}/{hour_str}"
+        tmp_fil = f"{self.experiment_name}_{l:04d}.grb"
+        if not os.path.isdir(tmp_dir):
+            logger.info(f"creating {tmp_dir}")
+            os.system(f"mkdir -p {tmp_dir}")
+        ecfs_file = fill_path_file_template(self.ecfs_path_template, self.init, l)
+        logger.debug(f"looking for: {ecfs_file}")
+        ret = os.system(f"els ec:{ecfs_file}")
+        if ret == 0:
+            logger.info(f"copying from ec:{ecfs_file}")
+            logger.info(f"to {tmp_dir}/{tmp_fil}")
+            os.system(f"ecp ec:{ecfs_file} {tmp_dir}/{tmp_fil}")
+            return f"{tmp_dir}/{tmp_fil}"
+        else:
+            logger.debug(f"{ecfs_file} not found")
+
 
     def get_file_path(self, l):
         if l == 0:
             return None
+        # path from given template
         path = fill_path_file_template(self.path_template, self.init, l)
+        # path from previous ecfs copy
+        if not os.path.isfile(path):
+            path = self.gen_panelification_path(l)
+            print(f"Setting path to {path}")
+            print(os.path.isfile(path))
+        # if on mars, try that
         if self.on_mars and not os.path.isfile(path):
             if not os.path.isdir(f"/home/kmek/panelification/MODEL/{self.experiment_name}"):
                 logger.debug(f"MODEL/{self.experiment_name} not found, creating directory")
                 os.system(f"mkdir -p /home/kmek/panelification/MODEL/{self.experiment_name}")
             path = mars_request(self.experiment_name, self.init, l)
-        if self.ecfs_path_template and not os.path.isfile(path):
-            # TODO: add ecfs stuff
+        # try ecfs
+        if self.ecfs_path_template and not os.path.isfile(path) and self.check_ecfs:
+            logger.debug(f"Trying {self.ecfs_path_template}")
+            path = self.get_file_from_ecfs(l)
         return path
             
     
@@ -388,13 +427,14 @@ def get_sims_and_file_list(data_list, args):
             exp_init_date = dt.datetime.strptime(args.start, "%Y%m%d%H") - dt.timedelta(hours=exp_lead)
             logger.debug("Checking for {:s} at {:s}".format(
                 model_name, exp_init_date.strftime("%Y-%m-%d %H")))
-            mod = ModelConfiguration(model_name, exp_init_date, exp_lead, args.duration, args.parameter)
+            mod = ModelConfiguration(model_name, exp_init_date, exp_lead, args)
             if mod.valid:
                 lon, lat, precip = mod.get_data(args.parameter)
                 sim = {
                     "case": args.case[0],
                     "exp": model_name,
                     "conf": model_name,
+                    "type": "model",
                     "init": exp_init_date,
                     "name": "{:s} {:s}".format(model_name, exp_init_date.strftime("%Y-%m-%d %H")),
                     # "start_file": mod.file_path(exp_lead),
