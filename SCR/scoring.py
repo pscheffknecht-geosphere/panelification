@@ -154,7 +154,6 @@ def rank_fss_all(data_list):
     CORRELATION ... highest is best
     """
     namelist = [d['name'] for d in data_list]
-    
     for metric in ['fss_total_abs_score', 'fss_total_rel_score', 'fss_success_rate_abs', 'fss_success_rate_rel']:
         rank=1
         rank_name='rank_'+metric
@@ -290,7 +289,7 @@ def calc_scores(sim, obs, args):
     windows=[10,20,30,40,60,80,100,120,140,160,180,200]
     ny, nx = sim["precip_data_resampled"].shape
     windows = prep_windows(windows, args.fss_calc_mode, nx, ny)
-    if sim['conf'] == 'INCA' or sim['conf'] == 'OPERA' or sim['conf'] == 'ANTILOPE':
+    if sim['type'] == 'obs':
         sim['bias'] = 999
         sim['mae'] = 999
         sim['rms'] = 999
