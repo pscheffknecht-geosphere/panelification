@@ -15,6 +15,7 @@ import scoring
 import inca_functions as inca
 import read_opera as opera
 import read_antilope as antilope
+import read_esp as esp
 import panel_plotter
 import data_io
 import data_from_dcmdb
@@ -144,6 +145,8 @@ def parse_arguments():
         if config names are too long to fit onto the panel.""")
     parser.add_argument('--tile', nargs=2, default=[None, None], type=int,
         help = "select N and M for the NxM panel, needs to fit the number of plots!")
+    parser.add_argument('--check_ecfs', nargs='?', default=False, const=True, type=str2bool,
+        help = 'check ecfs for experiments if no files are present on scratch')
     parser.add_argument('--zoom_to_subdomain', nargs='?', default=False, const=True, type=str2bool,
         help = 'zoom in to subdomain regardless of region extent')
     args = parser.parse_args()
@@ -231,6 +234,8 @@ def main():
         data_list = opera.read_OPERA(data_list, start_date, end_date, args)
     elif args.precip_verif_dataset == "ANTILOPE":
         data_list = antilope.read_ANTILOPE(data_list, start_date, end_date, args)
+    elif args.precip_verif_dataset == "ESP":
+        data_list = esp.read_esp(data_list, start_date, end_date, args)
     else:
         logging.critical("Unknown verification data set: {:s}, exiting...".format(
             args.precip_verif_dataset))
@@ -259,18 +264,17 @@ def main():
                 sim["precip_data_resampled"] = _data
             Parallel(n_jobs=6,backend='threading')(delayed(scoring.calc_scores)(sim, data_list[0], args) for ii, sim in enumerate(data_list))
             scoring.rank_scores(data_list)
-
-            scoring.total_fss_rankings(data_list, windows, thresholds)
+            # scoring.total_fss_rankings(data_list, windows, thresholds)
         else:
             logging.info("Skipping "+dom['name']+", nothing is requested.")
         if dom['score']:
             scoring.write_scores_to_csv(data_list, start_date, end_date, args, subdomain_name, windows, thresholds)
         # print new test scores
-        for sim in data_list:
-            print(sim['name'],
-                  sim['fss_total_abs_score'],     sim['rank_fss_total_abs_score'],
-                  sim['fss_condensed'],           sim['rank_fss_condensed'],
-                  sim['fss_condensed_weighted'],  sim['rank_fss_condensed_weighted'])
+        # for sim in data_list:
+        #     print(sim['name'],
+        #           sim['fss_total_abs_score'],     sim['rank_fss_total_abs_score'],
+        #           sim['fss_condensed'],           sim['rank_fss_condensed'],
+        #           sim['fss_condensed_weighted'],  sim['rank_fss_condensed_weighted'])
         if dom['draw']:
             plot_start = datetime.now()
             outfilename = panel_plotter.draw_panels(data_list, start_date, end_date, subdomain_name, args) #, mode=args.mode)
