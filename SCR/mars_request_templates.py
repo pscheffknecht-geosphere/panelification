@@ -27,7 +27,7 @@ mars_request_templates = {
   step = {step},
   levtype = sfc,
   param = 228.128,
-  area = 58./-8./40./25,
+  area = 58./-10./30./25,
   target = {target}""",
 # 'ifs-dt' : """retrieve,
 #   class = rd,
