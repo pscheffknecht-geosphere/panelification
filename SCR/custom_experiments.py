@@ -420,19 +420,20 @@ experiment_configurations = {
     # /scratch/aut6432/deode/CY46h1_HARMONIE_AROME_nwp_ESP_20241029_conve_2_20241029/archive/2024/10/29
     "ESP_500m" : {
         "base_experiment"  : "deode_arome_500_austria",
-        "path_template"    : "/scratch/aut6432/deode/CY46h1_HARMONIE_AROME_nwp_ESP_20241029_conve_2_20241029/archive/%Y/%m/%d/%H/GRIBPFDEOD+%LLLLh00m00s",
+        "path_template"    : ["/scratch/aut6432/deode/CY46h1_HARMONIE_AROME_nwp_ESP_20241029_conve_2_20241029/archive/%Y/%m/%d/%H/GRIBPFDEOD+%LLLLh00m00s",
+                              "/scratch/aut6432/deode/CY46h1_HARMONIE_AROME_nwp_ESP_20241028_conve_20241028/archive/%Y/%m/%d/%H/GRIBPFDEOD+%LLLLh00m00s"],
         "color"            : "darkorange"
     },
     # /scratch/aut6432/deode/CY48t3_AROME_nwp_ESP_20241028_flood_1000m_20241029/archive/2024/10/29
     "ESP_flood_1000m" : {
         "base_experiment"  : "deode_arome_500_austria",
-        "path_template"    : "/scratch/aut6432/deode/CY48t3_AROME_nwp_ESP_20241028_flood_1000m_20241029/archive/%Y/%m/%d/%H/GRIBPFDEOD+%LLLLh00m00s",
+        "path_template"    : "/scratch/aut6432/deode/CY48t3_AROME_nwp_ESP_20241028_flood_1000m_%Y%m%d/archive/%Y/%m/%d/%H/GRIBPFDEOD+%LLLLh00m00s",
         "color"            : "darkgreen"
     },
     # /scratch/aut6432/deode/CY48t3_AROME_nwp_ESP_20241028_flood_20241029/archive/2024/10/29
     "ESP_flood_500m" : {
         "base_experiment"  : "deode_arome_500_austria",
-        "path_template"    : "/scratch/aut6432/deode/CY48t3_AROME_nwp_ESP_20241028_flood_20241029/archive/%Y/%m/%d/%H/GRIBPFDEOD+%LLLLh00m00s",
+        "path_template"    : "/scratch/aut6432/deode/CY48t3_AROME_nwp_ESP_20241028_flood_%Y%m%d/archive/%Y/%m/%d/%H/GRIBPFDEOD+%LLLLh00m00s",
         "color"            : "lime"
     },
     "arome_spain" : {
