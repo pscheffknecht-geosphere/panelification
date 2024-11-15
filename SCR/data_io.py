@@ -184,6 +184,8 @@ class ModelConfiguration:
         if "base_experiment" in cmc:
             self.__fill_cmc_with_base_values(cmc)
         self.path_template   = self.__pick_value_by_parameter(cmc["path_template"])
+        if not isinstance(self.path_template, list):
+            self.path_template = [self.path_template]
         self.init_interval   = self.__pick_value_by_parameter(cmc["init_interval"])
         self.max_leadtime    = self.__pick_value_by_parameter(cmc["max_leadtime"])
         self.output_interval = self.__pick_value_by_parameter(cmc["output_interval"])
@@ -194,7 +196,7 @@ class ModelConfiguration:
         if "ecfs_path_template" in cmc:
             self.ecfs_path_template = self.__pick_value_by_parameter(cmc["ecfs_path_template"])
         else:
-            self.ecfs_path_template = self.path_template.replace("/scratch", "")
+            self.ecfs_path_template = [pt.replace("/scratch", "") for pt in self.path_template]
         if self.__times_valid():
             if self.accumulated:
                 self.end_file = self.get_file_path(self.lead_end)
@@ -362,23 +364,29 @@ class ModelConfiguration:
         if not os.path.isdir(tmp_dir):
             logger.info(f"creating {tmp_dir}")
             os.system(f"mkdir -p {tmp_dir}")
-        ecfs_file = fill_path_file_template(self.ecfs_path_template, self.init, l)
-        logger.debug(f"looking for: {ecfs_file}")
-        ret = os.system(f"els ec:{ecfs_file}")
-        if ret == 0:
-            logger.info(f"copying from ec:{ecfs_file}")
-            logger.info(f"to {tmp_dir}/{tmp_fil}")
-            os.system(f"ecp ec:{ecfs_file} {tmp_dir}/{tmp_fil}")
-            return f"{tmp_dir}/{tmp_fil}"
-        else:
-            logger.debug(f"{ecfs_file} not found")
+        for ecfs_path_template in self.ecfs_path_template:
+            ecfs_file = fill_path_file_template(ecfs_path_template, self.init, l)
+            logger.debug(f"looking for: {ecfs_file}")
+            ret = os.system(f"els ec:{ecfs_file}")
+            if ret == 0:
+                logger.info(f"copying from ec:{ecfs_file}")
+                logger.info(f"to {tmp_dir}/{tmp_fil}")
+                os.system(f"ecp ec:{ecfs_file} {tmp_dir}/{tmp_fil}")
+                return f"{tmp_dir}/{tmp_fil}"
+            else:
+                logger.debug(f"{ecfs_file} not found")
+        return None
 
 
     def get_file_path(self, l):
+        path = None
         if l == 0:
             return None
         # path from given template
-        path = fill_path_file_template(self.path_template, self.init, l)
+        for path_template in self.path_template:
+            path = fill_path_file_template(path_template, self.init, l)
+            if os.path.isfile(path):
+                return path
         # path from previous ecfs copy
         if not os.path.isfile(path):
             path = self.gen_panelification_path(l)
