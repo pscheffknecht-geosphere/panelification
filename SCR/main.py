@@ -152,7 +152,10 @@ def parse_arguments():
     args = parser.parse_args()
     init_logging(args)
     # replace the string object with a proper instance of Region
-    args.region = regions.Region(args.region, args.subdomains)
+    if not args.region in regions.regions.keys():
+        logging.critical(f"Region {args.region} not found, the following regions are available:")
+        logging.critical(regions.regions.keys())
+        exit(1)
     if args.subdomains == "Custom" and args.lonlat_limits is None:
         logging.critical("""The subdomain is set to "Custom", then its limits need to be set!
             Use the command line argument:
@@ -210,7 +213,6 @@ def print_some_basics(start_date, end_date, min_lead, max_lead):
 
 def main():
     parse_arguments()
-    region = args.region
     min_lead, max_lead = get_lead_limits(args)
     start_date = datetime.strptime(args.start, "%Y%m%d%H")
     end_date = start_date + dt(hours=args.duration)
@@ -247,6 +249,11 @@ def main():
     #     logging.critical("Parameter {:s} unknown, accepted parameters: precip, sunshine, hail, lightning".format(
     #         args.parameter))
     #     exit(1)
+    if args.region == "Dynamic":
+        region_data = regions.dynamic_region(data_list, regions.regions)
+    else:
+        region_data = regions.regions
+    args.region = Region(args.region, "Default")
     if args.sorting == 'init':
         newlist = sorted(data_list[1::], key=lambda d: d['init']) 
         newlist.insert(0, data_list[0])

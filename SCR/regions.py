@@ -256,13 +256,63 @@ regions = {
                 "central_longitude":  2.35, "central_latitude": 48.86, "x_size": 200., "y_size": 200.
             }
         }
-    }
+    },
+    "Dynamic": None # placeholder
 }
 
 
+def arc_length(lon1, lat1, lon2, lat2):
+    lon1 *= np.pi / 180.
+    lat1 *= np.pi / 180.
+    lon2 *= np.pi / 180.
+    lat2 *= np.pi / 180.
+    R_wsg84 = 6371.009 #km
+    d_lambda = lon2 - lon1
+    d_sigma = np.arccos(np.sin(lat1)*np.sin(lat2) + np.cos(lat1) * np.cos(lat2) * np.cos(d_lambda))
+    d = R_wsg84 * d_sigma
+    return d
+  
+
+def dynamic_region(data_list, region_data):
+    logger.info("Prepare dynamic region and subdomain for selected OBS and models")
+    lon_min = -180.
+    lon_max = 180.
+    lat_min = -90.
+    lat_max = 90.
+    for sim in data_list:
+        lomi, loma, lami, lama = sim['lon'].min(), sim['lon'].max(), sim['lat'].min(), sim['lat'].max()
+        lon_min = sim['lon'].min() if sim['lon'].min() > lon_min else lon_min
+        lon_max = sim['lon'].max() if sim['lon'].max() < lon_max else lon_max
+        lat_min = sim['lat'].min() if sim['lat'].min() > lat_min else lat_min
+        lat_max = sim['lat'].max() if sim['lat'].max() < lat_max else lat_max
+        logger.debug(f"({lon_min:.4f}, {lon_max:.4f}, {lat_min:.4f}, {lat_max:.4f}) {sim['name']}")
+    logger.info(f"Region of overlap is [{lon_min}, {lon_max}, {lat_min}, {lat_max}]")
+    lon_cen = 0.5 * (lon_min + lon_max)
+    lat_cen = 0.5 * (lat_min + lat_max)
+    logger.info(f"New region center: {lon_cen:.6f}, {lat_cen:.6f}")
+    ew_dist = arc_length(lon_min, lat_cen, lon_max, lat_cen)
+    ns_dist = arc_length(lon_cen, lat_min, lon_cen, lat_max)
+    logger.info(f"New region size: {ew_dist} by {ns_dist} km")
+    logger.info(f"New subdomain size: {ew_dist - 100} by {ns_dist - 100} km")
+    region_data['Dynamic'] = {
+        "central_longitude": lon_cen,
+        "central_latitude" : lat_cen,
+        "extent": [lon_min, lon_max, lat_min, lat_max],
+        "verification_subdomains": {
+            "Default": {
+                "central_longitude": lon_cen,
+                "central_latitude": lat_cen,
+                "x_size": np.floor(ew_dist - 100.),
+                "y_size": np.floor(ns_dist - 100.),
+                "thresholds": {'draw_avg' : 2., 'draw_max' : 25., 'score_avg' : 1., 'score_max' : 5.},
+            }
+        }
+    }
+    return region_data
+     
 
 class Region():
-    def __init__(self, region_name="Europe", subdomains=["Default"]):
+    def __init__(self, region_name="Dynamic", subdomains=["Default"]):
         self.name = region_name
         self.extent=regions[region_name]['extent']
         self.data_projection = ccrs.PlateCarree()
