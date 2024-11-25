@@ -225,6 +225,14 @@ experiment_configurations = {
         "base_experiment"  : "claef1k-control",
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_16_%H+%LLLL.grb",
     },
+    "same-at-ref": {
+        "base_experiment"  : "arome",
+        "path_template"    : "/ment_arch2/pscheff/SAMEAT/REF/%Y%m%d%H/AROMEaut+%LLLL.00.grb",
+    },
+    "same-at-exp": {
+        "base_experiment"  : "arome",
+        "path_template"    : "/ment_arch2/pscheff/SAMEAT/EXP/%Y%m%d%H/AROMEaut+%LLLL.00.grb",
+    },
 }
 
 
