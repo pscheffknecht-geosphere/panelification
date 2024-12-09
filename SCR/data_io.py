@@ -217,10 +217,11 @@ class ModelConfiguration:
             if it is a string, return the string
             else raise a ValueError"""
         ret = None
+        useparam = "precip" if "precip" in self.parameter else self.parameter
         if isinstance(custom_experiment_item, dict):
             for key, item in custom_experiment_item.items():
-                if self.parameter in key or self.parameter == key:
-                    ret = custom_experiment_item[self.parameter]
+                if useparam in key or useparam == key:
+                    ret = custom_experiment_item[useparam]
             if ret == None and 'else' in custom_experiment_item.keys():
                 ret = custom_experiment_item['else']
             elif not 'else' in custom_experiment_item.keys():
@@ -379,6 +380,7 @@ class ModelConfiguration:
     def get_file_path(self, l):
         if l == 0:
             return None
+        print(self.path_template)
         for path_template in self.path_template:
             path = fill_path_file_template(path_template, self.init, l)
             if self.experiment_name == "ifs-highres" and not os.path.isfile(path):
@@ -387,8 +389,7 @@ class ModelConfiguration:
                 path = self.download_file(path, l)
             if os.path.isfile(path):#  and self.url_template:
                 return path
-            else:
-               logger.info(f"File {path} was not found, {self.experiment_name} {self.init} will not be used.")
+        logger.info(f"File {path} was not found, {self.experiment_name} {self.init} will not be used.")
         return 'None'
             
     
