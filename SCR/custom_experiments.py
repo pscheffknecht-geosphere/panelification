@@ -43,7 +43,7 @@ experiment_configurations = {
         "accumulated"      : True, # technically not, but does not matter
         "unit_factor"      : 1.,
         # "path_template"    : "/incaplus_arch1/iplus/out/INCA_15m/2024/09/13/INCA_15m_RR_FC_202409130000.grb2"
-        "path_template"    : "/incaplus_arch1/iplus/out/INCA_15m/%Y/%m/%d/INCA_15m_RR_FC_%Y%m%d%H00.grb2",
+        "path_template"    : "/mapp_arch3/jhadzi/DATA_FOR_VERIFICATION/INCA_15m/%Y/%m/%d/INCA_15m_RR_FC_%Y%m%d%H00.grb2",
         "color"            : "red"
     },
     "aromeesuite": {
@@ -55,7 +55,7 @@ experiment_configurations = {
         "output_interval"  : 1, # 3 for some lead times, but panelification can sort that out
         "max_leadtime"     : 120,
         "path_template"    : ["/ment_arch2/pscheff/event_archive/ECMWF/ecmwf_%Y%m%d_%H+%LLLL.grb",
-                             #  "/ment_arch2/pscheff/WEB_PAN/panelification/MODEL/ecmwf/ecmwf_precip_%Y%m%d_%H+%LLLL.grb"],
+                              # "/ment_arch2/pscheff/WEB_PAN/panelification/MODEL/ecmwf/ecmwf_precip_%Y%m%d_%H+%LLLL.grb"],
                               "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/ecmwf_%H+%LLLL.grb"],
         "accumulated"      : True,
         "unit_factor"      : 1000.,
