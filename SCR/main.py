@@ -68,8 +68,7 @@ def parse_arguments():
         help = 'accumulation duration in hours')
     parser.add_argument('--lead', '-l', type=int, default=[12], nargs='+',
         help = 'maximum lead time up to starting time in hours')
-    parser.add_argument('--subdomains', '-u', type=str, default=[
-        "Default", "NorthWest", "SouthEast", "Lower_Austria"], 
+    parser.add_argument('--subdomains', '-u', type=str, default=["Default"],
         nargs='+',
         help = """ Select verification subdomains
             Subdomains are defined in regions.py for each region""")
@@ -253,7 +252,7 @@ def main():
         region_data = regions.dynamic_region(data_list, regions.regions)
     else:
         region_data = regions.regions
-    args.region = Region(args.region, "Default")
+    args.region = regions.Region(args.region, args.subdomains)
     if args.sorting == 'init':
         newlist = sorted(data_list[1::], key=lambda d: d['init']) 
         newlist.insert(0, data_list[0])
@@ -265,7 +264,7 @@ def main():
         subdomain_name = dom['name']
         if dom['score'] or dom['draw'] or args.save:
             for sim in data_list:
-                _data, _lon, _lat = region.resample_to_subdomain(sim["precip_data"], sim["lon"], sim["lat"], subdomain_name, fix_nans=args.fix_nans)
+                _data, _lon, _lat = args.region.resample_to_subdomain(sim["precip_data"], sim["lon"], sim["lat"], subdomain_name, fix_nans=args.fix_nans)
                 sim["lon_resampled"] = _lon
                 sim["lat_resampled"] = _lat
                 sim["precip_data_resampled"] = _data
