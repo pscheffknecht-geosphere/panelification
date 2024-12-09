@@ -59,36 +59,3 @@ def fss_frame(fcst, obs, windows, levels, percentiles=False, mode='same'):
             pd.DataFrame(fss_data_fft,  index=levels), #, columns=windows),
             pd.DataFrame(overestimated, index=levels)) #, columns=windows))
            
-
-# class FSS:
-#     def __init__(self, obs, mod, windows, thresholds,
-#                  percentiles=False, mode='same'):
-#         if not obs.shape == mod.shape:
-#             logging.critical("Cannot calculate FSS if model and obs aren't on the same grid!")
-#             logging.critical("OBS: {:d}x{:d}, MOD: {:d}x{:d}".format(*obs.shape, *mod.shape))
-#             exit()
-#         self.observations = obs
-#         self.forecast = mod
-#         self.windows = windows
-#         self.thresholds = thresholds
-#         self.mode = mode                # same, valid, valid_adaptive 
-#         self.percentiles = percentiles  # True, False (are we looking at percentiles?)
-#         # calcualte scores
-#         self.numerator, self.denominator, self.fss, self.overestimated = fss_frame(
-#             self.forecast, self.observations, self.windows, self.thresholds, 
-#             percentiles=self.percentiles, mode=self.mode)
-# 
-# 
-#     def set_windows(self, windows):
-#         self.windows = windows
-# 
-# 
-#     def set_threshodls(self, thresholds):
-#         self.thresholds = thresholds
-# 
-# 
-#     def recalculate_scores():
-#         self.numerator, self.denominator, self.fss, self.overestimated = fss_frame(
-#             self.forecast, self.observations, self.windows, self.thresholds, 
-#             percentiles=self.percentiles, mode=self.mode)
-
