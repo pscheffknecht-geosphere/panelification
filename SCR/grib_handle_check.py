@@ -178,5 +178,5 @@ def find_grib_handles(grb, param, lead):
     ret = check_function[param](grb, lead)
     if not ret:
         logger.critical(f"Fields not found in grib file for variable {param}, exiting...")
-        exit()
+        exit(1)
     return ret
