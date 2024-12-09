@@ -154,10 +154,10 @@ def read_data(grib_file_path, parameter, get_lonlat_data=False):
     tmp_data_field = np.where(tmp_data_field==9999.0, np.nan, tmp_data_field)
     if get_lonlat_data:
         if tmp_data_list[0]['gridType'] == "lambert_lam":
-            logger.info("gridType lambert_lam detected, going to fallback!")
+            logger.debug("gridType lambert_lam detected, going to fallback!")
             lon, lat = get_lonlat_fallback(tmp_data_list[0])
         elif tmp_data_list[0]['gridType'] == "reduced_gg":
-            logger.info("gridType reduced_gg detected, making own!")
+            logger.debug("gridType reduced_gg detected, making own!")
             lo = np.arange(-10., 25.001, 0.025)
             la = np.arange(30., 58.001, 0.025)
             lon, lat = np.meshgrid(lo, la)   
@@ -201,7 +201,6 @@ class ModelConfiguration:
             if self.accumulated:
                 self.end_file = self.get_file_path(self.lead_end)
                 self.start_file = self.get_file_path(self.lead)
-                print(self.start_file)
             else:
                 self.file_list = self.get_file_list()
             self.valid = self.__files_valid()
@@ -387,11 +386,14 @@ class ModelConfiguration:
             path = fill_path_file_template(path_template, self.init, l)
             if os.path.isfile(path):
                 return path
+        tmp_path = self.gen_panelification_path(l)
+        if os.path.isfile(tmp_path):
+            return tmp_path
         # path from previous ecfs copy
         if not os.path.isfile(path):
             path = self.gen_panelification_path(l)
-            print(f"Setting path to {path}")
-            print(os.path.isfile(path))
+            # print(f"Setting path to {path}")
+            # print(os.path.isfile(path))
         # if on mars, try that
         if self.on_mars and not os.path.isfile(path):
             if not os.path.isdir(f"/home/kmek/panelification/MODEL/{self.experiment_name}"):
