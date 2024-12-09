@@ -11,3 +11,7 @@ SCR/*.pyc
 SCR/*.asc
 SCR/diagnostics/*
 SCR/*.ipynb
+*.pyc
+*.grb
+*.bak
+*.ipynb
