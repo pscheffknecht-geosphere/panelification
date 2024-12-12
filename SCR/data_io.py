@@ -380,7 +380,6 @@ class ModelConfiguration:
     def get_file_path(self, l):
         if l == 0:
             return None
-        print(self.path_template)
         for path_template in self.path_template:
             path = fill_path_file_template(path_template, self.init, l)
             if self.experiment_name == "ifs-highres" and not os.path.isfile(path):
