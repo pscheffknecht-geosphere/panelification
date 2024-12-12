@@ -156,6 +156,7 @@ experiment_configurations = {
         "max_leadtime"     : 33,
         "accumulated"      : False,
         "unit_factor"      : 1.,
+        "color"            : "brown",
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/cosmo1e_%H+%LLLL.grb2",
     },
     "claef1k-all-members": {
