@@ -99,6 +99,6 @@ if __name__ == "__main__":
     clean_old_panels()
     # upload backlog:
     # tt = today()
-    # while tt >= dt.datetime(2023, 3, 31):
+    # while tt >= dt.datetime(2024,10, 3):
     #     send_panels_to_mgruppe(tt)
     #     tt -= dt.timedelta(days=1)

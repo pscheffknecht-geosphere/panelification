@@ -24,7 +24,7 @@ foo = secrets.token_urlsafe(16)
 app.secret_key = foo
 
 ALL_PARAMETERS = ["precip" , "precip2" , "precip3", "sunshine" , "lightnning" , "hail" , "gusts"]
-
+ALL_TIME_SERIES_OPTIONS = ["bias", "mae", "rms", "corr", "d90", "fss_condensed_weighted"]
 def get_default_name():
     return "MyPanel_{:s}".format(dt.datetime.now().strftime("%Y-%m-%d_%H%M%S"))
 
@@ -44,6 +44,10 @@ def get_subdomain_choices(region_name):
     subdomain_choices = [(str(ii), key) for ii, key in enumerate(
         regions.regions[region_name]['verification_subdomains'])]
     return subdomain_choices
+
+def get_time_series_choices():
+    time_series_choices = [(str(ii), key) for ii, key in enumerate(ALL_TIME_SERIES_OPTIONS)]
+    return time_series_choices
 
 
 class PanelificationRequest(FlaskForm):
@@ -69,6 +73,7 @@ class PanelificationRequest(FlaskForm):
     sorting = SelectField(choices=['default', 'model', 'init'], default='default')
     draw_subdomain = BooleanField(default="checked")
     draw = BooleanField(default="checked")
+    zoom_to_subdomain = BooleanField(default="unchecked")
     forcedraw = BooleanField(default="checked")
     forcescore = BooleanField(default="checked")
     draw_p90 = BooleanField()
@@ -78,7 +83,10 @@ class PanelificationRequest(FlaskForm):
     fix_nans = BooleanField()
     save = BooleanField()
     fss_mode = SelectField(choices=['ranks', 'relative'], default='ranks')
-    rank_score_time_series = BooleanField()
+    # rank_score_time_series = BooleanField()
+    rank_score_time_series = SelectMultipleField(
+        choices=ALL_TIME_SERIES_OPTIONS, 
+        default=['4'])
     rank_by_fss_metric = SelectField(
         choices=['fss_condensed_weighted', 'fss_condensed', 'fss_total_abs_score'], 
         default='fss_condensed_weighted')
@@ -108,6 +116,7 @@ def make_panelification_command(form):
     # process boolean arguments:
     command_string += "--draw_subdomain " + str(form.draw_subdomain.data) + " "
     command_string += "--draw " + str(form.draw.data) + " "
+    command_string += "--zoom_to_subdomain " +str(form.zoom_to_subdomain.data) + " "
     command_string += "--forcedraw " + str(form.forcedraw.data) + " "
     command_string += "--forcescore " + str(form.forcescore.data) + " "
     command_string += "--draw_p90 " + str(form.draw_p90.data) + " "
@@ -115,7 +124,11 @@ def make_panelification_command(form):
     command_string += "--hidden " + str(form.hidden.data) + " "
     command_string += "--fix_nans " + str(form.fix_nans.data) + " "
     command_string += "--save " + str(form.save.data) + " "
-    command_string += "--rank_score_time_series " + str(form.rank_score_time_series.data) + " "
+    command_string += "--rank_score_time_series " # + str(form.rank_score_time_series.data) + " "
+    rank_score_time_series = dict(get_time_series_choices())
+    for rts in form.rank_score_time_series.data:
+        command_string += " {:s}".format(rts) + " "
+        # command_string += " {:s}".format(rank_score_time_series[rts])
     command_string += "--save_full_fss " + str(form.save_full_fss.data) + " "
     command_string += "--fss_mode " + form.fss_mode.data + " "
     if len(form.logfile.data) > 0:
