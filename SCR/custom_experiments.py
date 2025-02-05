@@ -46,6 +46,15 @@ experiment_configurations = {
         "path_template"    : "/mapp_arch3/jhadzi/DATA_FOR_VERIFICATION/INCA_15m/%Y/%m/%d/INCA_15m_RR_FC_%Y%m%d%H00.grb2",
         "color"            : "red"
     },
+    "samos": {
+        "init_interval"    : 3,
+        "output_interval"  : 1,
+        "max_leadtime"     : 96,
+        "accumulated"      : False,
+        "unit_factor"      : 1,
+        "path_template"    : "/samos_arch/FCruc/prec/%Y/%m/%d/FC_samosRUC_prec_%Y%m%d%H_lt%LLLh.PERS.RUC.CLAEF.AROME.DET.ENS.GFS.ICON.MU.grd",
+        "color"            : "teal"
+        },
     "aromeesuite": {
         "base_experiment"  : "arome",
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/aromeesuite_%H+%LLLL.grb"
