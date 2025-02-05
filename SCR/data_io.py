@@ -10,6 +10,7 @@ import pygrib
 import numpy as np
 import urllib.request
 from pathlib import Path
+from osgeo import gdal
 
 import logging
 logger = logging.getLogger(__name__)
@@ -147,7 +148,26 @@ def calc_data(tmp_data_list, parameter):
     return calc_funcs[parameter](tmp_data_list)
 
 
-def read_data(grib_file_path, parameter, lead, get_lonlat_data=False):
+def read_data_samos(file_path, parameter, lead, get_lonlat_data=False):
+    """ calls the grib handle check and returns fields with or without lon and lat data,
+    depending on selection"""
+    dataset = gdal.Open(file_path)
+    band = dataset.GetRasterBand(1)
+    data = band.ReadAsArray()
+    data = np.flipud(data)  # Flip the data to match the new latitude order
+    if get_lonlat_data:
+        ulx, xres, xskew, uly, yskew, yres = dataset.GetGeoTransform()
+        nrows, ncols = data.shape
+        lons = np.linspace(ulx, ulx + ncols * xres, ncols)
+        lats = np.linspace(uly, uly + nrows * yres, nrows)  # yres is negative
+        lats = lats[::-1]
+        lon, lat = np.meshgrid(lons, lats)
+        return lon, lat, data
+    else:
+        return data
+
+
+def read_data_grib(grib_file_path, parameter, lead, get_lonlat_data=False):
     """ calls the grib handle check and returns fields with or without lon and lat data,
     depending on selection"""
     with pygrib.open(grib_file_path) as f:
@@ -308,13 +328,14 @@ class ModelConfiguration:
 
     def __get_data_not_accumulated(self):
         first = True
+        read_data = read_data_samos if "samos" in self.experiment_name else read_data_grib
         for i, fil in enumerate(self.file_list):
             logger.info("Reading file ({:d}): {:s}".format(i, fil))
             if first:
                 lon, lat, tmp_data = read_data(fil, self.parameter, 0, get_lonlat_data=True) # 0 for lead time, unused for unaccmulated models
                 first = False
             else:
-                tmp_data += read_data(fil, self.parameter)
+                tmp_data += read_data(fil, self.parameter, 0)
         tmp_data = np.where(tmp_data < 0., 0., tmp_data)
         return lon, lat, self.unit_factor * tmp_data
 
@@ -325,10 +346,10 @@ class ModelConfiguration:
         for i, fil in enumerate(self.file_list):
             logger.info("Reading file ({:d}): {:s}".format(i, fil))
             if first:
-                lon, lat, tmp_data = read_data(fil, self.parameter, get_lonlat_data=True)
+                lon, lat, tmp_data = read_data_grib(fil, self.parameter, get_lonlat_data=True)
                 first = False
             else:
-                td2 = read_data(fil, self.parameter)
+                td2 = read_data_grib(fil, self.parameter)
                 tmp_data = np.where(td2 > tmp_data, td2, tmp_data)
         tmp_data = np.where(tmp_data < 0., 0., tmp_data)
         return lon, lat, self.unit_factor * tmp_data
@@ -336,10 +357,10 @@ class ModelConfiguration:
 
     def __get_data_accumulated(self):
         logger.info("Reading end file: {:s}".format(self.end_file))
-        lon, lat, tmp_data = read_data(self.end_file, self.parameter, self.lead_end, get_lonlat_data=True)
+        lon, lat, tmp_data = read_data_grib(self.end_file, self.parameter, self.lead_end, get_lonlat_data=True)
         if self.start_file:
             logger.info("Reading start file: {:s}".format(self.start_file))
-            start_tmp_data = read_data(self.start_file, self.parameter, self.lead)
+            start_tmp_data = read_data_grib(self.start_file, self.parameter, self.lead)
             tmp_data -= start_tmp_data
         # clamp to 0 because apparently this difference can be negative???
         # this is NOT a pygrib or panelification problem, also happens when
