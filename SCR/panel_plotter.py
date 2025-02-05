@@ -91,7 +91,19 @@ def make_fss_rank_plot_axes(ax, args):
     # return ax
 
 
+def pick_color_OK(val, threshold):
+    # pick a value for the previously white area
+    low = np.array([0., 30., 10., 255.]) / 255.
+    high = np.array([80., 255., 120., 255.]) / 255.
+    t = (val - threshold) / (1. - threshold)
+    t = 0. if t < 0. else t
+    t = 1. if t > 1. else t
+    print(val, threshold, t, low, high, t * high + (1. - t) * low)
+    return t * high + (1. - t) * low
+
+
 def add_fss_plot_new(ax, sim, rank_vmax, jj, args):
+    print("WTF")
     fss_rank_cols = ['white']*rank_vmax
     fss_rank_cols[0:5] = ['black', 'firebrick', 'limegreen', 'gold', 'silver', 'darkorange']
     if args.fss_mode == 'relative':
@@ -102,6 +114,10 @@ def add_fss_plot_new(ax, sim, rank_vmax, jj, args):
     extent = (0, sim['fss_ranks'].shape[1], sim['fss_ranks'].shape[0], 0)
     ny, nx = sim['fss_ranks'].shape
     pad = 0.05
+    cmap = mpl.colormaps['Greens']
+    print(ny, nx, sim['fssf'].shape, len(sim['fssf_thresholds']))
+    print(sim['fssf'].values)
+    print(sim['fssf_thresholds'])
     for yy in range(ny):
         for xx in range(nx):
             xedge = -0.5 + np.array([xx+pad, xx+pad, xx+1-pad, xx+1-pad, xx+pad])
@@ -125,9 +141,16 @@ def add_fss_plot_new(ax, sim, rank_vmax, jj, args):
                     col = 'firebrick'
             if yy == 9:
                 col = 'black' # fix red separation line for fiels that contain nans
+            t = (sim['fssf'].values[yy, xx] - sim['fssf_thresholds'][yy]) / (1. - sim['fssf_thresholds'][yy])
+            print(ny, nx, yy, xx, sim['fss_ranks'][yy, xx], sim['fssf'].values[yy, xx], sim['fssf_thresholds'][yy], t) #, (sim['fss_ranks'][yy, xx] > 5 and sim['fssf'][yy, xx] >= sim['fssf_thresholds'][yy]))
+            if args.test_greens:
+                if sim['fss_ranks'][yy, xx] > 5: # and sim['fssf'][yy, xx] >= sim['fssf_thresholds'][yy]:
+                    col = cmap(t)
             ax.fill(xedge, yedge, facecolor=col)
             if sim['fss_ranks'][yy, xx] == 1 and yy < 9: #only for bad but not nan
                 ax.fill(xedget, yedget, facecolor='white')
+
+
     make_fss_rank_plot_axes(ax, args)
     ax.set_xlim([-0.5, nx-0.5])
     ax.set_ylim([ny-0.5, -0.5])

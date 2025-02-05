@@ -69,7 +69,7 @@ def parse_arguments():
     parser.add_argument('--lead', '-l', type=int, default=[12], nargs='+',
         help = 'maximum lead time up to starting time in hours')
     parser.add_argument('--subdomains', '-u', type=str, default=[
-        "Default", "NorthWest", "SouthEast", "Lower_Austria"], 
+        "Default", "NorthWest", "SouthEast", "Lower_Austria", "Vorarlberg", "Tyrol", "Styria", "Upper_Austria", "Salzburg"], 
         nargs='+',
         help = """ Select verification subdomains
             Subdomains are defined in regions.py for each region""")
@@ -144,6 +144,8 @@ def parse_arguments():
         help = 'update panels on the intranet website')
     parser.add_argument('--tile', nargs=2, default=[None, None], type=int,
         help = "select N and M for the NxM panel, needs to fit the number of plots!")
+    parser.add_argument('--test_greens', nargs='?', default=False, const=True, type=str2bool,
+        help = 'test green instead of white')
     args = parser.parse_args()
     init_logging(args)
     if not args.intranet_update:  # ignore these conditions if only updating intranet
