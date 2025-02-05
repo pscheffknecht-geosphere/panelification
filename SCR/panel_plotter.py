@@ -139,14 +139,16 @@ def add_fss_plot_new(ax, sim, rank_vmax, jj, args):
                     xedget = -0.5 + np.array([xx+3*pad, xx+1-3*pad, xx+0.5, xx+3*pad])
                     yedget = -0.5 + np.array([yy+3*pad, yy+3*pad, yy+1-3*pad, yy+3*pad])
                     col = 'firebrick'
-            if yy == 9:
-                col = 'black' # fix red separation line for fiels that contain nans
-            t = (sim['fssf'].values[yy, xx] - sim['fssf_thresholds'][yy]) / (1. - sim['fssf_thresholds'][yy])
-            print(ny, nx, yy, xx, sim['fss_ranks'][yy, xx], sim['fssf'].values[yy, xx], sim['fssf_thresholds'][yy], t) #, (sim['fss_ranks'][yy, xx] > 5 and sim['fssf'][yy, xx] >= sim['fssf_thresholds'][yy]))
             if args.test_greens:
                 if sim['fss_ranks'][yy, xx] > 5: # and sim['fssf'][yy, xx] >= sim['fssf_thresholds'][yy]:
+                    t = (sim['fssf'].values[yy, xx] - sim['fssf_thresholds'][yy]) / (1. - sim['fssf_thresholds'][yy])
                     col = cmap(t)
-            ax.fill(xedge, yedge, facecolor=col)
+            if yy == 9 or sim['fss_ranks'][yy, xx] == 0:
+                ax.plot(xedge[[0, 2]], yedge[[0, 2]], 'gray', lw=0.5)
+                ax.plot(xedge[[1, 3]], yedge[[1, 3]], 'gray', lw=0.5)
+                # col = 'black' # fix red separation line for fiels that contain nans
+            else:
+                ax.fill(xedge, yedge, facecolor=col)
             if sim['fss_ranks'][yy, xx] == 1 and yy < 9: #only for bad but not nan
                 ax.fill(xedget, yedget, facecolor='white')
 
