@@ -1,2 +1,6 @@
 PLOTS/*.png
 SCORES/*.csv
+*/*.png
+*/*.ipynb
+*/*/*.ipynb
+*.grb
