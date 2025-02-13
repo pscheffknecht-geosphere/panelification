@@ -104,7 +104,7 @@ experiment_configurations = {
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/icon_%H+%LLLL.grb",
     },
     "ifs-highres": {
-        "init_interval"    : 6,
+        "init_interval"    : 24,
         "output_interval"  : 1,
         "max_leadtime"     : 240, 
         "accumulated"      : True,
@@ -440,5 +440,16 @@ experiment_configurations = {
         "base_experiment"  : "arome",
         "path_template"    : "/home/sp3c/deode_project/casestudies/Valencia_heavypcp/operationals/fc%Y%m%d%H+%LLLh00m",
         "color"            : "purple"
+    },
+    "CY46h1_AUT_500m" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "color"            : "skyblue",
+        "path_template"    : ["/ec/res4/scratch/kmek/deode/CY46h1_HARMONIE_AROME_AUT_1500x1500_500m_v1/archive/%Y/%m/%d/%H/GRIBPFDEOD+%LLLLh00m00s",
+                             "/ec/res4/scratch/kmw/deode/CY46h1_HARMONIE_AROME_AUT_1500x1500_500m_v1/archive/%Y/%m/%d/%H/GRIBPFDEOD+%LLLLh00m00s"]
+    },
+    "CY48t3_AUT_500m" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : ["/ec/res4/scratch/kay/deode/CY48t3_AROME_AUT_1500x1500_500m_v1/archive/%Y/%m/%d/%H/GRIBPFDEOD+%LLLLh00m00s",
+                             "/ec/res4/scratch/kmw/deode/CY48t3_AROME_AUT_1500x1500_500m_v1/archive/%Y/%m/%d/%H/GRIBPFDEOD+%LLLLh00m00s"]
     },
 }
