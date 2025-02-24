@@ -128,7 +128,7 @@ def weighted_fss_condensed(sim, levels):
         if t == 1.: #catch cases where the entire domain is above the precip threshold
             a = np.where(a == 1., 1. ,0.) #???
         else:
-            s = 1. / (1. - t)
+            s = 1. / (1. - 0.5)
             a = s * (a - 1) + 1
         a = clamp_array(a)
         l = levels[ii]
@@ -313,7 +313,7 @@ def calc_scores(sim, obs, args):
         for level in levels:
             thresholds.append(0.5*(1+float((obs["precip_data_resampled"] > level).sum())/float(obs["precip_data_resampled"].size)))
         for perc in percs:
-            thresholds_percs.append(0.5*(1+0.01*(100/perc)))
+            thresholds_percs.append(0.5*(1+perc/100.))
         sim['fss_thresholds'] = thresholds
         sim['fss_thresholds_percs'] = thresholds_percs
         sim['fssf_thresholds'] = thresholds + thresholds_percs
