@@ -91,6 +91,16 @@ def make_fss_rank_plot_axes(ax, args):
     # return ax
 
 
+def pick_color_OK(val, threshold):
+    # pick a value for the previously white area
+    low = np.array([0., 30., 10., 255.]) / 255.
+    high = np.array([80., 255., 120., 255.]) / 255.
+    t = (val - threshold) / (1. - threshold)
+    t = 0. if t < 0. else t
+    t = 1. if t > 1. else t
+    return t * high + (1. - t) * low
+
+
 def add_fss_plot_new(ax, sim, rank_vmax, jj, args):
     fss_rank_cols = ['white']*rank_vmax
     fss_rank_cols[0:5] = ['black', 'firebrick', 'limegreen', 'gold', 'silver', 'darkorange']
@@ -102,6 +112,7 @@ def add_fss_plot_new(ax, sim, rank_vmax, jj, args):
     extent = (0, sim['fss_ranks'].shape[1], sim['fss_ranks'].shape[0], 0)
     ny, nx = sim['fss_ranks'].shape
     pad = 0.05
+    cmap = cm.Greens
     for yy in range(ny):
         for xx in range(nx):
             xedge = -0.5 + np.array([xx+pad, xx+pad, xx+1-pad, xx+1-pad, xx+pad])
@@ -123,11 +134,20 @@ def add_fss_plot_new(ax, sim, rank_vmax, jj, args):
                     xedget = -0.5 + np.array([xx+3*pad, xx+1-3*pad, xx+0.5, xx+3*pad])
                     yedget = -0.5 + np.array([yy+3*pad, yy+3*pad, yy+1-3*pad, yy+3*pad])
                     col = 'firebrick'
-            if yy == 9:
-                col = 'black' # fix red separation line for fiels that contain nans
-            ax.fill(xedge, yedge, facecolor=col)
+            if args.test_greens:
+                if sim['fss_ranks'][yy, xx] > 5: # and sim['fssf'][yy, xx] >= sim['fssf_thresholds'][yy]:
+                    t = (sim['fssf'].values[yy, xx] - sim['fssf_thresholds'][yy]) / (1. - sim['fssf_thresholds'][yy])
+                    col = cmap(t)
+            if yy == 9 or sim['fss_ranks'][yy, xx] == 0:
+                ax.plot(xedge[[0, 2]], yedge[[0, 2]], 'gray', lw=0.5)
+                ax.plot(xedge[[1, 3]], yedge[[1, 3]], 'gray', lw=0.5)
+                # col = 'black' # fix red separation line for fiels that contain nans
+            else:
+                ax.fill(xedge, yedge, facecolor=col)
             if sim['fss_ranks'][yy, xx] == 1 and yy < 9: #only for bad but not nan
                 ax.fill(xedget, yedget, facecolor='white')
+
+
     make_fss_rank_plot_axes(ax, args)
     ax.set_xlim([-0.5, nx-0.5])
     ax.set_ylim([ny-0.5, -0.5])
@@ -266,7 +286,10 @@ def draw_single_figure(sim, obs, r, jj, levels, cmap, norm, verification_subdoma
     precip_data, lon, lat = prep_plot_data(sim, obs, args.mode)
     c = ax.pcolormesh(lon, lat, precip_data,
                     cmap=cmap,transform=args.region.data_projection,
-                    norm=norm, shading='auto')
+                    norm=norm) #, extend='max')
+    # c = ax.contourf(lon, lat, precip_data,
+    #                 levels,cmap=cmap,transform=args.region.data_projection,
+    #                 norm=norm, extend='max')
     ax.set_facecolor("silver")
     if args.draw_p90:
         p90 = np.percentile(np.copy(sim['precip_data_resampled']), 90) # circumvent numpy bug #21524
@@ -278,10 +301,6 @@ def draw_single_figure(sim, obs, r, jj, levels, cmap, norm, verification_subdoma
             levels=[0.5, 1.5], transform=args.region.data_projection, colors='none', hatches=['/////'])
         ax.contour(sim['lon_resampled'], sim['lat_resampled'], sim['rr90'], 
             linewidths = 0.5, levels=[0.5], transform=args.region.data_projection, colors=[sim['p90_color']])
-    if len(args.highlight_threshold) > 0:
-        ax.contour(sim['lon_resampled'], sim['lat_resampled'], sim['precip_data_resampled'],
-            linewidths = 1.5, levels=args.highlight_threshold, colors=['limegreen'], zorder=99,
-            transform=args.region.data_projection)
     # limit drawn area, make the plot nicer and add some info
     ax.set_extent(sim['plot_extent'])
     add_borders(ax)
@@ -293,7 +312,7 @@ def draw_single_figure(sim, obs, r, jj, levels, cmap, norm, verification_subdoma
     if args.hidden:
         panel_title = str(jj) if jj > 0 else sim['name']
         panel_title_fc = 'white'
-    elif args.clean or sim["type"] == "obs":
+    elif args.clean or sim["conf"] == "INCA" or sim["conf"] == "OPERA":
         panel_title = sim['name']
         panel_title_fc = 'white'
     else:
@@ -311,7 +330,7 @@ def draw_single_figure(sim, obs, r, jj, levels, cmap, norm, verification_subdoma
     gl.top_labels=False
     plt.savefig('../TMP/'+tmp_string+'/'+str(jj).zfill(3)+".png")
     plt.close('all')
-    if sim['type'] == 'obs':
+    if sim['conf'] == 'INCA' or sim['conf'] == 'OPERA':
         draw_solo_colorbar(levels, cmap, norm, tmp_string, args)
 
 
@@ -346,11 +365,6 @@ def define_panel_and_plot_dimensions(data_list, args):
 def score_time_series(data_list, r, tmp_string, args):
     score_names = {
         "fss_total_abs_score": "Old FSS Rank Score", 
-        "fss_condensed": "FSS Condensed", 
-        "fss_condensed_weighted": "FSS Condensed Weighted",
-        "bias_real": "Bias",
-        "fss_condensed_weighted": "FSS Condensed Weighted",
-        "bias_real": "Bias",
         "fss_condensed": "FSS Condensed", 
         "fss_condensed_weighted": "FSS Condensed Weighted",
         "bias_real": "Bias",
@@ -394,8 +408,10 @@ def score_time_series(data_list, r, tmp_string, args):
         ax.tick_params(axis='x', labelrotation=30)
         title = nam_str + " by model and init"
         ax.set_title(title, loc='left')
+        # ax.set_ylim([0., 122])
         plt.tight_layout()
         plt.savefig('../TMP/' + tmp_string + '/' + str(990 + sidx) + '.png')
+        # exit()
         
 
 def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
@@ -410,6 +426,7 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
     args ............. command line arguments
     mode ............. string, resampled or original data to be drawn"""
     logger.debug(args.region.extent)
+    time_series_scores = args.rank_score_time_series
     if args.zoom_to_subdomain:
         print("Zooming to Subdomain")
         plot_extent=[data_list[1]['lon_resampled'].min()-0.25, data_list[1]['lon_resampled'].max()+0.25,
@@ -451,7 +468,7 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
     # generate a list of commands, one for each model, these will call panel_plotter.py to draw a single model
     cmd_list = ['python panel_plotter.py -p '+pickle_file for pickle_file in glob.glob('../TMP/'+tmp_string+'/???.p')]
     # execute the commands in parallel
-    Parallel(n_jobs=6)(delayed(os.system)(cmd) for cmd in cmd_list)
+    Parallel(n_jobs=2)(delayed(os.system)(cmd) for cmd in cmd_list)
     logger.debug('montage ../TMP/{:s}/???.png -geometry +0+0 -tile {:d}x{:d} -title {:s} ../TMP/{:s}/999.png'.format(
         tmp_string, lins, cols, suptit, tmp_string))
     # use the individual panels and combine them into one large plot using imagemagick
