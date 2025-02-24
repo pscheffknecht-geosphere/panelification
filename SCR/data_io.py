@@ -177,7 +177,6 @@ class ModelConfiguration:
         self.experiment_name = custom_experiment_name
         self.parameter = args.parameter
         self.check_ecfs = args.check_ecfs
-        print(args.custom_experiment_data)
         cmc = args.custom_experiment_data[custom_experiment_name]
         if "base_experiment" in cmc:
             self.__fill_cmc_with_base_values(cmc, args)
