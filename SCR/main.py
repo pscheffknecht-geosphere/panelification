@@ -151,6 +151,8 @@ def parse_arguments():
         help = 'check ecfs for experiments if no files are present on scratch')
     parser.add_argument('--zoom_to_subdomain', nargs='?', default=False, const=True, type=str2bool,
         help = 'zoom in to subdomain regardless of region extent')
+    parser.add_argument('--test_greens', nargs='?', default=False, const=True, type=str2bool,
+        help = 'test green instead of white')
     args = parser.parse_args()
     init_logging(args)
     # replace the string object with a proper instance of Region
