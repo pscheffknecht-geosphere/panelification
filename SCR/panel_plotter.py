@@ -286,7 +286,7 @@ def draw_single_figure(sim, obs, r, jj, levels, cmap, norm, verification_subdoma
     precip_data, lon, lat = prep_plot_data(sim, obs, args.mode)
     c = ax.pcolormesh(lon, lat, precip_data,
                     cmap=cmap,transform=args.region.data_projection,
-                    norm=norm) #, extend='max')
+                    norm=norm, shading='auto') #, extend='max')
     # c = ax.contourf(lon, lat, precip_data,
     #                 levels,cmap=cmap,transform=args.region.data_projection,
     #                 norm=norm, extend='max')
