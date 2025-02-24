@@ -84,6 +84,9 @@ def parse_arguments():
     parser.add_argument('--experiments', '-e', type=str, nargs='+',
         default = None,
         help = """select experiments, if left empty/None it will select all available""")
+    parser.add_argument('--custom_experiment_file', type=str, 
+        default = "custom_experiments.py",
+        help = """add you own models not listed in DCMDB""")
     parser.add_argument('--custom_experiments', type=str, nargs='+',
         default = None,
         help = """add you own models not listed in DCMDB""")
@@ -151,6 +154,8 @@ def parse_arguments():
     args = parser.parse_args()
     init_logging(args)
     # replace the string object with a proper instance of Region
+    ce = __import__(args.custom_experiment_file)
+    args.custom_experiment_data = ce.experiment_configurations
     if not args.region in regions.regions.keys():
         logging.critical(f"Region {args.region} not found, the following regions are available:")
         logging.critical(regions.regions.keys())

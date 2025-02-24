@@ -1,10 +1,7 @@
 import pickle
 import os
 from grib_handle_check import find_grib_handles
-import custom_experiments
 from data_from_dcmdb import fill_path_file_template
-import custom_experiments
-# from custom_experiments import model_configurations as cmcs
 import datetime as dt
 import pygrib
 import numpy as np
@@ -180,9 +177,10 @@ class ModelConfiguration:
         self.experiment_name = custom_experiment_name
         self.parameter = args.parameter
         self.check_ecfs = args.check_ecfs
-        cmc = custom_experiments.experiment_configurations[custom_experiment_name]
+        print(args.custom_experiment_data)
+        cmc = args.custom_experiment_data[custom_experiment_name]
         if "base_experiment" in cmc:
-            self.__fill_cmc_with_base_values(cmc)
+            self.__fill_cmc_with_base_values(cmc, args)
         self.path_template   = self.__pick_value_by_parameter(cmc["path_template"])
         if not isinstance(self.path_template, list):
             self.path_template = [self.path_template]
@@ -232,7 +230,7 @@ class ModelConfiguration:
         return ret
 
         
-    def __fill_cmc_with_base_values(self, cmc):
+    def __fill_cmc_with_base_values(self, cmc, args):
         """ if the experiment is deried from a base experiment, not all keys
         need values, only experiments which do not refer to a base_experiment
         need all their values filled"""
@@ -242,11 +240,11 @@ class ModelConfiguration:
             if not key in cmc.keys():
                 logger.debug("Replacing {:s} in {:s} with value from base_experiment {:s}:".format(
                     key, self.experiment_name, cmc["base_experiment"]))
-                cmc[key] = custom_experiments.experiment_configurations[cmc["base_experiment"]][key]
+                cmc[key] = args.custom_experiment_data[cmc["base_experiment"]][key]
                 logger.debug("  {:s}".format(str(cmc[key])))
         if not "on_mars" in cmc.keys():
-            if "on_mars" in custom_experiments.experiment_configurations[cmc["base_experiment"]].keys():
-                cmc["on_mars"] = custom_experiments.experiment_configurations[cmc["base_experiment"]]["on_mars"]
+            if "on_mars" in args.custom_experiment_data[cmc["base_experiment"]].keys():
+                cmc["on_mars"] = args.custom_experiment_data[cmc["base_experiment"]]["on_mars"]
             else:
                 cmc["on_mars"] = False
               
