@@ -16,6 +16,13 @@ def check_precip_fields(grb, lead):
     except:
         pass
     try:
+        logger.debug("Trying shortName = tp, forecastTime = 0")
+        grb.select(shortName='tp', forecastTime=0)
+        return [{"shortName": "tp", "forecastTime": 0}] 
+    except:
+        pass
+    try:
+        logger.debug("Trying parameter number 8")
         g = grb.select(parameterNumber=8)
         if len(g) > 1:
             raise valueError()
@@ -51,6 +58,7 @@ def check_precip_fields(grb, lead):
     except:
         pass
     try:
+        logger.debug("Trying indicatorOfParameter 197 + 198 + 199")
         grb.select(indicatorOfParameter=197) #, indicatorOfTypeOfLevel=1, level=0)
         grb.select(indicatorOfParameter=198) #, indicatorOfTypeOfLevel=1, level=0)
         grb.select(indicatorOfParameter=199) #, indicatorOfTypeOfLevel=1, level=0)
@@ -59,18 +67,8 @@ def check_precip_fields(grb, lead):
             {"indicatorOfParameter": 198}, #, "indicatorOfTypeOfLevel": 1, "level": 0},
             {"indicatorOfParameter": 199}] #, "indicatorOfTypeOfLevel": 1, "level": 0}]
     except:
-        pass
     try:
-        grb.select(parameterNumber=65)
-        grb.select(parameterNumber=66)
-        grb.select(parameterNumber=75)
-        return [
-            {"parameterNumber": 65},
-            {"parameterNumber": 66},
-            {"parameterNumber": 75}]
-    except:
-        pass
-    try:
+        logger.debug("Trying parameterNumber 55 + 56 + 76 + 77")
         grb.select(parameterNumber=55)
         grb.select(parameterNumber=56)
         grb.select(parameterNumber=76)
@@ -82,9 +80,26 @@ def check_precip_fields(grb, lead):
             {"parameterNumber": 77}]
     except:
         pass
-        grb.select(shortName="RAIN_GSP")
-        grb.select(shortName="SNOW_CON")
-        grb.select(shortName="SNOW_GSP")
+    try:
+        logger.debug("Trying parameterNumber 65 + 66 + 75")
+        grb.select(parameterNumber=65)
+        grb.select(parameterNumber=66)
+        grb.select(parameterNumber=75)
+        return [
+            {"parameterNumber": 65},
+            {"parameterNumber": 66},
+            {"parameterNumber": 75}]
+    except:
+        pass
+    try:
+        logger.debug("Trying parameterNumber 56 + 76 + 77")
+        grb.select(parameterNumber=76)
+        grb.select(parameterNumber=77)
+        grb.select(parameterNumber=56)
+        return [
+            {"parameterNumber": 76},
+            {"parameterNumber": 77},
+            {"parameterNumber": 56}]
     except:
         pass
     try:
