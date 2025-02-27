@@ -346,10 +346,10 @@ class ModelConfiguration:
         for i, fil in enumerate(self.file_list):
             logger.info("Reading file ({:d}): {:s}".format(i, fil))
             if first:
-                lon, lat, tmp_data = read_data_grib(fil, self.parameter, get_lonlat_data=True)
+                lon, lat, tmp_data = read_data_grib(fil, self.parameter, 0, get_lonlat_data=True)
                 first = False
             else:
-                td2 = read_data_grib(fil, self.parameter)
+                td2 = read_data_grib(fil, self.parameter, 0)
                 tmp_data = np.where(td2 > tmp_data, td2, tmp_data)
         tmp_data = np.where(tmp_data < 0., 0., tmp_data)
         return lon, lat, self.unit_factor * tmp_data
@@ -357,10 +357,10 @@ class ModelConfiguration:
 
     def __get_data_accumulated(self):
         logger.info("Reading end file: {:s}".format(self.end_file))
-        lon, lat, tmp_data = read_data_grib(self.end_file, self.parameter, self.lead_end, get_lonlat_data=True)
+        lon, lat, tmp_data = read_data_grib(self.end_file, self.parameter, 0, self.lead_end, get_lonlat_data=True)
         if self.start_file:
             logger.info("Reading start file: {:s}".format(self.start_file))
-            start_tmp_data = read_data_grib(self.start_file, self.parameter, self.lead)
+            start_tmp_data = read_data_grib(self.start_file, self.parameter, self.lead, 0)
             tmp_data -= start_tmp_data
         # clamp to 0 because apparently this difference can be negative???
         # this is NOT a pygrib or panelification problem, also happens when
