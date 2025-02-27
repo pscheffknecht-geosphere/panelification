@@ -23,7 +23,7 @@ def get_interesting_subdomains(obs_data, args):
         #     limits = args.lonlat_limits
         # else:
         #     limits = verification_subdomains[name]
-        RR_obs_subdomain = args.region.resample_to_subdomain(RR_obs, lon_o, lat_o, subdomain_name, fix_nans=args.fix_nans)
+        RR_obs_subdomain, _, _ = args.region.resample_to_subdomain(RR_obs, lon_o, lat_o, subdomain_name, fix_nans=args.fix_nans)
         RR_obs_subdomain_mean = np.mean(RR_obs_subdomain)
         RR_obs_subdomain_max = np.max(RR_obs_subdomain)
         RR_means.append(RR_obs_subdomain_mean)
