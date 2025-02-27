@@ -23,7 +23,7 @@ def check_precip_fields(grb, lead):
     except:
         pass
     try:
-        logger.debug("Trying twatp + tsnowp")
+        logger.debug("Trying parameter number 8")
         grb.select(parameterNumber=8)
         return [{"parameterNumber": 8}]
     except:
@@ -68,6 +68,19 @@ def check_precip_fields(grb, lead):
     except:
         pass
     try:
+        logger.debug("Trying parameterNumber 55 + 56 + 76 + 77")
+        grb.select(parameterNumber=55)
+        grb.select(parameterNumber=56)
+        grb.select(parameterNumber=76)
+        grb.select(parameterNumber=77)
+        return [
+            {"parameterNumber": 55},
+            {"parameterNumber": 56},
+            {"parameterNumber": 76},
+            {"parameterNumber": 77}]
+    except:
+        pass
+    try:
         logger.debug("Trying parameterNumber 65 + 66 + 75")
         grb.select(parameterNumber=65)
         grb.select(parameterNumber=66)
@@ -79,7 +92,7 @@ def check_precip_fields(grb, lead):
     except:
         pass
     try:
-        logger.debug("Trying parameterNumber 65 + 66 + 75")
+        logger.debug("Trying parameterNumber 56 + 76 + 77")
         grb.select(parameterNumber=76)
         grb.select(parameterNumber=77)
         grb.select(parameterNumber=56)
@@ -87,32 +100,6 @@ def check_precip_fields(grb, lead):
             {"parameterNumber": 76},
             {"parameterNumber": 77},
             {"parameterNumber": 56}]
-    except:
-        pass
-    try:
-        logger.debug("Trying parameterNumber 55 + 56 + 76 + 77")
-        grb.select(parameterNumber=55)
-        grb.select(parameterNumber=56)
-        grb.select(parameterNumber=76)
-        grb.select(parameterNumber=77)
-        return [
-            {"parameterNumber": 55},
-            {"parameterNumber": 56},
-            {"parameterNumber": 76},
-            {"parameterNumber": 77}]
-    except:
-        pass
-    try:
-        logger.debug("Trying parameterNumber 55 + 56 + 76 + 77")
-        grb.select(parameterNumber=55)
-        grb.select(parameterNumber=56)
-        grb.select(parameterNumber=76)
-        grb.select(parameterNumber=77)
-        return [
-            {"parameterNumber": 55},
-            {"parameterNumber": 56},
-            {"parameterNumber": 76},
-            {"parameterNumber": 77}]
     except:
         pass
     try:
