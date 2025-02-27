@@ -150,6 +150,8 @@ def parse_arguments():
     init_logging(args)
     if not args.intranet_update:  # ignore these conditions if only updating intranet
         # replace the string object with a proper instance of Region
+        ce = __import__(args.custom_experiment_file)
+        args.custom_experiment_data = ce.experiment_configurations
         args.region = regions.Region(args.region, args.subdomains)
         if args.subdomains == "Custom" and args.lonlat_limits is None:
             logging.critical("""The subdomain is set to "Custom", then its limits need to be set!
