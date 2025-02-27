@@ -9,6 +9,7 @@ def check_precip_fields(grb, lead):
     """Try a number of known passible grib handles that can be used to store precipitation
     in grib files. Return a list of valid handles if found"""
     try:
+        logger.debug("Trying shortName twatp + tsnowp")
         grb.select(shortName='twatp')
         grb.select(shortName='tsnowp')
         return [{"shortName": "twatp"},
@@ -18,14 +19,12 @@ def check_precip_fields(grb, lead):
     try:
         logger.debug("Trying shortName = tp, forecastTime = 0")
         grb.select(shortName='tp', forecastTime=0)
-        return [{"shortName": "tp", "forecastTime": 0}] 
+        return [{"shortName": "tp", "forecastTime": 0}]
     except:
         pass
     try:
         logger.debug("Trying parameter number 8")
-        g = grb.select(parameterNumber=8)
-        if len(g) > 1:
-            raise valueError()
+        grb.select(parameterNumber=8)
         return [{"parameterNumber": 8}]
     except:
         pass
@@ -67,6 +66,7 @@ def check_precip_fields(grb, lead):
             {"indicatorOfParameter": 198}, #, "indicatorOfTypeOfLevel": 1, "level": 0},
             {"indicatorOfParameter": 199}] #, "indicatorOfTypeOfLevel": 1, "level": 0}]
     except:
+        pass
     try:
         logger.debug("Trying parameterNumber 55 + 56 + 76 + 77")
         grb.select(parameterNumber=55)
@@ -114,6 +114,10 @@ def check_precip_fields(grb, lead):
             {"indicatorOfParameter": 61}] #, "indicatorOfTypeOfLevel": 1, "level": 0}]
     except:
         pass
+        
+    for g in grb:
+        logger.debug(g)
+        logger.debug(g.shortName)
     return None
 
 
@@ -132,6 +136,13 @@ def check_gust_fields(grb, lead):
 
 
 def check_hail_fields(grb, lead):
+    try:
+        logger.debug("trying indicatorOfParamter 82")
+        grb.select(indicatorOfParameter=82) #, indicatorOfTypeOfLevel=1, level=0)
+        return [
+            {"indicatorOfParameter": 82}] #, "indicatorOfTypeOfLevel": 1, "level": 0},
+    except:
+        pass
     try:
         logger.debug("trying indicatorOfParamter 196")
         grb.select(indicatorOfParameter=196) #, indicatorOfTypeOfLevel=1, level=0)
@@ -171,6 +182,7 @@ def find_grib_handles(grb, param, lead):
     check_function = {
         'precip': check_precip_fields,
         'precip2': check_precip_fields,
+        'precip3': check_precip_fields,
         'sunshine': check_sunshine_fields,
         'hail': check_hail_fields,
         'lightning': check_lightning_fields,
@@ -179,5 +191,5 @@ def find_grib_handles(grb, param, lead):
     ret = check_function[param](grb, lead)
     if not ret:
         logger.critical(f"Fields not found in grib file for variable {param}, exiting...")
-        exit()
+        exit(1)
     return ret
