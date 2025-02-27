@@ -28,29 +28,34 @@ def read(file):
     RR=np.reshape(RR, [NJ,NI])
     return RR
 
+def check_paths(date):
+    DIRS_OBS = ['/mapp_arch/mgruppe/arc/inca_1h/prec/',
+               '/home/kmek/panelification/OBS/inca_1h/prec/']
+    for DIR_OBS in DIRS_OBS:
+        file_OBS_test=DIR_OBS+date[:4]+'/'+date[4:6]+'/'+date[6:8]+'/INCA_RR-'+date[8:10]+'.asc.gz'
+        logger.debug(f"Checking for file {file_OBS_test}")
+        if os.path.isfile(file_OBS_test):
+            return file_OBS_test
+    return False
+
 def bring(date, inca_file=None):
     DIR_TMP='../TMP/'
-    if not inca_file:
-        scratch = os.getenv('PERM')
-        DIR_OBS='/mapp_arch/mgruppe/arc/inca_1h/prec/'
-        file_OBS=DIR_OBS+date[:4]+'/'+date[4:6]+'/'+date[6:8]+'/INCA_RR-'+date[8:10]+'.asc.gz'
-    else:
+    if inca_file:
         file_OBS = inca_file
+    else:
+        file_OBS = check_paths(date)
+        if not file_OBS:
+            return False
     logger.info("reading: {:s}".format(file_OBS))
-
     file_TMP=DIR_TMP+'INCA_OBS'+'%05d' %((np.random.rand(1)*10000).astype(int))+'.gz'
 
-    if os.path.isfile(file_OBS):
-        copyfile(file_OBS, file_TMP)
-        order_unzip="gzip -df "+file_TMP
-        os.system(order_unzip)
-        try:
-            RR=read(file_TMP[:-3])
-        except:
-            return False
-        order_rm="rm "+file_TMP[:-3]
-        os.system(order_rm)
-        return RR
-    else:
+    copyfile(file_OBS, file_TMP)
+    order_unzip="gzip -df "+file_TMP
+    os.system(order_unzip)
+    try:
+        RR=read(file_TMP[:-3])
+    except:
         return False
-
+    order_rm="rm "+file_TMP[:-3]
+    os.system(order_rm)
+    return RR
