@@ -72,9 +72,7 @@ def resample_data(data_list, verification_subdomain, args):
     data_list = [resample_sim(sim, data_list[0], limits=limits, destination_grid=args.resample_target) for ii, sim in enumerate(data_list)]
     for sim in data_list:
         p90 = np.percentile(np.copy(sim['sim_param_resampled']), 90) # circumvent numpy bug #21524
-        if args.fix_nans:
-            sim['obs_param_resampled'] = np.where(np.isnan(sim['obs_param_resampled']), 0., sim['obs_param_resampled'])
-            sim['sim_param_resampled'] = np.where(np.isnan(sim['sim_param_resampled']), 0., sim['sim_param_resampled'])
+        #p90 = np.percentile(sim['sim_param_resampled'], 90)
         sim['rr90'] = np.where(sim['sim_param_resampled'] > p90, 1, 0)
         sim['p90_color'] = 'black' if p90 <= 10. else 'white'
     return data_list
@@ -100,45 +98,34 @@ def INCA_grid(INCAplus=False):
         Y=220.+np.arange(NY) #*1000.
     XX,YY=np.meshgrid(X,Y)
     lon_INCA,lat_INCA=myproj(XX,YY,inverse=True)
+    logging.debug("############################################################################")
+    logging.debug(lon_INCA)
+    logging.debug(lon_INCA.min())
+    logging.debug(lon_INCA.max())
+    logging.debug(lat_INCA)
+    logging.debug(lat_INCA.min())
+    logging.debug(lat_INCA.max())
+    logging.debug("############################################################################")
     return lon_INCA,lat_INCA
 
 
 def read_INCA(data_list, start_date, end_date, args):
     first=True
-    if args.parameter == 'precip' or args.parameter == 'precip2' or args.parameter == 'precip3':
+    if args.parameter == 'precip':
         read_dt = dt(hours=1)
         dtype = np.int16
     elif args.parameter == 'sunshine':
         read_dt = dt(minutes=15)
         dtype = np.int32
-    elif args.parameter == 'gusts':
-        read_dt = dt(minutes=10)
-        dtype = np.int16
-    read_inca_date = start_date + read_dt
-    while read_inca_date <= end_date:
-    # for read_inca_date in loop_datetime(start_date + read_dt, end_date + read_dt, read_dt):
+    for read_inca_date in loop_datetime(start_date + dt(hours=1), end_date + dt(hours=1), read_dt):
         datestring=read_inca_date.strftime("%Y%m%d%H")
-        dstr = read_inca_date.strftime("%Y-%m-%d %H:%M")
-        logging.info(f"reading inca at {dstr}")
-        if "precip" in args.parameter:
+        logging.info("reading inca at "+str(read_inca_date))
+        if args.parameter == "precip":
             if first:
                 var_tmp = bO.bring(datestring, inca_file=None)
                 first = False
             else:
                 var_tmp = var_tmp + bO.bring(datestring, inca_file=None)
-        elif args.parameter == "gusts":
-            logging.info("reading INCA gusts")
-            inca_file = inca_ana_paths['gusts'].format(
-                read_inca_date.strftime("%Y%m%d"),
-                read_inca_date.strftime("%H%M"))
-            logging.debug(f"reading INCA gusts from {inca_file}")
-            f_tmp = bO.bring(datestring, inca_file=inca_file) 
-            logger.debug(f_tmp)
-            if first:
-                var_tmp = f_tmp
-                first = False
-            else:
-                var_tmp = np.where(f_tmp > var_tmp, f_tmp, var_tmp)
         elif args.parameter == "sunshine":
             logging.info("reading INCA sunshine")
             inca_file = inca_ana_paths['sunshine'].format(
@@ -150,7 +137,6 @@ def read_INCA(data_list, start_date, end_date, args):
                 first = False
             else:
                 var_tmp += 1./3600.*bO.bring(datestring, inca_file=inca_file)
-        read_inca_date += read_dt
     lon, lat = INCA_grid()
     data_list.insert(0,{
         'conf' : 'INCA',
