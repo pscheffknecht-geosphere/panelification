@@ -102,6 +102,32 @@ def check_precip_fields(grb, lead):
             {"parameterNumber": 77}]
     except:
         pass
+    try:
+        logger.debug("Trying parameterNumber 55 + 56 + 76 + 77")
+        grb.select(parameterNumber=55)
+        grb.select(parameterNumber=56)
+        grb.select(parameterNumber=76)
+        grb.select(parameterNumber=77)
+        return [
+            {"parameterNumber": 55},
+            {"parameterNumber": 56},
+            {"parameterNumber": 76},
+            {"parameterNumber": 77}]
+    except:
+        pass
+    try:
+        grb.select(shortName="tirf")
+        return [
+            {"shortName": "tirf"}]
+    except:
+        pass
+    try:
+        grb.select(indicatorOfParameter=61) #, indicatorOfTypeOfLevel=1, level=0)
+        return [
+            {"indicatorOfParameter": 61}] #, "indicatorOfTypeOfLevel": 1, "level": 0}]
+    except:
+        pass
+        
     for g in grb:
         logger.debug(g)
         logger.debug(g.shortName)
