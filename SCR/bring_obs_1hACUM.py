@@ -32,8 +32,7 @@ def bring(date, inca_file=None):
     DIR_TMP='../TMP/'
     if not inca_file:
         scratch = os.getenv('PERM')
-        #DIR_OBS='/mapp_arch/mgruppe/arc/inca_1h/prec/'
-        DIR_OBS='/home/kmek/panelification/OBS/inca_1h/prec/'
+        DIR_OBS='/mapp_arch/mgruppe/arc/inca_1h/prec/'
         file_OBS=DIR_OBS+date[:4]+'/'+date[4:6]+'/'+date[6:8]+'/INCA_RR-'+date[8:10]+'.asc.gz'
     else:
         file_OBS = inca_file
@@ -48,10 +47,10 @@ def bring(date, inca_file=None):
         try:
             RR=read(file_TMP[:-3])
         except:
-            raise
+            return False
         order_rm="rm "+file_TMP[:-3]
         os.system(order_rm)
         return RR
     else:
-        raise
+        return False
 
