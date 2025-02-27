@@ -138,11 +138,11 @@ def calc_data(tmp_data_list, parameter):
     return calc_funcs[parameter](tmp_data_list)
 
 
-def read_data(grib_file_path, parameter, get_lonlat_data=False):
+def read_data(grib_file_path, parameter, lead, get_lonlat_data=False):
     """ calls the grib handle check and returns fields with or without lon and lat data,
     depending on selection"""
     with pygrib.open(grib_file_path) as f:
-        grib_handles = find_grib_handles(f, parameter)
+        grib_handles = find_grib_handles(f, parameter, lead)
         logger.debug("Getting {:s} from file {:s}".format(repr(grib_handles), grib_file_path))
         tmp_data_list = read_list_of_fields(f, grib_handles)
     tmp_data_field = calc_data(tmp_data_list, parameter)
@@ -299,10 +299,10 @@ class ModelConfiguration:
         for i, fil in enumerate(self.file_list):
             logger.info("Reading file ({:d}): {:s}".format(i, fil))
             if first:
-                lon, lat, tmp_data = read_data(fil, self.parameter, get_lonlat_data=True)
+                lon, lat, tmp_data = read_data(fil, self.parameter, 0, get_lonlat_data=True)
                 first = False
             else:
-                tmp_data += read_data(fil, self.parameter)
+                tmp_data += read_data(fil, self.parameter, 0)
         tmp_data = np.where(tmp_data < 0., 0., tmp_data)
         return lon, lat, self.unit_factor * tmp_data
 
@@ -313,10 +313,10 @@ class ModelConfiguration:
         for i, fil in enumerate(self.file_list):
             logger.info("Reading file ({:d}): {:s}".format(i, fil))
             if first:
-                lon, lat, tmp_data = read_data(fil, self.parameter, get_lonlat_data=True)
+                lon, lat, tmp_data = read_data(fil, self.parameter, 0, get_lonlat_data=True)
                 first = False
             else:
-                td2 = read_data(fil, self.parameter)
+                td2 = read_data(fil, self.parameter, 0)
                 tmp_data = np.where(td2 > tmp_data, td2, tmp_data)
         tmp_data = np.where(tmp_data < 0., 0., tmp_data)
         return lon, lat, self.unit_factor * tmp_data
@@ -325,10 +325,10 @@ class ModelConfiguration:
     def __get_data_accumulated(self):
         self.read += 1
         logger.info("Reading end file: {:s}".format(self.end_file))
-        lon, lat, tmp_data = read_data(self.end_file, self.parameter, get_lonlat_data=True)
+        lon, lat, tmp_data = read_data(self.end_file, self.parameter, 0, get_lonlat_data=True)
         if self.start_file:
             logger.info("Reading start file: {:s}".format(self.start_file))
-            start_tmp_data = read_data(self.start_file, self.parameter)
+            start_tmp_data = read_data(self.start_file, self.parameter, 0)
             tmp_data -= start_tmp_data
         # clamp to 0 because apparently this difference can be negative???
         # this is NOT a pygrib or panelification problem, also happens when

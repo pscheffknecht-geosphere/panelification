@@ -5,7 +5,7 @@ logger = logging.getLogger(__name__)
 # goes through a number of known used handles and checks if it succeeds in reading them from
 # the file. Returns the handles as dictionary, if successful.
 
-def check_precip_fields(grb):
+def check_precip_fields(grb, lead):
     """Try a number of known passible grib handles that can be used to store precipitation
     in grib files. Return a list of valid handles if found"""
     try:
@@ -23,6 +23,29 @@ def check_precip_fields(grb):
     except:
         pass
     try:
+        logger.debug("Trying shortName RAIN_CON + RAIN_GSP + SNOW_CON + SNOW_GSP")
+        grb.select(shortName="RAIN_CON")
+        grb.select(shortName="RAIN_GSP")
+        grb.select(shortName="SNOW_CON")
+        grb.select(shortName="SNOW_GSP")
+        return [{"shortName": "RAIN_CON"},
+                {"shortName": "RAIN_GSP"},
+                {"shortName": "SNOW_CON"},
+                {"shortName": "SNOW_GSP"}]
+    except:
+        pass
+    try:
+        logger.debug("Trying shortName RAIN_CON + RAIN_GSP + SNOW_GSP")
+        grb.select(shortName="RAIN_CON")
+        grb.select(shortName="RAIN_GSP")
+        grb.select(shortName="SNOW_GSP")
+        return [{"shortName": "RAIN_CON"},
+                {"shortName": "RAIN_GSP"},
+                {"shortName": "SNOW_GSP"}]
+    except:
+        pass
+    try:
+        logger.debug("Trying shortName tp")
         grb.select(shortName='tp')
         return [{"shortName": "tp"}]
     except:
@@ -59,8 +82,6 @@ def check_precip_fields(grb):
             {"parameterNumber": 77}]
     except:
         pass
-    try:
-        grb.select(shortName="RAIN_CON")
         grb.select(shortName="RAIN_GSP")
         grb.select(shortName="SNOW_CON")
         grb.select(shortName="SNOW_GSP")
@@ -81,7 +102,7 @@ def check_precip_fields(grb):
     return None
 
 
-def check_gust_fields(grb):
+def check_gust_fields(grb, lead):
     try:
         logger.debug("trying indicatorOfParamter 130 and 131")
         grb.select(indicatorOfParameter=130) #, indicatorOfTypeOfLevel=1, level=0)
@@ -95,7 +116,7 @@ def check_gust_fields(grb):
     return None
 
 
-def check_hail_fields(grb):
+def check_hail_fields(grb, lead):
     try:
         logger.debug("trying indicatorOfParamter 196")
         grb.select(indicatorOfParameter=196) #, indicatorOfTypeOfLevel=1, level=0)
@@ -107,7 +128,7 @@ def check_hail_fields(grb):
     return None
 
 
-def check_sunshine_fields(grb):
+def check_sunshine_fields(grb, lead):
     try:
         logger.debug("trying indicatorOfParamter 248")
         grb.select(indicatorOfParameter=248) #, indicatorOfTypeOfLevel=1, level=0)
@@ -119,7 +140,7 @@ def check_sunshine_fields(grb):
     return None
 
 
-def check_lightning_fields(grb):
+def check_lightning_fields(grb, lead):
     try:
         logger.debug("trying indicatorOfParamter 246")
         grb.select(indicatorOfParameter=246) #, indicatorOfTypeOfLevel=1, level=0)
@@ -131,7 +152,7 @@ def check_lightning_fields(grb):
     return None
 
 # factory for grib field checks
-def find_grib_handles(grb, param):
+def find_grib_handles(grb, param, lead):
     check_function = {
         'precip': check_precip_fields,
         'precip2': check_precip_fields,
@@ -140,7 +161,7 @@ def find_grib_handles(grb, param):
         'lightning': check_lightning_fields,
         'gusts': check_gust_fields
     }
-    ret = check_function[param](grb)
+    ret = check_function[param](grb, lead)
     if not ret:
         logger.critical(f"Fields not found in grib file for variable {param}, exiting...")
         exit()
