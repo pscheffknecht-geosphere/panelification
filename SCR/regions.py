@@ -120,6 +120,9 @@ regions = {
             "HPE_extreme": {
                 "central_longitude": 15.78, "central_latitude": 48.16,
                 "x_size":  95., "y_size":  65.},
+            "Vorarlberg_North_Half": {
+                'central_longitude': 9.83, 'central_latitude': 47.55, 
+                'x_size': 75, 'y_size': 55},
             },
             # "Vienna" :        [16.,   16.66, 48., 4 8.4],
             # "Lower_Austria" : [14.33, 17.33, 47.4,  49.2],
@@ -380,6 +383,7 @@ class Region():
                 logging.warning("--fix_nans is set to True, replaced {:d} NaNs with 0.!".format(
                     np.isnan(data_resampled).sum()))
                 data_resampled = np.where(np.isnan(data_resampled), 0., data_resampled)
+                data_resampled = np.where(data_resampled > 2500., 0., data_resampled)
             else:
                 logging.warning("""Your resampled data contains missing values! you can use --fix_nans to set them to 0., but this can change scores!""")
         return data_resampled, self.subdomains[subdomain_name]["lon"], self.subdomains[subdomain_name]["lat"]

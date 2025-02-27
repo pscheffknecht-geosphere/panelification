@@ -98,10 +98,12 @@ def pick_color_OK(val, threshold):
     t = (val - threshold) / (1. - threshold)
     t = 0. if t < 0. else t
     t = 1. if t > 1. else t
+    print(val, threshold, t, low, high, t * high + (1. - t) * low)
     return t * high + (1. - t) * low
 
 
 def add_fss_plot_new(ax, sim, rank_vmax, jj, args):
+    print("WTF")
     fss_rank_cols = ['white']*rank_vmax
     fss_rank_cols[0:5] = ['black', 'firebrick', 'limegreen', 'gold', 'silver', 'darkorange']
     if args.fss_mode == 'relative':
@@ -286,10 +288,7 @@ def draw_single_figure(sim, obs, r, jj, levels, cmap, norm, verification_subdoma
     precip_data, lon, lat = prep_plot_data(sim, obs, args.mode)
     c = ax.pcolormesh(lon, lat, precip_data,
                     cmap=cmap,transform=args.region.data_projection,
-                    norm=norm, shading='auto') #, extend='max')
-    # c = ax.contourf(lon, lat, precip_data,
-    #                 levels,cmap=cmap,transform=args.region.data_projection,
-    #                 norm=norm, extend='max')
+                    norm=norm, shading='auto')
     ax.set_facecolor("silver")
     if args.draw_p90:
         p90 = np.percentile(np.copy(sim['precip_data_resampled']), 90) # circumvent numpy bug #21524
