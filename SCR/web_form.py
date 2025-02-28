@@ -83,7 +83,7 @@ class PanelificationRequest(FlaskForm):
     fix_nans = BooleanField()
     save = BooleanField()
     fss_mode = SelectField(choices=['ranks', 'relative'], default='ranks')
-    # rank_score_time_series = BooleanField()
+    rank_score_time_series_wanted = BooleanField(default="checked")
     rank_score_time_series = SelectMultipleField(
         choices=ALL_TIME_SERIES_OPTIONS, 
         default=['4'])
@@ -124,11 +124,12 @@ def make_panelification_command(form):
     command_string += "--hidden " + str(form.hidden.data) + " "
     command_string += "--fix_nans " + str(form.fix_nans.data) + " "
     command_string += "--save " + str(form.save.data) + " "
-    command_string += "--rank_score_time_series " # + str(form.rank_score_time_series.data) + " "
-    rank_score_time_series = dict(get_time_series_choices())
-    for rts in form.rank_score_time_series.data:
-        command_string += " {:s}".format(rts) + " "
-        # command_string += " {:s}".format(rank_score_time_series[rts])
+    if form.rank_score_time_series_wanted:
+        command_string += "--rank_score_time_series " # + str(form.rank_score_time_series.data) + " "
+        rank_score_time_series = dict(get_time_series_choices())
+        for rts in form.rank_score_time_series.data:
+            command_string += " {:s}".format(rts) + " "
+            # command_string += " {:s}".format(rank_score_time_series[rts])
     command_string += "--save_full_fss " + str(form.save_full_fss.data) + " "
     command_string += "--fss_mode " + form.fss_mode.data + " "
     if len(form.logfile.data) > 0:
@@ -138,6 +139,7 @@ def make_panelification_command(form):
     command_string += "--loglevel " + form.loglevel.data + " "
     command_string += "--mode " + form.mode.data + " "
     command_string += "--rank_by_fss_metric " + form.rank_by_fss_metric.data + " "
+    command_string += "--custom_experiment_file custom_experiments_geosphere"
     return command_string
 
 
