@@ -140,7 +140,7 @@ def parse_arguments():
     parser.add_argument('--loglevel', type=str, default='info',
         help = """Logging level:
           debug, info, warning, error""")
-    parser.add_argument('--rank_score_time_series', nargs='+', default=['None'], type=str,
+    parser.add_argument('--rank_score_time_series', nargs='*', default=['None'], type=str,
         help = """Draw line plots of model performance, init on x axis, score on y axis""")
     parser.add_argument('--highlight_threshold', '-u', type=int, default=[], nargs='+',
         help = """Highlight specific precipitation contour line""")
@@ -197,6 +197,8 @@ def parse_arguments():
                 for jj in range(15, 0, -1):
                     args.custom_experiments.insert(ii, f"claef1k-m{jj:02d}")
                 args.custom_experiments.insert(ii, f"claef1k-control")
+        if len(args.rank_score_time_series) == 0:
+            args.rank_score_time_series = None
 
 def get_lead_limits(args):
     lead_limits = args.lead
@@ -274,11 +276,18 @@ def main():
     #     logging.critical("Parameter {:s} unknown, accepted parameters: precip, sunshine, hail, lightning".format(
     #         args.parameter))
     #     exit(1)
-    if args.region == "Dynamic":
-        region_data = regions.dynamic_region(data_list, regions.regions)
-    else:
-        region_data = regions.regions
-    args.region = regions.Region(args.region, args.subdomains)
+    # if args.region == "Dynamic":
+    #     region_data = regions.dynamic_region(data_list, regions.regions)
+    # else:
+    #     print("============== 1 ================")
+    #     print(regions.regions)
+    #     print("============== 2 ================")
+    #     print(args.region)
+    #     print("============== 3 ================")
+    #     print(regions.regions[args.region])
+    #     print("============== 4 ================")
+    #     region_data = regions.regions[args.region]
+    # args.region = regions.Region(args.region, args.subdomains)
     if args.sorting == 'init':
         newlist = sorted(data_list[1::], key=lambda d: d['init']) 
         newlist.insert(0, data_list[0])

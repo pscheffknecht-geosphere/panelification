@@ -136,7 +136,7 @@ def add_fss_plot_new(ax, sim, rank_vmax, jj, args):
                     xedget = -0.5 + np.array([xx+3*pad, xx+1-3*pad, xx+0.5, xx+3*pad])
                     yedget = -0.5 + np.array([yy+3*pad, yy+3*pad, yy+1-3*pad, yy+3*pad])
                     col = 'firebrick'
-            if args.test_greens:
+            if args.greens:
                 if sim['fss_ranks'][yy, xx] > 5: # and sim['fssf'][yy, xx] >= sim['fssf_thresholds'][yy]:
                     t = (sim['fssf'].values[yy, xx] - sim['fssf_thresholds'][yy]) / (1. - sim['fssf_thresholds'][yy])
                     col = cmap(t)
@@ -346,7 +346,7 @@ def define_panel_and_plot_dimensions(data_list, args):
     r = ax.get_data_ratio()
     # Automatically determine necessary size of the panel plot
     N = len(data_list)
-    if not args.rank_score_time_series[0] == 'None':
+    if  args.rank_score_time_series:
         N += len(args.rank_score_time_series)
     if args.tile[0] and args.tile[1]:
         cols = args.tile[1]
@@ -458,7 +458,7 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
     os.system('mkdir ../TMP/'+tmp_string)
     logger.debug('mkdir ../TMP/'+tmp_string)
     # dump data for each model into a single pickle file
-    if not args.rank_score_time_series[0] == 'None':
+    if args.rank_score_time_series:
         score_time_series(data_list, r, tmp_string, args)
     for jj, sim in enumerate(data_list):
         pickle.dump([sim, data_list[0], r, jj, levels, cmap,
