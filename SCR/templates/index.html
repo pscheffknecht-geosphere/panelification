@@ -66,7 +66,8 @@ Panelmaker v0.1
               <tr><th>Replace NaNs with zeros if verification subdomain extends outside of the model domain</th><th>{{ form.fix_nans }}</th></tr>
               <tr><th>Save all data to pickle file</th><th>{{ form.save }}</th></tr>
               <tr><th>Select FSS plot mode</th><th>{{ form.fss_mode }}</th></tr>
-              <tr><th>Append time series of score by which the models are ranked</th><th>{{ form.rank_score_time_series }}</th></tr>
+              <tr><th>Append time series?</th><th>{{ form.rank_score_time_series_wanted }}</th></tr>
+              <tr><th>Select scores for time series</th><th>{{ form.rank_score_time_series }}</th></tr>
               <tr><th>Select ranking metric, default is fss_condensed_weighted, old default was fss_total_abs_score</th><th>{{ form.rank_by_fss_metric }}</th></tr>
               <tr><th>Save all FSS data (numerator, denominator, fss) for all models to pickle file</th><th>{{ form.save_full_fss }}</th></tr>
               <tr><th>Log to file instead of stdout (allows to examine log later)</th><th>{{ form.logfile }}</th></tr>
