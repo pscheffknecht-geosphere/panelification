@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from mars_request_templates import mars_request_templates
 import urllib.request
 from pathlib import Path
+from osgeo import gdal
 
 import logging
 logger = logging.getLogger(__name__)
@@ -245,7 +246,10 @@ class ModelConfiguration:
         self.output_interval = self.__pick_value_by_parameter(cmc["output_interval"])
         self.accumulated     = self.__pick_value_by_parameter(cmc["accumulated"])
         self.unit_factor     = self.__pick_value_by_parameter(cmc["unit_factor"])
-        self.on_mars         = self.__pick_value_by_parameter(cmc["on_mars"])
+        if "on_mars" in cmc.keys():
+            self.on_mars         = self.__pick_value_by_parameter(cmc["on_mars"])
+        else:
+            self.on_mars = False
         self.color           = self.__pick_value_by_parameter(cmc["color"])
         if "ecfs_path_template" in cmc:
             self.ecfs_path_template = self.__pick_value_by_parameter(cmc["ecfs_path_template"])
@@ -302,23 +306,25 @@ class ModelConfiguration:
         for key in keys:
             logger.debug(f"Setting key {key}")
             if not key in cmc.keys():
-                if key in custom_experiments.experiment_configurations[cmc["base_experiment"]]:
+                if key in args.custom_experiment_data[cmc["base_experiment"]]:
                     logger.debug("Replacing {:s} in {:s} with value from base_experiment {:s}:".format(
                         key, self.experiment_name, cmc["base_experiment"]))
                     cmc[key] = args.custom_experiment_data[cmc["base_experiment"]][key]
                     logger.debug("  {:s}".format(str(cmc[key])))
+                else:
+                    cmc[key] = None
+                    logger.debug("Not in base experiment, setting {:s} in {:s} to None:".format(
+                        key, self.experiment_name))
+        print(cmc.keys())
         if not "on_mars" in cmc.keys():
             if "on_mars" in args.custom_experiment_data[cmc["base_experiment"]].keys():
                 cmc["on_mars"] = args.custom_experiment_data[cmc["base_experiment"]]["on_mars"]
             else:
                 cmc["on_mars"] = False
-                else:
-                    cmc[key] = None
-                    logger.debug("Not in base experiment, setting {:s} in {:s} to None:".format(
-                        key, self.experiment_name))
-
+        print(cmc.keys())
         if not "url_template" in cmc.keys():
             cmc["url_template"] = None
+        print(cmc.keys())
               
 
     def print(self):
@@ -403,7 +409,7 @@ class ModelConfiguration:
     def __get_data_accumulated(self):
         self.read += 1
         logger.info("Reading end file: {:s}".format(self.end_file))
-        lon, lat, tmp_data = read_data_grib(self.end_file, self.parameter, 0, self.lead_end, get_lonlat_data=True)
+        lon, lat, tmp_data = read_data_grib(self.end_file, self.parameter, self.lead_end, get_lonlat_data=True)
         if self.start_file:
             logger.info("Reading start file: {:s}".format(self.start_file))
             start_tmp_data = read_data_grib(self.start_file, self.parameter, self.lead, 0)
