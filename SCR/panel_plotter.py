@@ -98,12 +98,10 @@ def pick_color_OK(val, threshold):
     t = (val - threshold) / (1. - threshold)
     t = 0. if t < 0. else t
     t = 1. if t > 1. else t
-    print(val, threshold, t, low, high, t * high + (1. - t) * low)
     return t * high + (1. - t) * low
 
 
 def add_fss_plot_new(ax, sim, rank_vmax, jj, args):
-    print("WTF")
     fss_rank_cols = ['white']*rank_vmax
     fss_rank_cols[0:5] = ['black', 'firebrick', 'limegreen', 'gold', 'silver', 'darkorange']
     if args.fss_mode == 'relative':
@@ -346,7 +344,7 @@ def define_panel_and_plot_dimensions(data_list, args):
     r = ax.get_data_ratio()
     # Automatically determine necessary size of the panel plot
     N = len(data_list)
-    if  args.rank_score_time_series:
+    if args.rank_score_time_series:
         N += len(args.rank_score_time_series)
     if args.tile[0] and args.tile[1]:
         cols = args.tile[1]
@@ -427,11 +425,8 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
     logger.debug(args.region.extent)
     time_series_scores = args.rank_score_time_series
     if args.zoom_to_subdomain:
-        print("Zooming to Subdomain")
         plot_extent=[data_list[1]['lon_resampled'].min()-0.25, data_list[1]['lon_resampled'].max()+0.25,
                      data_list[1]['lat_resampled'].min()-0.25, data_list[1]['lat_resampled'].max()+0.25]
-        print("New extent:")
-        print(plot_extent)
     else:
         plot_extent = args.region.extent
     for sim in data_list:
