@@ -292,7 +292,7 @@ def read_inca_netcdf_archive(data_list, start_date, end_date, args):
             data_tmp = Dataset(read_file, "r")
             previous_file = read_file
         read_hour = int((tt - datetime(tt.year, tt.month, 1)).total_seconds() / 3600)
-        if rr_tmp == 'None':
+        if not rr_tmp:
             rr_tmp = data_tmp.variables['RR'][read_hour, :, :]
         else:
             rr_tmp += data_tmp.variables['RR'][read_hour, :, :]
@@ -329,7 +329,8 @@ def read_inca_netcdf_archive(data_list, start_date, end_date, args):
     tt = start_date
     # 1. check if all necessary files exist and are up to date:
     fetched_current = False # if current month is found, was it updated?
-    rr_tmp = 'None'
+    rr_tmp = None
+    first = True
     data_tmp = None
     previous_file = None
     this_month = datetime(datetime.now().year, datetime.now().month, 1)
@@ -345,8 +346,9 @@ def read_inca_netcdf_archive(data_list, start_date, end_date, args):
             data_tmp = Dataset(read_file, "r")
             previous_file = read_file
         read_hour = int((tt - datetime(tt.year, tt.month, 1)).total_seconds() / 3600)
-        if rr_tmp == 'None':
+        if first:
             rr_tmp = data_tmp.variables['RR'][read_hour, :, :]
+            first = False
         else:
             rr_tmp += data_tmp.variables['RR'][read_hour, :, :]
         tt += dt(hours=1)
