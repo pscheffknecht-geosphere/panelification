@@ -315,8 +315,9 @@ def dynamic_region(data_list, region_data):
      
 
 class Region():
-    def __init__(self, region_name="Dynamic", subdomains=["Default"]):
+    def __init__(self, region_name="Dynamic", subdomains=["Default"], region_data=regions):
         self.name = region_name
+        self.regions = regions
         print(region_name)
         print(regions.keys())
         print(regions[region_name].keys())
@@ -330,13 +331,6 @@ class Region():
         self.plot_projection = ccrs.LambertConformal(
             central_longitude = regions[region_name]['central_longitude'],
             central_latitude = regions[region_name]['central_latitude'])
-
-    # currently unused
-    # def __set_custom_projection(self, clon, clat):
-    #     self.plot_projection = ccrs.LambertConformal(
-    #         central_longitude = clon,
-    #         central_latitude = clat)
-
 
     def __make_grid(self, subdomain_data, k=1.):
         """ Use pyproj to generate a rectangular 1-km-grid on a steregraphic projection
@@ -356,10 +350,10 @@ class Region():
         self.subdomains = {}
         for subdomain_name in subdomain_name_list:
             logger.info("Preparing subdomain {:s}".format(subdomain_name))
-            k = self.__get_scale_factor(regions[region_name]["verification_subdomains"][subdomain_name])
-            lon, lat = self.__make_grid(regions[region_name]["verification_subdomains"][subdomain_name], k=k)
-            if "thresholds" in regions[region_name]["verification_subdomains"][subdomain_name].keys():
-                thresholds = regions[region_name]["verification_subdomains"][subdomain_name]["thresholds"]
+            k = self.__get_scale_factor(self.regions[region_name]["verification_subdomains"][subdomain_name])
+            lon, lat = self.__make_grid(self.regions[region_name]["verification_subdomains"][subdomain_name], k=k)
+            if "thresholds" in self.regions[region_name]["verification_subdomains"][subdomain_name].keys():
+                thresholds = self.regions[region_name]["verification_subdomains"][subdomain_name]["thresholds"]
             else:
                 thresholds = default_thresholds
             self.subdomains[subdomain_name] = {

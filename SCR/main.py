@@ -140,7 +140,7 @@ def parse_arguments():
     parser.add_argument('--loglevel', type=str, default='info',
         help = """Logging level:
           debug, info, warning, error""")
-    parser.add_argument('--rank_score_time_series', nargs='*', default=['None'], type=str,
+    parser.add_argument('--rank_score_time_series', nargs='*', default=None, type=str,
         help = """Draw line plots of model performance, init on x axis, score on y axis""")
     parser.add_argument('--highlight_threshold', '-u', type=int, default=[], nargs='+',
         help = """Highlight specific precipitation contour line""")
@@ -163,7 +163,8 @@ def parse_arguments():
         # replace the string object with a proper instance of Region
         ce = __import__(args.custom_experiment_file)
         args.custom_experiment_data = ce.experiment_configurations
-        args.region = regions.Region(args.region, args.subdomains)
+        if args.region != "Dynamic":
+            args.region = regions.Region(args.region, args.subdomains)
         if args.subdomains == "Custom" and args.lonlat_limits is None:
             logging.critical("""The subdomain is set to "Custom", then its limits need to be set!
                 Use the command line argument:
@@ -197,8 +198,6 @@ def parse_arguments():
                 for jj in range(15, 0, -1):
                     args.custom_experiments.insert(ii, f"claef1k-m{jj:02d}")
                 args.custom_experiments.insert(ii, f"claef1k-control")
-        if len(args.rank_score_time_series) == 0:
-            args.rank_score_time_series = None
 
 def get_lead_limits(args):
     lead_limits = args.lead
@@ -253,10 +252,11 @@ def main():
         exit()
     #data_list = data_from_dcmdb.read_data(data_list, args)
     # if args.parameter in ['precip', 'sunshine']:
-    if args.parameter in ['precip', 'precip2', 'precip3', 'sunshine']:
-        if args.precip_verif_dataset == "INCA":
-            data_list = inca.read_INCA(data_list, start_date, end_date, args)
+    # if args.parameter in ['precip', 'precip2', 'precip3', 'sunshine']:
+    if args.precip_verif_dataset == "INCA":
+        data_list = inca.read_INCA(data_list, start_date, end_date, args)
     elif args.precip_verif_dataset == "INCA_archive":
+        print("_______________?????????????????")
         data_list = inca.read_inca_netcdf_archive(data_list, start_date, end_date, args)
     elif args.precip_verif_dataset == "OPERA":
             data_list = opera.read_OPERA(data_list, start_date, end_date, args)
@@ -276,8 +276,6 @@ def main():
     #     logging.critical("Parameter {:s} unknown, accepted parameters: precip, sunshine, hail, lightning".format(
     #         args.parameter))
     #     exit(1)
-    # if args.region == "Dynamic":
-    #     region_data = regions.dynamic_region(data_list, regions.regions)
     # else:
     #     print("============== 1 ================")
     #     print(regions.regions)
@@ -288,6 +286,13 @@ def main():
     #     print("============== 4 ================")
     #     region_data = regions.regions[args.region]
     # args.region = regions.Region(args.region, args.subdomains)
+    for sim in data_list:
+        print(sim['name'])
+    if args.region == "Dynamic":
+        region_data = regions.regions
+        region_data = regions.dynamic_region(data_list, region_data)
+        # args.region = regions.Region(args.region, args.subdomains)
+        args.region = regions.Region(args.region, args.subdomains, region_data=region_data) 
     if args.sorting == 'init':
         newlist = sorted(data_list[1::], key=lambda d: d['init']) 
         newlist.insert(0, data_list[0])
