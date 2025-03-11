@@ -120,6 +120,9 @@ regions = {
             "HPE_extreme": {
                 "central_longitude": 15.78, "central_latitude": 48.16,
                 "x_size":  95., "y_size":  65.},
+            "Vorarlberg_North_Half": {
+                'central_longitude': 9.83, 'central_latitude': 47.55, 
+                'x_size': 75, 'y_size': 55},
             },
             # "Vienna" :        [16.,   16.66, 48., 4 8.4],
             # "Lower_Austria" : [14.33, 17.33, 47.4,  49.2],
@@ -312,8 +315,9 @@ def dynamic_region(data_list, region_data):
      
 
 class Region():
-    def __init__(self, region_name="Dynamic", subdomains=["Default"]):
+    def __init__(self, region_name="Dynamic", subdomains=["Default"], region_data=regions):
         self.name = region_name
+        self.regions = regions
         self.extent=regions[region_name]['extent']
         self.data_projection = ccrs.PlateCarree()
         self.plot_rojection = None
@@ -324,13 +328,6 @@ class Region():
         self.plot_projection = ccrs.LambertConformal(
             central_longitude = regions[region_name]['central_longitude'],
             central_latitude = regions[region_name]['central_latitude'])
-
-    # currently unused
-    # def __set_custom_projection(self, clon, clat):
-    #     self.plot_projection = ccrs.LambertConformal(
-    #         central_longitude = clon,
-    #         central_latitude = clat)
-
 
     def __make_grid(self, subdomain_data, k=1.):
         """ Use pyproj to generate a rectangular 1-km-grid on a steregraphic projection
@@ -350,10 +347,10 @@ class Region():
         self.subdomains = {}
         for subdomain_name in subdomain_name_list:
             logger.info("Preparing subdomain {:s}".format(subdomain_name))
-            k = self.__get_scale_factor(regions[region_name]["verification_subdomains"][subdomain_name])
-            lon, lat = self.__make_grid(regions[region_name]["verification_subdomains"][subdomain_name], k=k)
-            if "thresholds" in regions[region_name]["verification_subdomains"][subdomain_name].keys():
-                thresholds = regions[region_name]["verification_subdomains"][subdomain_name]["thresholds"]
+            k = self.__get_scale_factor(self.regions[region_name]["verification_subdomains"][subdomain_name])
+            lon, lat = self.__make_grid(self.regions[region_name]["verification_subdomains"][subdomain_name], k=k)
+            if "thresholds" in self.regions[region_name]["verification_subdomains"][subdomain_name].keys():
+                thresholds = self.regions[region_name]["verification_subdomains"][subdomain_name]["thresholds"]
             else:
                 thresholds = default_thresholds
             self.subdomains[subdomain_name] = {
@@ -380,6 +377,7 @@ class Region():
                 logging.warning("--fix_nans is set to True, replaced {:d} NaNs with 0.!".format(
                     np.isnan(data_resampled).sum()))
                 data_resampled = np.where(np.isnan(data_resampled), 0., data_resampled)
+                data_resampled = np.where(data_resampled > 2500., 0., data_resampled)
             else:
                 logging.warning("""Your resampled data contains missing values! you can use --fix_nans to set them to 0., but this can change scores!""")
         return data_resampled, self.subdomains[subdomain_name]["lon"], self.subdomains[subdomain_name]["lat"]

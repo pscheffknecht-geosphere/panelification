@@ -28,12 +28,7 @@ def fourier_fss(fcst, obs, threshold, window, percentiles, mode):
       ohat = fourier_filter(obs > threshold, window, mode)
     num = np.nanmean(np.power(fhat - ohat, 2))
     denom = np.nanmean(np.power(fhat,2) + np.power(ohat,2))
-    fhat_avg = np.nanmean(fhat)
-    ohat_avg = np.nanmean(ohat)
-    if fhat_avg == ohat_avg:
-        ovest = 0. # should almost never happen unless domain ist 100% or 0% covered
-    else:
-        ovest = 1. if fhat_avg > ohat_avg else -1
+    ovest = (np.sum(fcst > threshold) - np.sum(obs > threshold)) / fcst.size
     return num, denom, 1.-num/denom, ovest
 
 
@@ -58,4 +53,3 @@ def fss_frame(fcst, obs, windows, levels, percentiles=False, mode='same'):
             pd.DataFrame(den_data_fft,  index=levels), #, columns=windows),
             pd.DataFrame(fss_data_fft,  index=levels), #, columns=windows),
             pd.DataFrame(overestimated, index=levels)) #, columns=windows))
-           

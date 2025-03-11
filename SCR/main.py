@@ -14,6 +14,7 @@ from model_parameters import *
 import scoring
 import inca_functions as inca
 import read_opera as opera
+import obs_from_db as obs
 import read_antilope as antilope
 import read_esp as esp
 import panel_plotter
@@ -21,6 +22,7 @@ import data_io
 import data_from_dcmdb
 import scan_obs
 import regions
+import prepare_for_web
 import parameter_settings
 
 # try avoiding hanging during parallelized portions of the program
@@ -138,7 +140,7 @@ def parse_arguments():
     parser.add_argument('--loglevel', type=str, default='info',
         help = """Logging level:
           debug, info, warning, error""")
-    parser.add_argument('--rank_score_time_series', nargs='+', default=['None'], type=str,
+    parser.add_argument('--rank_score_time_series', nargs='*', default=None, type=str,
         help = """Draw line plots of model performance, init on x axis, score on y axis""")
     parser.add_argument('--highlight_threshold', '-u', type=int, default=[], nargs='+',
         help = """Highlight specific precipitation contour line""")
@@ -151,43 +153,53 @@ def parse_arguments():
         help = 'check ecfs for experiments if no files are present on scratch')
     parser.add_argument('--zoom_to_subdomain', nargs='?', default=False, const=True, type=str2bool,
         help = 'zoom in to subdomain regardless of region extent')
-    parser.add_argument('--test_greens', nargs='?', default=False, const=True, type=str2bool,
+    parser.add_argument('--intranet_update', nargs='?', default=False, const=True, type=str2bool,
+        help = 'update panels on the intranet website')
+    parser.add_argument('--greens', nargs='?', default=True, const=True, type=str2bool,
         help = 'test green instead of white')
+    parser.add_argument('--dpi', nargs='?', default=150, const=True, type=int,
+        help = 'set DPI of output')
     args = parser.parse_args()
     init_logging(args)
-    # replace the string object with a proper instance of Region
-    ce = __import__(args.custom_experiment_file)
-    args.custom_experiment_data = ce.experiment_configurations
-    if not args.region in regions.regions.keys():
-        logging.critical(f"Region {args.region} not found, the following regions are available:")
-        logging.critical(regions.regions.keys())
-        exit(1)
-    if args.subdomains == "Custom" and args.lonlat_limits is None:
-        logging.critical("""The subdomain is set to "Custom", then its limits need to be set!
-            Use the command line argument:
-              --lonlat_limits LonMin LonMax LatMin LatMax
+    if not args.intranet_update:  # ignore these conditions if only updating intranet
+        # replace the string object with a proper instance of Region
+        ce = __import__(args.custom_experiment_file)
+        args.custom_experiment_data = ce.experiment_configurations
+        if args.region != "Dynamic":
+            args.region = regions.Region(args.region, args.subdomains)
+        if args.subdomains == "Custom" and args.lonlat_limits is None:
+            logging.critical("""The subdomain is set to "Custom", then its limits need to be set!
+                Use the command line argument:
+                  --lonlat_limits LonMin LonMax LatMin LatMax
 
-            exiting...""")
-        exit(1)
-    if len(args.lead) > 2 and len(args.lead) != 2*len(args.configs):
-        logging.critical("""--lead must have one of the following:
-           1 value 
-             maximum lead time before accumulation start period
-           2 values
-             minimum and maximum lead time before accumulation start period
-           2*len(--config) values
-             minimum and maximum lead time for each config
+                exiting...""")
+            exit(1)
+        if len(args.lead) > 2 and len(args.lead) != 2*len(args.custom_experiments):
+            logging.critical("""--lead must have one of the following:
+               1 value 
+                 maximum lead time before accumulation start period
+               2 values
+                 minimum and maximum lead time before accumulation start period
+               2*len(--config) values
+                 minimum and maximum lead time for each config
 
-           exiting...""")
-        exit(1)
-    if len(args.name) > 0:
-        if args.name[-1] != '_':
-            args.name += '_' 
-    # hidden forces clean too:
-    args.clean = True if args.hidden else args.clean
-    if args.duration >= 24 and args.parameter == "precip":
-        logging.info("Switching from paramter 'precip' to 'precip2' due to long accumulation window")
-        args.parameter = "precip2"
+               exiting...""")
+            exit(1)
+        if len(args.name) > 0:
+            if args.name[-1] != '_':
+                args.name += '_' 
+        # hidden forces clean too:
+        args.clean = True if args.hidden else args.clean
+        if args.duration >= 24 and args.parameter == "precip":
+            logging.info("Switching from paramter 'precip' to 'precip2' due to long accumulation window")
+            args.parameter = "precip2"
+        for ii, entry in enumerate(args.custom_experiments):
+            if entry == "claef1k-all-members":
+                logging.info(f"Found cleaf1k-all-members at position {ii}, replacing...")
+                args.custom_experiments[ii] = "claef1k-m16"
+                for jj in range(15, 0, -1):
+                    args.custom_experiments.insert(ii, f"claef1k-m{jj:02d}")
+                args.custom_experiments.insert(ii, f"claef1k-control")
 
 def get_lead_limits(args):
     lead_limits = args.lead
@@ -219,6 +231,14 @@ def print_some_basics(start_date, end_date, min_lead, max_lead):
 
 def main():
     parse_arguments()
+    if args.intranet_update:
+        logging.info("Updating intranet...")
+        prepare_for_web.complete_blank_html()
+        prepare_for_web.send_panels_to_mgruppe()
+        prepare_for_web.send_html_to_mgruppe()
+        prepare_for_web.clean_old_panels
+        exit()
+    region = args.region
     min_lead, max_lead = get_lead_limits(args)
     start_date = datetime.strptime(args.start, "%Y%m%d%H")
     end_date = start_date + dt(hours=args.duration)
@@ -234,12 +254,17 @@ def main():
         exit()
     #data_list = data_from_dcmdb.read_data(data_list, args)
     # if args.parameter in ['precip', 'sunshine']:
+    # if args.parameter in ['precip', 'precip2', 'precip3', 'sunshine']:
     if args.precip_verif_dataset == "INCA":
         data_list = inca.read_INCA(data_list, start_date, end_date, args)
     elif args.precip_verif_dataset == "INCA_archive":
+        print("_______________?????????????????")
         data_list = inca.read_inca_netcdf_archive(data_list, start_date, end_date, args)
     elif args.precip_verif_dataset == "OPERA":
-        data_list = opera.read_OPERA(data_list, start_date, end_date, args)
+            data_list = opera.read_OPERA(data_list, start_date, end_date, args)
+    elif args.parameter == 'hail':
+        data_list = obs.read_hail(data_list, start_date, end_date)
+        data_list = data_io.scale_hail(data_list) # scale all fields to 0...4
     elif args.precip_verif_dataset == "ANTILOPE":
         data_list = antilope.read_ANTILOPE(data_list, start_date, end_date, args)
     elif args.precip_verif_dataset == "ESP":
@@ -247,19 +272,19 @@ def main():
     else:
         logging.critical("Unknown verification data set: {:s}, exiting...".format(
             args.precip_verif_dataset))
-    # elif args.parameter == 'hail':
-    #     data_list = obs.read_hail(data_list, start_date, end_date)
     # elif args.parameter == 'lightning':
     #     data_list = obs.read_lightning(data_list, start_date, end_date)
     # else:
     #     logging.critical("Parameter {:s} unknown, accepted parameters: precip, sunshine, hail, lightning".format(
     #         args.parameter))
     #     exit(1)
+    for sim in data_list:
+        print(sim['name'])
     if args.region == "Dynamic":
-        region_data = regions.dynamic_region(data_list, regions.regions)
-    else:
         region_data = regions.regions
-    args.region = regions.Region(args.region, args.subdomains)
+        region_data = regions.dynamic_region(data_list, region_data)
+        # args.region = regions.Region(args.region, args.subdomains)
+        args.region = regions.Region(args.region, args.subdomains, region_data=region_data) 
     if args.sorting == 'init':
         newlist = sorted(data_list[1::], key=lambda d: d['init']) 
         newlist.insert(0, data_list[0])
@@ -282,12 +307,6 @@ def main():
             logging.info("Skipping "+dom['name']+", nothing is requested.")
         if dom['score']:
             scoring.write_scores_to_csv(data_list, start_date, end_date, args, subdomain_name, windows, thresholds)
-        # print new test scores
-        # for sim in data_list:
-        #     print(sim['name'],
-        #           sim['fss_total_abs_score'],     sim['rank_fss_total_abs_score'],
-        #           sim['fss_condensed'],           sim['rank_fss_condensed'],
-        #           sim['fss_condensed_weighted'],  sim['rank_fss_condensed_weighted'])
         if dom['draw']:
             plot_start = datetime.now()
             outfilename = panel_plotter.draw_panels(data_list, start_date, end_date, subdomain_name, args) #, mode=args.mode)
