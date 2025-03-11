@@ -276,16 +276,6 @@ def main():
     #     logging.critical("Parameter {:s} unknown, accepted parameters: precip, sunshine, hail, lightning".format(
     #         args.parameter))
     #     exit(1)
-    # else:
-    #     print("============== 1 ================")
-    #     print(regions.regions)
-    #     print("============== 2 ================")
-    #     print(args.region)
-    #     print("============== 3 ================")
-    #     print(regions.regions[args.region])
-    #     print("============== 4 ================")
-    #     region_data = regions.regions[args.region]
-    # args.region = regions.Region(args.region, args.subdomains)
     for sim in data_list:
         print(sim['name'])
     if args.region == "Dynamic":
