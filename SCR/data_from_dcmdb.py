@@ -2,7 +2,7 @@ import os
 import datetime as dt
 import pygrib
 import traceback
-from dcmdb.cases import Cases
+# from dcmdb.cases import Cases
 
 import logging
 logger = logging.getLogger(__name__)
