@@ -315,16 +315,13 @@ class ModelConfiguration:
                     cmc[key] = None
                     logger.debug("Not in base experiment, setting {:s} in {:s} to None:".format(
                         key, self.experiment_name))
-        print(cmc.keys())
         if not "on_mars" in cmc.keys():
             if "on_mars" in args.custom_experiment_data[cmc["base_experiment"]].keys():
                 cmc["on_mars"] = args.custom_experiment_data[cmc["base_experiment"]]["on_mars"]
             else:
                 cmc["on_mars"] = False
-        print(cmc.keys())
         if not "url_template" in cmc.keys():
             cmc["url_template"] = None
-        print(cmc.keys())
               
 
     def print(self):
