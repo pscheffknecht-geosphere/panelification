@@ -155,8 +155,8 @@ def add_fss_plot_new(ax, sim, rank_vmax, jj, args):
         for xx in range(nx):
             xedge = -0.5 + np.array([xx+pad, xx+pad, xx+1-pad, xx+1-pad, xx+pad])
             yedge = -0.5 + np.array([yy+pad, yy+1-pad, yy+1-pad, yy+pad, yy+pad])
-            xedge_rank = -0.5 + np.array([xx+4*pad, xx+1-pad, xx+1-pad, xx+4*pad])
-            yedge_rank = -0.5 + np.array([yy+pad, yy+1-4*pad, yy+pad, yy+pad])
+            xedge_rank = -0.5 + np.array([xx+pad, xx+1-pad, xx+1-pad, xx+pad])
+            yedge_rank = -0.5 + np.array([yy+pad, yy+1-pad, yy+pad, yy+pad])
             col = (1, 1, 1, 1) # white
             if args.greens:
                 if sim['fss_ranks'][yy, xx] > 1: # and sim['fssf'][yy, xx] >= sim['fssf_thresholds'][yy]:
