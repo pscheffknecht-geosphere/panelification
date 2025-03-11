@@ -308,9 +308,11 @@ def calc_scores(sim, obs, args):
         thresholds = []
         thresholds_percs = []
         for level in levels:
-            thresholds.append(0.5*(1+float((obs["precip_data_resampled"] > level).sum())/float(obs["precip_data_resampled"].size)))
+            thresholds.append(0.5)
+            # thresholds.append((1+float((obs["precip_data_resampled"] > level).sum())/float(obs["precip_data_resampled"].size)))
         for perc in percs:
-            thresholds_percs.append(0.5*(1+perc/100.))
+            thresholds_percs.append(0.5)
+            # thresholds_percs.append(0.5*(1+perc/100.))
         sim['fss_thresholds'] = thresholds
         sim['fss_thresholds_percs'] = thresholds_percs
         sim['fssf_thresholds'] = thresholds + thresholds_percs
