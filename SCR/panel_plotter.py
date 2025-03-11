@@ -26,6 +26,7 @@ import logging
 logger = logging.getLogger(__name__)
 logging.getLogger('matplotlib').setLevel(logging.WARNING)
 
+
 def get_array_edge(arr):
     nx, ny = np.shape(arr)
     e1 = arr[0     , :]
@@ -240,7 +241,7 @@ def draw_solo_colorbar(levels, cmap, norm, tmp_string, args):
     norm ........... matplotlib norm for use of non-linear contours
     tmp_string ..... temporary path
     args ........... command line arguments"""
-    fig = plt.figure(figsize=(12, 0.9), dpi=150)
+    fig = plt.figure(figsize=(12, 0.9), dpi=args.dpi)
     if args.fss_mode == "relative":
         rel_norm = bnorm(np.arange(-0.05, 0.0501, 0.0025), ncolors=mpl.cm.get_cmap('RdYlBu').N)
         ticks = np.arange(-0.05, 0.0501, 0.025)
@@ -258,7 +259,7 @@ def draw_solo_colorbar(levels, cmap, norm, tmp_string, args):
 def draw_RGB_colorbars(tmp_string, args):
     """ Draw colorbars for greens, blues and reds used to show FSS score
     and frequency bias for no-skill window-threshold-combos"""
-    fig = plt.figure(figsize=(12, 0.9), dpi=150)
+    fig = plt.figure(figsize=(12, 0.9), dpi=args.dpi)
     if args.greens:
         ax_green = fig.add_axes([0.525, 0.8, 0.45, 0.1])
         ax_bias  = fig.add_axes([0.025, 0.8, 0.45, 0.1])
@@ -328,7 +329,7 @@ def draw_single_figure(sim, obs, r, jj, levels, cmap, norm, verification_subdoma
     into ../TMP/tmp_string/*.png for later use"""
     logger.info("Plotting "+sim['name'])
     total_width, total_height, map_coords, score_coords, fss_coords = arrange_subplots(r, clean=args.clean)
-    fig = plt.figure(dpi=150, figsize=(total_width, total_height))
+    fig = plt.figure(dpi=args.dpi, figsize=(total_width, total_height))
     ax = fig.add_axes(map_coords, projection=args.region.plot_projection)
     if args.clean:
         ax_scores = ax_fss = None
@@ -433,7 +434,7 @@ def score_time_series(data_list, r, tmp_string, args):
             nam_str = score_names[s]
         else:
             nam_str = s
-        fig, ax = plt.subplots(1, 1, figsize=(total_width, total_height), dpi=150)
+        fig, ax = plt.subplots(1, 1, figsize=(total_width, total_height), dpi=args.dpi)
         logger.info("Making time series plot for " + nam_str)
         score = {}
         init = {}
