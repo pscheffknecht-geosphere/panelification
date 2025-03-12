@@ -173,6 +173,8 @@ def add_fss_plot_new(ax, sim, rank_vmax, jj, args):
                 # ax.add_patch(circle)
             if sim['fss_ranks'][yy, xx] == 1: # and yy < 9: #only for bad but not nan
                 bias = sim['fss_overestimated'].to_numpy()[yy, xx]
+                if yy > 9:
+                    bias = 0 # workaround for bug
                 xedget, yedget = make_triangle(xx, yy, np.clip(-bias / 0.22, -1., 1.)) # <-- needs scaled bias to have .22 mapped to 1. for max triangle
                 col = cmapBR(rb_norm(bias)) # <-- needs no scaled bias because norm scales the interval to [-1, 1]
             if yy == 9 or sim['fss_ranks'][yy, xx] == 0:
