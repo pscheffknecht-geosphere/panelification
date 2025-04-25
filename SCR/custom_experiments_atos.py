@@ -452,4 +452,8 @@ experiment_configurations = {
         "path_template"    : ["/ec/res4/scratch/kay/deode/CY48t3_AROME_AUT_1500x1500_500m_v1/archive/%Y/%m/%d/%H/GRIBPFDEOD+%LLLLh00m00s",
                              "/ec/res4/scratch/kmw/deode/CY48t3_AROME_AUT_1500x1500_500m_v1/archive/%Y/%m/%d/%H/GRIBPFDEOD+%LLLLh00m00s"]
     },
+    "CY48t3_ALARO_HRV_500m" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/scratch/aut6432/DE_NWP/deode/%Y/%m/%d/%H/storm/1/ALARO_500m/GRIBPFDEOD+%LLLLh00m00s",
+    },
 }
