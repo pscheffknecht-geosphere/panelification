@@ -198,7 +198,7 @@ def read_data_grib(grib_file_path, parameter, lead, get_lonlat_data=False):
             lon, lat = get_lonlat_fallback(tmp_data_list[0])
         elif tmp_data_list[0]['gridType'] == "reduced_gg":
             logger.debug("gridType reduced_gg detected, making own!")
-            lo = np.arange(-10., 25.001, 0.025)
+            lo = np.arange(-10., 35.001, 0.025)
             la = np.arange(30., 75.001, 0.025)
             lon, lat = np.meshgrid(lo, la)   
         else:
@@ -424,6 +424,7 @@ class ModelConfiguration:
         hour_str = self.init.strftime("%H")
         tmp_dir = f"/perm/kmek/panelification/MODEL/{self.experiment_name}/{init_str}/{hour_str}"
         tmp_fil = f"{self.experiment_name}_{l:04d}.grb"
+        logger.debug(f"ecfs file: ec:{tmp_dir}/{tmp_fil}")
         if not os.path.isdir(tmp_dir):
             logger.info(f"creating {tmp_dir}")
             os.system(f"mkdir -p {tmp_dir}")
