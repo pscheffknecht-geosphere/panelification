@@ -157,6 +157,8 @@ def parse_arguments():
         help = 'update panels on the intranet website')
     parser.add_argument('--greens', nargs='?', default=True, const=True, type=str2bool,
         help = 'test green instead of white')
+    parser.add_argument('--dpi', nargs='?', default=150, const=True, type=int,
+        help = 'set DPI of output')
     args = parser.parse_args()
     init_logging(args)
     if not args.intranet_update:  # ignore these conditions if only updating intranet
@@ -276,16 +278,6 @@ def main():
     #     logging.critical("Parameter {:s} unknown, accepted parameters: precip, sunshine, hail, lightning".format(
     #         args.parameter))
     #     exit(1)
-    # else:
-    #     print("============== 1 ================")
-    #     print(regions.regions)
-    #     print("============== 2 ================")
-    #     print(args.region)
-    #     print("============== 3 ================")
-    #     print(regions.regions[args.region])
-    #     print("============== 4 ================")
-    #     region_data = regions.regions[args.region]
-    # args.region = regions.Region(args.region, args.subdomains)
     for sim in data_list:
         print(sim['name'])
     if args.region == "Dynamic":
