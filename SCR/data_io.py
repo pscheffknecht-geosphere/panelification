@@ -16,33 +16,18 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-# template to request precipitation over Europe on a Full Gaussian grid
-request_template = """retrieve,
-  class = od,
-  type = fc,
-  stream = oper,
-  expver = 0001,
-  levtype = sfc,
-  param = 228.128,
-  date = {date},
-  time = {time},
-  step = {step},
-  padding = 0,
-  expect = any,
-  repres = gg,
-  area=E,
-  grid=F1280,
-  database = marsod,
-  target = {target}"""
-
-
 def mars_request(exp_name, init, step,path=None):
     if not path:
-        path = "../MODEL/{:s}/ecmwf_precip_{:s}+{:04d}.grb".format(
+        path = "../MODEL/{:s}/precip_{:s}+{:04d}.grb".format(
             exp_name,
-            init.strftime("%Y%m%d_%H"), step) 
+            init.strftime("%Y%m%d/%H"), step) 
     else:
         path = fill_path_file_template(path, init, step)
+    t_dir = "../MODEL/{:s}".format(
+        exp_name,
+        init.strftime("%Y%m%d/%H")) 
+    if not os.path.isdir(t_dir):
+        os.system(f"mkdir -p {t_dir}")
     logger.info("Requesting from precipitation from MARS for {:s} +{:d}h".format(
         init.strftime("%Y-%m-%d %H"), step))
     logger.info("Target file: {:s}".format(path))
@@ -110,8 +95,8 @@ def read_values_from_grib_field(grb):
             lon1d -= 360.
         logger.debug(f"Nx: {lon1d.shape}, Ny: {lat1d.shape}")
         logger.debug(f"lat: {lat1d}\nlon: {lon1d}")
-        lo = np.arange(-10., 25.001, 0.025)
-        la = np.arange(30., 58.001, 0.025)
+        lo = np.arange(-10., 35.001, 0.025)
+        la = np.arange(30., 75.001, 0.025)
         llo, lla = np.meshgrid(lo, la)
         targ_def = pyresample.geometry.SwathDefinition(llo, lla)
         orig_def = pyresample.geometry.SwathDefinition(lon1d, lat1d)
@@ -214,7 +199,7 @@ def read_data_grib(grib_file_path, parameter, lead, get_lonlat_data=False):
         elif tmp_data_list[0]['gridType'] == "reduced_gg":
             logger.debug("gridType reduced_gg detected, making own!")
             lo = np.arange(-10., 25.001, 0.025)
-            la = np.arange(30., 58.001, 0.025)
+            la = np.arange(30., 75.001, 0.025)
             lon, lat = np.meshgrid(lo, la)   
         else:
             lat, lon = tmp_data_list[0].latlons()
@@ -253,6 +238,7 @@ class ModelConfiguration:
         self.color           = self.__pick_value_by_parameter(cmc["color"])
         if "ecfs_path_template" in cmc:
             self.ecfs_path_template = self.__pick_value_by_parameter(cmc["ecfs_path_template"])
+            logger.debug(f"ECFS path template: {self.ecfs_path_template}")
         else:
             self.ecfs_path_template = [pt.replace("/scratch", "") for pt in self.path_template]
         if "url_template" in cmc.keys():
@@ -444,6 +430,8 @@ class ModelConfiguration:
         if not os.path.isdir(tmp_dir):
             logger.info(f"creating {tmp_dir}")
             os.system(f"mkdir -p {tmp_dir}")
+        if not isinstance(self.ecfs_path_template, list):
+            self.ecfs_path_template = [self.ecfs_path_template]
         for ecfs_path_template in self.ecfs_path_template:
             ecfs_file = fill_path_file_template(ecfs_path_template, self.init, l)
             logger.debug(f"looking for: {ecfs_file}")
@@ -488,26 +476,26 @@ class ModelConfiguration:
             return None
         # path from given template
         for path_template in self.path_template:
-            path = fill_path_file_template(path_template, self.init, l)
-            if os.path.isfile(path):
-                return path
-        tmp_path = self.gen_panelification_path(l)
-        if os.path.isfile(tmp_path):
-            return tmp_path
-        # path from previous ecfs copy
-        if not os.path.isfile(path):
-            path = self.gen_panelification_path(l)
-            # print(f"Setting path to {path}")
-            # print(os.path.isfile(path))
+            template_path = fill_path_file_template(path_template, self.init, l)
+            logger.debug(f"Checking use of path template: {template_path}")
+            if os.path.isfile(template_path):
+                return template_path
+        if not os.path.isdir(f"/home/kmek/panelification/MODEL/{self.experiment_name}"):
+            logger.debug(f"MODEL/{self.experiment_name} not found, creating directory")
+            os.system(f"mkdir -p /home/kmek/panelification/MODEL/{self.experiment_name}")
+        panelification_path = self.gen_panelification_path(l)
+        logger.debug(f"Checking panelficiation path: {panelification_path}")
+        if os.path.isfile(panelification_path):
+            return panelification_path
         # if on mars, try that
-        if self.on_mars and not os.path.isfile(path):
-            if not os.path.isdir(f"/home/kmek/panelification/MODEL/{self.experiment_name}"):
-                logger.debug(f"MODEL/{self.experiment_name} not found, creating directory")
-                os.system(f"mkdir -p /home/kmek/panelification/MODEL/{self.experiment_name}")
-            path = mars_request(self.experiment_name, self.init, l)
+        if self.on_mars:
+            logger.debug(f"Checking MARS archive")
+            path = mars_request(self.experiment_name, self.init, l, path=panelification_path)
+            if path:
+                return path
         # try ecfs
-        if self.ecfs_path_template and not os.path.isfile(path) and self.check_ecfs:
-            logger.debug(f"Trying {self.ecfs_path_template}")
+        if self.ecfs_path_template:
+            logger.debug(f"Trying ECFS: {self.ecfs_path_template}")
             path = self.get_file_from_ecfs(l)
         return path
             
