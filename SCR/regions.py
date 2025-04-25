@@ -318,9 +318,6 @@ class Region():
     def __init__(self, region_name="Dynamic", subdomains=["Default"], region_data=regions):
         self.name = region_name
         self.regions = regions
-        print(region_name)
-        print(regions.keys())
-        print(regions[region_name].keys())
         self.extent=regions[region_name]['extent']
         self.data_projection = ccrs.PlateCarree()
         self.plot_rojection = None
