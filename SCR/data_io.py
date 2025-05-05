@@ -241,6 +241,9 @@ class ModelConfiguration:
         self.path_template   = self.__pick_value_by_parameter(cmc["path_template"])
         if not isinstance(self.path_template, list):
             self.path_template = [self.path_template]
+        logger.debug(f"Path template for model {self.experiment_name} is:")
+        for tmpl in self.path_template:
+            logger.debug(f"   {tmpl}")
         self.init_interval   = self.__pick_value_by_parameter(cmc["init_interval"])
         self.max_leadtime    = self.__pick_value_by_parameter(cmc["max_leadtime"])
         self.output_interval = self.__pick_value_by_parameter(cmc["output_interval"])
@@ -486,10 +489,12 @@ class ModelConfiguration:
         # path from given template
         for path_template in self.path_template:
             path = fill_path_file_template(path_template, self.init, l)
+            logger.debug(f"EXP: {self.experiment_name}: checking {path}")
             if os.path.isfile(path):
                 return path
         tmp_path = self.gen_panelification_path(l)
         if os.path.isfile(tmp_path):
+            logger.debug(f"EXP: {self.experiment_name}: found tmp {tmp_path}")
             return tmp_path
         # path from previous ecfs copy
         if not os.path.isfile(path):
