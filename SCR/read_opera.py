@@ -36,22 +36,37 @@ def OPERA_grid():
     return lon_OPERA,lat_OPERA
 
 
+# def read_from_hdf(filename):
+#     # open file and read data field
+#     logger.info(f"Reading {filename}")
+#     h5file=h5py.File(filename,"r")
+#     dataset=h5file['dataset1']
+#     datagroup=dataset['data1']
+#     data=np.array(datagroup['data'],dtype=float)
+#     # read parameters
+#     whatgroup=dataset['what']
+#     gain=whatgroup.attrs.get('gain')
+#     offset=whatgroup.attrs.get('offset')
+#     nodata=whatgroup.attrs.get('nodata')
+#     undetect=whatgroup.attrs.get('undetect')
+#     # field values to units, undetect set to zero, nodata is set to np.nan
+#     logger.debug(f"HDF OPERA gain = {gain}")
+#     logger.debug(f"HDF OPERA offset = {offset}")
+#     logger.debug(f"HDF OPERA nodata = {nodata}")
+#     logger.debug(f"HDF OPERA undetect = {undetect}")
+#     data[data==undetect]=0
+#     data[data==nodata]=np.nan
+#     data=data*gain+offset
+#     return data
+
 def read_from_hdf(filename):
     # open file and read data field
+    logger.info(f"Reading {filename}")
     h5file=h5py.File(filename,"r")
     dataset=h5file['dataset1']
     datagroup=dataset['data1']
-    data=np.array(datagroup['data'],dtype=np.float)
-    # read parameters
-    whatgroup=dataset['what']
-    gain=whatgroup.attrs.get('gain')
-    offset=whatgroup.attrs.get('offset')
-    nodata=whatgroup.attrs.get('nodata')
-    undetect=whatgroup.attrs.get('undetect')
-    # field values to units, undetect set to zero, nodata is set to np.nan
-    data[data==undetect]=0
-    data[data==nodata]=np.nan
-    data=data*gain+offset
+    data=np.array(datagroup['data'],dtype=float)
+    data[data<0.] = 0.
     return data
 
 
@@ -63,10 +78,8 @@ def read_OPERA(data_list, start_date, end_date, args):
     read_dt = dt.timedelta(minutes=60)
     for read_opera_date in loop_datetime(start_date + dt.timedelta(minutes=0), end_date, read_dt):
         dat_str = read_opera_date.strftime("%Y%m%d%H%M")
-        dat_str2 = read_opera_date.strftime("%Y/%m/%d")
-        opera_file_name = f"/scratch/snh02/DE_observations/opera/{dat_str2}/radar/composite/cirrus_nimbus/acrr/pash_acrr_1hr/{dat_str}00.rad.euoc.image.acrr.pash_acrr_1hr.hdf"
-        # opera_file_name = f"/ec/res4/scratch/esp0754/auto_obs_db/OPERA/T_PASH22_C_EUOC_{dat_str}00.hdf"
-        # opera_file_name = "../OBS/OPERA/ODC.LAM_{:s}_000100.h5".format(read_opera_date.strftime("%Y%m%d%H%M"))
+        year, month, day, hour = read_opera_date.year, read_opera_date.month, read_opera_date.day, read_opera_date.hour
+        opera_file_name = f"/scratch/snh02/DE_observations/opera/{year}/{month:02d}/{day:02d}/T_PASH22_C_EUOC_{year}{month:02d}{day:02d}{hour:02d}0000.hdf"
         logger.info("reading OPERA for {:s} ".format(read_opera_date.strftime("%Y-%m-%d %H:%M")))
         data[idx, :, :] = read_from_hdf(opera_file_name)
         idx += 1

@@ -42,6 +42,7 @@ SCR/custom_experiments.py
 SCR/subdomain_scale_factors.p
 SCR/test_web/__pycache__/*
 SCR/verif_panels.html
+SCR/DE_*.py
 TMP/*
 nohup.out
 panelification_web.yml
