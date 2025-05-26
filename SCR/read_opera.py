@@ -80,7 +80,8 @@ def read_OPERA(data_list, start_date, end_date, args):
         dat_str = read_opera_date.strftime("%Y%m%d%H%M")
         year, month, day, hour = read_opera_date.year, read_opera_date.month, read_opera_date.day, read_opera_date.hour
         # opera_file_name = "/scratch/snh02/DE_observations/opera/2025/03/26/radar/composite/cirrus_nimbus/acrr/pash_acrr_1hr/20250326024500.rad.euoc.image.acrr.pash_acrr_1hr.hdf"
-        opera_file_name = f"/scratch/snh02/DE_observations/opera/{year}/{month:02d}/{day:02d}/radar/composite/cirrus_nimbus/acrr/pash_acrr_1hr/{year}{month:02d}{day:02d}{hour:02d}0000.rad.euoc.image.acrr.pash_acrr_1hr.hdf"
+        # opera_file_name = f"/scratch/snh02/DE_observations/opera/{year}/{month:02d}/{day:02d}/radar/composite/cirrus_nimbus/acrr/pash_acrr_1hr/{year}{month:02d}{day:02d}{hour:02d}0000.rad.euoc.image.acrr.pash_acrr_1hr.hdf"
+        opera_file_name = f"/scratch/snh02/DE_observations/opera/{year}/{month:02d}/{day:02d}/T_PASH22_C_EUOC_{year}{month:02d}{day:02d}{hour:02d}0000.hdf"
         # opera_file_name = f"/ec/res4/scratch/esp0754/auto_obs_db/OPERA/T_PASH22_C_EUOC_{dat_str}00.hdf"
         # opera_file_name = "../OBS/OPERA/ODC.LAM_{:s}_000100.h5".format(read_opera_date.strftime("%Y%m%d%H%M"))
         logger.info("reading OPERA for {:s} ".format(read_opera_date.strftime("%Y-%m-%d %H:%M")))
