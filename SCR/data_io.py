@@ -15,19 +15,21 @@ from osgeo import gdal
 import logging
 logger = logging.getLogger(__name__)
 
+#        tmp_dir = f"/perm/kmek/panelification/MODEL/{self.experiment_name}/{init_str}/{hour_str}"
+#        tmp_fil = f"{self.experiment_name}_{l:04d}.grb"
+
 
 def mars_request(exp_name, init, step,path=None):
+    year, month, day, hour = init.year, init.month, init.day, init.hour
     if not path:
-        path = "../MODEL/{:s}/precip_{:s}+{:04d}.grb".format(
-            exp_name,
-            init.strftime("%Y%m%d/%H"), step) 
+        path = "../MODEL/{exp_name}/{year}{month:02d}{day:02d}/{hour:02d}/{exp_name}_{hour:04d}.grb"
     else:
         path = fill_path_file_template(path, init, step)
-    t_dir = "../MODEL/{:s}".format(
-        exp_name,
-        init.strftime("%Y%m%d/%H")) 
-    if not os.path.isdir(t_dir):
-        os.system(f"mkdir -p {t_dir}")
+    dir_part = path.rpartition("/")[0]
+    print(dir_part)
+    if not os.path.isdir(dir_part):
+        logger.info(f"MARS REQUEST: {dir_part} does not exist, creating it now")
+        os.system(f"mkdir -p {dir_part}")
     logger.info("Requesting from precipitation from MARS for {:s} +{:d}h".format(
         init.strftime("%Y-%m-%d %H"), step))
     logger.info("Target file: {:s}".format(path))
