@@ -266,7 +266,7 @@ def draw_RGB_colorbars(tmp_string, args):
     if args.greens:
         ax_green = fig.add_axes([0.525, 0.8, 0.45, 0.1])
         ax_bias  = fig.add_axes([0.025, 0.8, 0.45, 0.1])
-        rel_norm = bnorm(np.arange(0.5, 1.01, 0.1), ncolors=mpl.cm.get_cmap('Greens').N)
+        rel_norm = bnorm(np.arange(0.5, 1.01, 0.1), ncolors=mpl.colormaps.get_cmap('Greens').N)
         ticks = np.arange(0.5, 1.01, 0.1)
         cb_rel = mpl.colorbar.ColorbarBase(ax_green, cmap="Greens", ticks=ticks,
             orientation='horizontal', norm=rel_norm)
