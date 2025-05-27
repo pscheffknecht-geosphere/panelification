@@ -1,6 +1,7 @@
 import argparse
 import datetime as dt
 import os
+import sys
 import glob
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
@@ -519,7 +520,7 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
             norm, verification_subdomain, rank_colors, data_list[0]['max_rank'], args, tmp_string], 
             open('../TMP/'+tmp_string+'/'+str(jj).zfill(3)+".p", 'wb'))
     # generate a list of commands, one for each model, these will call panel_plotter.py to draw a single model
-    cmd_list = ['python panel_plotter.py -p '+pickle_file for pickle_file in glob.glob('../TMP/'+tmp_string+'/???.p')]
+    cmd_list = [f"{sys.executable} panel_plotter.py -p {pickle_file}" for pickle_file in glob.glob(f"../TMP/{tmp_string}/???.p")]
     # execute the commands in parallel
     Parallel(n_jobs=2)(delayed(os.system)(cmd) for cmd in cmd_list)
     logger.debug('montage ../TMP/{:s}/???.png -geometry +0+0 -tile {:d}x{:d} -title {:s} ../TMP/{:s}/999.png'.format(
