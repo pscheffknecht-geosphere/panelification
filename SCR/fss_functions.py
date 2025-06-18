@@ -80,6 +80,23 @@ def fss_frame(fcst, obs, windows, levels, percentiles=False, mode='same'):
             pd.DataFrame(fss_data_fft,  index=levels), #, columns=windows),
             pd.DataFrame(overestimated, index=levels)) #, columns=windows))
 
+def fss_raw(fcst, obs, windows, levels, percentiles=False, mode='same'):
+    """
+    Compute the fraction skill score data-frame.
+    :paramfcst: nd-array, forecast field.
+    :paramobs: nd-array, observation field.
+    :param window: list, window sizes.
+    :param levels: list, threshold levels.
+    return: list, dataframes of the FSS: numerator, denominator and score.
+    """
+    fss_data_fft = []
+    
+    for level in levels:
+        _data_fft = [fourier_fss(fcst, obs, level, w, percentiles, mode) for w in windows]
+        fss_data_fft.append([x[2] for x in _data_fft])
+        
+    return fss_data_fft
+
 def fss_frame_eps(fcst, obs, windows, levels, percentiles=False, mode='same'):
     """
     Compute the fraction skill score data-frame.

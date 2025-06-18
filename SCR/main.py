@@ -24,6 +24,7 @@ import scan_obs
 import regions
 import prepare_for_web
 import parameter_settings
+import ensembles
 
 # try avoiding hanging during parallelized portions of the program
 os.environ['MKL_NUM_THREADS'] = '1'
@@ -309,8 +310,8 @@ def main():
             scoring.rank_scores(data_list)
             # scoring.total_fss_rankings(data_list, windows, thresholds)
             if args.ensemble_scores:
-                ens_data = scoring.detect_ensembles(data_list)
-                ens_pfss = scoring.ens_pFSS(data_list, ens_data, args)
+                ens_data = ensembles.detect_ensembles(data_list)
+                ensemble_data = [ensembles.Ensemble(data_list, ens, nam, args) for nam, ens in ens_data.items()]
         else:
             logging.info("Skipping "+dom['name']+", nothing is requested.")
         if dom['score']:
@@ -320,7 +321,7 @@ def main():
                 logging.info("Plotting pFSS for ensembles")
                 levels = parameter_settings.get_fss_thresholds(args)
                 windows=[10,20,30,40,60,80,100,120,140,160,180,200]
-                panel_plotter.ens_fss_plot(ens_pfss, windows, levels, subdomain_name, args)
+                panel_plotter.ens_fss_plot(ensemble_data, windows, levels, subdomain_name, args)
             plot_start = datetime.now()
             outfilename = panel_plotter.draw_panels(data_list, start_date, end_date, subdomain_name, args) #, mode=args.mode)
             plot_duration = datetime.now() - plot_start
