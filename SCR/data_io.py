@@ -241,11 +241,19 @@ class ModelConfiguration:
         self.path_template   = self.__pick_value_by_parameter(cmc["path_template"])
         if not isinstance(self.path_template, list):
             self.path_template = [self.path_template]
+        logger.debug(f"Path template for model {self.experiment_name} is:")
+        for tmpl in self.path_template:
+            logger.debug(f"   {tmpl}")
         self.init_interval   = self.__pick_value_by_parameter(cmc["init_interval"])
         self.max_leadtime    = self.__pick_value_by_parameter(cmc["max_leadtime"])
         self.output_interval = self.__pick_value_by_parameter(cmc["output_interval"])
         self.accumulated     = self.__pick_value_by_parameter(cmc["accumulated"])
         self.unit_factor     = self.__pick_value_by_parameter(cmc["unit_factor"])
+        self.ensemble        = self.__pick_value_by_parameter(cmc["ensemble"])
+        if self.ensemble and not args.merge_ens_init_times:
+            init_str = self.init.strftime("%Y%m%d_%H")
+            self.ensemble += f"_{init_str}"
+            logger.debug(f"Treating different init times as different ensembles, changed to {self.ensemble}")
         if "on_mars" in cmc.keys():
             self.on_mars         = self.__pick_value_by_parameter(cmc["on_mars"])
         else:
@@ -302,7 +310,7 @@ class ModelConfiguration:
         need values, only experiments which do not refer to a base_experiment
         need all their values filled"""
         keys = ["path_template", "init_interval", "max_leadtime", 
-                "output_interval", "unit_factor", "accumulated", "color"]
+                "output_interval", "unit_factor", "accumulated", "color", "ensemble"]
         for key in keys:
             logger.debug(f"Setting key {key}")
             if not key in cmc.keys():
@@ -486,10 +494,12 @@ class ModelConfiguration:
         # path from given template
         for path_template in self.path_template:
             path = fill_path_file_template(path_template, self.init, l)
+            logger.debug(f"EXP: {self.experiment_name}: checking {path}")
             if os.path.isfile(path):
                 return path
         tmp_path = self.gen_panelification_path(l)
         if os.path.isfile(tmp_path):
+            logger.debug(f"EXP: {self.experiment_name}: found tmp {tmp_path}")
             return tmp_path
         # path from previous ecfs copy
         if not os.path.isfile(path):
@@ -563,7 +573,8 @@ def get_sims_and_file_list(data_list, args):
                     "lon": lon,
                     "lat": lat,
                     "precip_data": precip,
-                    "color" : mod.color}
+                    "color" : mod.color,
+                    "ensemble" : mod.ensemble}
                 data_list.append(sim)
     return data_list
 

@@ -534,6 +534,91 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
     return outfilename
 
 
+def ens_fss_abs(ax, fss_data, name, windows, levels):
+    pass
+
+
+def ens_fss_diff(ax, fss_data, name1, name2, windows, levels):
+    pass
+
+
+def get_value_range(ens_fss_data):
+    n_members = len(ens_fss_data)
+    val = -9999.
+    for jj in range(1, n_members):
+        for ii in range(0, n_members-1):
+            if ii < jj:
+                print(ens_fss_data[ii].pFSS[2])
+                print(ens_fss_data[jj].pFSS[2])
+                v_ = np.nanmax(np.abs(ens_fss_data[ii].pFSS[2] - ens_fss_data[jj].pFSS[2]))
+                if v_ > val:
+                    val = v_
+    return v_
+
+
+def ens_fss_plot(ens_data, windows, levels, verification_subdomain, args):
+    n_members = len(ens_data)
+    fig, ax = plt.subplots(n_members, n_members, figsize=(4 * n_members, 4 * n_members), sharex=True, sharey=True, dpi=args.dpi)
+    vmax = get_value_range(ens_data)
+
+    levels1 = np.arange(0., 1.01, 0.05)
+    levels2 = np.arange(-vmax, vmax+0.001, 0.002)
+    cmap1 = plt.colormaps['coolwarm_r']
+    cmap2 = plt.colormaps['RdYlGn']
+    norm1 = mpl.colors.BoundaryNorm(levels1, ncolors=cmap1.N)
+    norm2 = mpl.colors.BoundaryNorm(levels2, ncolors=cmap1.N)
+    
+    logger.info("Making pFSS plots")
+    ax[0][0].axis('off')
+    c1, c2 = None, None
+    for ii in range(0, n_members-1):
+        logger.debug(f"  preparing {ens_data[ii].name}")
+        c1 = ax[0][ii+1].pcolormesh(ens_data[ii].pFSS[2], cmap=cmap1, norm=norm1)
+        ax[0][ii+1].set_title(f"{ens_data[ii].name}", loc="left")
+    for jj in range(1, n_members):
+        logger.debug(f"  preparing {ens_data[jj].name}")
+        ax[jj][0].pcolormesh(ens_data[jj].pFSS[2], cmap=cmap1, norm=norm1)
+        ax[jj][0].set_title(f"{ens_data[jj].name}", loc="left")
+        for ii in range(0, n_members-1):
+            if ii < jj:
+                logger.debug(f"  preparing {ens_data[ii].name} - {ens_data[jj].name}")
+                c2 = ax[jj][ii+1].pcolormesh(
+                    ens_data[ii].pFSS[2] - ens_data[jj].pFSS[2],
+                    cmap=cmap2, norm=norm2)        
+                ax[jj][ii+1].set_title(f"{ens_data[ii].name} -\n{ens_data[jj].name}", loc="left")
+            else:
+                ax[jj][ii+1].axis('off')
+
+    for N, ax1 in enumerate(ax.flatten()):
+        ax1.set_yticks([x+0.5 for x in range(len(levels))])
+        ax1.set_xticks([x+0.5 for x in range(len(windows))])
+        ax1.set_yticklabels([str(x) for x in levels])
+        ax1.set_xticklabels([str(x) for x in windows], rotation=90)
+        ax1.set_ylim([9., 0.])
+        ax1.set_xlim([0., 8.]) 
+        if N%n_members == 0:
+            ax1.set_ylabel("preipc. threshold [mm]")
+        if N >= n_members * (n_members -1):
+            ax1.set_xlabel("window size [km]")
+
+    plt.tight_layout()
+    fig.subplots_adjust(bottom=0.12)
+    cax1 = fig.add_axes([0.1, 0.05, 0.35, 0.01])
+    cax2 = fig.add_axes([0.55, 0.05, 0.35, 0.01])
+
+    cbar1 = plt.colorbar(c1, cax=cax1, orientation="horizontal", label="pFSS") #, extend="min")
+    cbar2 = plt.colorbar(c2, cax=cax2, orientation="horizontal", label="pFSS difference") #, extend='both')
+    plt.draw()  # Force rendering so labels exist
+    tick_labels = [label.get_text() for label in cbar2.ax.get_xticklabels()]
+    tick_positions = cbar2.ax.get_xticks()
+    cbar2.ax.set_xticks(tick_positions)
+    cbar2.ax.set_xticklabels(tick_labels, rotation=30)
+    
+    start_date_str = dt.datetime.strptime(args.start, "%Y%m%d%H").strftime("%Y%m%d_%H")
+    outfilename = f"../PLOTS/{args.name}_{args.parameter}_pFSS_{start_date_str}UTC_acc_{args.duration}_{verification_subdomain}.png"
+    plt.savefig(outfilename)
+
+
 def main():
     """ used when called directly, this will draw a single model from a given pickle file"""
     parser = argparse.ArgumentParser()

@@ -24,6 +24,7 @@ import scan_obs
 import regions
 import prepare_for_web
 import parameter_settings
+import ensembles
 
 # try avoiding hanging during parallelized portions of the program
 os.environ['MKL_NUM_THREADS'] = '1'
@@ -159,6 +160,11 @@ def parse_arguments():
         help = 'test green instead of white')
     parser.add_argument('--dpi', nargs='?', default=150, const=True, type=int,
         help = 'set DPI of output')
+    parser.add_argument('--ensemble_scores', nargs='?', default=False, const=True, type=str2bool,
+        help = 'Treat multiple init times of the same ensemble as one ensemble')
+    parser.add_argument('--merge_ens_init_times', nargs='?', default=False, const=True, type=str2bool,
+        help = 'Treat multiple init times of the same ensemble as one ensemble')
+
     args = parser.parse_args()
     init_logging(args)
     if not args.intranet_update:  # ignore these conditions if only updating intranet
@@ -300,14 +306,22 @@ def main():
                 sim["lon_resampled"] = _lon
                 sim["lat_resampled"] = _lat
                 sim["precip_data_resampled"] = _data
-            Parallel(n_jobs=6,backend='threading')(delayed(scoring.calc_scores)(sim, data_list[0], args) for ii, sim in enumerate(data_list))
+            Parallel(n_jobs=16,backend='threading')(delayed(scoring.calc_scores)(sim, data_list[0], args) for ii, sim in enumerate(data_list))
             scoring.rank_scores(data_list)
             # scoring.total_fss_rankings(data_list, windows, thresholds)
+            if args.ensemble_scores:
+                ens_data = ensembles.detect_ensembles(data_list)
+                ensemble_data = [ensembles.Ensemble(data_list, ens, nam, args) for nam, ens in ens_data.items()]
         else:
             logging.info("Skipping "+dom['name']+", nothing is requested.")
         if dom['score']:
             scoring.write_scores_to_csv(data_list, start_date, end_date, args, subdomain_name, windows, thresholds)
         if dom['draw']:
+            if args.ensemble_scores:
+                logging.info("Plotting pFSS for ensembles")
+                levels = parameter_settings.get_fss_thresholds(args)
+                windows=[10,20,30,40,60,80,100,120,140,160,180,200]
+                panel_plotter.ens_fss_plot(ensemble_data, windows, levels, subdomain_name, args)
             plot_start = datetime.now()
             outfilename = panel_plotter.draw_panels(data_list, start_date, end_date, subdomain_name, args) #, mode=args.mode)
             plot_duration = datetime.now() - plot_start
