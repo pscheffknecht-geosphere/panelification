@@ -1,6 +1,7 @@
 import argparse
 import datetime as dt
 import os
+import sys
 import glob
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
@@ -173,6 +174,8 @@ def add_fss_plot_new(ax, sim, rank_vmax, jj, args):
                 # ax.add_patch(circle)
             if sim['fss_ranks'][yy, xx] == 1: # and yy < 9: #only for bad but not nan
                 bias = sim['fss_overestimated'].to_numpy()[yy, xx]
+                if yy > 9:
+                    bias = 0 # workaround for bug
                 xedget, yedget = make_triangle(xx, yy, np.clip(-bias / 0.22, -1., 1.)) # <-- needs scaled bias to have .22 mapped to 1. for max triangle
                 col = cmapBR(rb_norm(bias)) # <-- needs no scaled bias because norm scales the interval to [-1, 1]
             if yy == 9 or sim['fss_ranks'][yy, xx] == 0:
@@ -263,7 +266,7 @@ def draw_RGB_colorbars(tmp_string, args):
     if args.greens:
         ax_green = fig.add_axes([0.525, 0.8, 0.45, 0.1])
         ax_bias  = fig.add_axes([0.025, 0.8, 0.45, 0.1])
-        rel_norm = bnorm(np.arange(0.5, 1.01, 0.1), ncolors=mpl.cm.get_cmap('Greens').N)
+        rel_norm = bnorm(np.arange(0.5, 1.01, 0.1), ncolors=mpl.colormaps.get_cmap('Greens').N)
         ticks = np.arange(0.5, 1.01, 0.1)
         cb_rel = mpl.colorbar.ColorbarBase(ax_green, cmap="Greens", ticks=ticks,
             orientation='horizontal', norm=rel_norm)
@@ -517,7 +520,7 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
             norm, verification_subdomain, rank_colors, data_list[0]['max_rank'], args, tmp_string], 
             open('../TMP/'+tmp_string+'/'+str(jj).zfill(3)+".p", 'wb'))
     # generate a list of commands, one for each model, these will call panel_plotter.py to draw a single model
-    cmd_list = ['python panel_plotter.py -p '+pickle_file for pickle_file in glob.glob('../TMP/'+tmp_string+'/???.p')]
+    cmd_list = [f"{sys.executable} panel_plotter.py -p {pickle_file}" for pickle_file in glob.glob(f"../TMP/{tmp_string}/???.p")]
     # execute the commands in parallel
     Parallel(n_jobs=2)(delayed(os.system)(cmd) for cmd in cmd_list)
     logger.debug('montage ../TMP/{:s}/???.png -geometry +0+0 -tile {:d}x{:d} -title {:s} ../TMP/{:s}/999.png'.format(
