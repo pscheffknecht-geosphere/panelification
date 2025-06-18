@@ -264,7 +264,6 @@ def main():
     if args.precip_verif_dataset == "INCA":
         data_list = inca.read_INCA(data_list, start_date, end_date, args)
     elif args.precip_verif_dataset == "INCA_archive":
-        print("_______________?????????????????")
         data_list = inca.read_inca_netcdf_archive(data_list, start_date, end_date, args)
     elif args.precip_verif_dataset == "OPERA":
             data_list = opera.read_OPERA(data_list, start_date, end_date, args)

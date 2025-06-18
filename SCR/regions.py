@@ -283,12 +283,15 @@ def dynamic_region(data_list, region_data):
     lat_min = -90.
     lat_max = 90.
     for sim in data_list:
-        lomi, loma, lami, lama = sim['lon'].min(), sim['lon'].max(), sim['lat'].min(), sim['lat'].max()
         lon_min = sim['lon'].min() if sim['lon'].min() > lon_min else lon_min
         lon_max = sim['lon'].max() if sim['lon'].max() < lon_max else lon_max
         lat_min = sim['lat'].min() if sim['lat'].min() > lat_min else lat_min
         lat_max = sim['lat'].max() if sim['lat'].max() < lat_max else lat_max
-        logger.debug(f"({lon_min:.4f}, {lon_max:.4f}, {lat_min:.4f}, {lat_max:.4f}) {sim['name']}")
+        logger.debug(f"Checking overlap with {sim['name']}, which has extent({sim['lon'].min()}, {sim['lon'].max()}, {sim['lat'].min()}, {sim['lat'].max()})")
+        logger.debug(f"New verlap after this check is ({lon_min:.4f}, {lon_max:.4f}, {lat_min:.4f}, {lat_max:.4f}) {sim['name']}")
+        if lon_max - lon_min < 0.25 or lat_max - lat_min < 0.25:
+            logger.info("No overlap or overlap too small, aborting verification")
+            exit(0)
     logger.info(f"Region of overlap is [{lon_min}, {lon_max}, {lat_min}, {lat_max}]")
     lon_cen = 0.5 * (lon_min + lon_max)
     lat_cen = 0.5 * (lat_min + lat_max)
