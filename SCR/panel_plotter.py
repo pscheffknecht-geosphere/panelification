@@ -543,22 +543,23 @@ def ens_fss_diff(ax, fss_data, name1, name2, windows, levels):
 
 
 def get_value_range(ens_fss_data):
-    n_members = len(ens_fss_data.keys())
+    n_members = len(ens_fss_data)
     val = -9999.
-    keys = list(ens_fss_data.keys())
     for jj in range(1, n_members):
         for ii in range(0, n_members-1):
             if ii < jj:
-                v_ = np.nanmax(np.abs(ens_fss_data[keys[ii]]['pFSS_fss'] - ens_fss_data[keys[jj]]['pFSS_fss']))
+                print(ens_fss_data[ii].pFSS[2])
+                print(ens_fss_data[jj].pFSS[2])
+                v_ = np.nanmax(np.abs(ens_fss_data[ii].pFSS[2] - ens_fss_data[jj].pFSS[2]))
                 if v_ > val:
                     val = v_
     return v_
 
 
-def ens_fss_plot(ens_fss_data, windows, levels, verification_subdomain, args):
-    n_members = len(ens_fss_data.keys())
-    fig, ax = plt.subplots(n_members, n_members, figsize=(5 * n_members, 5 * n_members), sharex=True, sharey=True, dpi=args.dpi)
-    vmax = get_value_range(ens_fss_data)
+def ens_fss_plot(ens_data, windows, levels, verification_subdomain, args):
+    n_members = len(ens_data)
+    fig, ax = plt.subplots(n_members, n_members, figsize=(4 * n_members, 4 * n_members), sharex=True, sharey=True, dpi=args.dpi)
+    vmax = get_value_range(ens_data)
 
     levels1 = np.arange(0., 1.01, 0.05)
     levels2 = np.arange(-vmax, vmax+0.001, 0.002)
@@ -566,32 +567,27 @@ def ens_fss_plot(ens_fss_data, windows, levels, verification_subdomain, args):
     cmap2 = plt.colormaps['RdYlGn']
     norm1 = mpl.colors.BoundaryNorm(levels1, ncolors=cmap1.N)
     norm2 = mpl.colors.BoundaryNorm(levels2, ncolors=cmap1.N)
-    keys = list(ens_fss_data.keys())
+    
     logger.info("Making pFSS plots")
-    logger.info(keys)
     ax[0][0].axis('off')
     c1, c2 = None, None
     for ii in range(0, n_members-1):
-        logger.info(f"preparing {keys[ii]}")
-        c1 = ax[0][ii+1].pcolormesh(ens_fss_data[keys[ii]]['pFSS_fss'], cmap=cmap1, norm=norm1)
-        ax[0][ii+1].set_title(f"{keys[ii]}")
+        logger.debug(f"  preparing {ens_data[ii].name}")
+        c1 = ax[0][ii+1].pcolormesh(ens_data[ii].pFSS[2], cmap=cmap1, norm=norm1)
+        ax[0][ii+1].set_title(f"{ens_data[ii].name}", loc="left")
     for jj in range(1, n_members):
-        logger.info(f"preparing {keys[jj]}")
-        ax[jj][0].pcolormesh(ens_fss_data[keys[jj]]['pFSS_fss'], cmap=cmap1, norm=norm1)
-        ax[jj][0].set_title(f"{keys[jj]}")
+        logger.debug(f"  preparing {ens_data[jj].name}")
+        ax[jj][0].pcolormesh(ens_data[jj].pFSS[2], cmap=cmap1, norm=norm1)
+        ax[jj][0].set_title(f"{ens_data[jj].name}", loc="left")
         for ii in range(0, n_members-1):
             if ii < jj:
-                logger.info(f"preparing {keys[ii]} - {keys[jj]}")
+                logger.debug(f"  preparing {ens_data[ii].name} - {ens_data[jj].name}")
                 c2 = ax[jj][ii+1].pcolormesh(
-                    ens_fss_data[keys[ii]]['pFSS_fss'] - ens_fss_data[keys[jj]]['pFSS_fss'],
+                    ens_data[ii].pFSS[2] - ens_data[jj].pFSS[2],
                     cmap=cmap2, norm=norm2)        
-                ax[jj][ii+1].set_title(f"{keys[ii]} - {keys[jj]}")
+                ax[jj][ii+1].set_title(f"{ens_data[ii].name} -\n{ens_data[jj].name}", loc="left")
             else:
                 ax[jj][ii+1].axis('off')
-
-    fig.subplots_adjust(bottom=0.15)
-    cax1 = fig.add_axes([0.20, 0.05, 0.35, 0.01])
-    cax2 = fig.add_axes([0.67, 0.05, 0.23, 0.01])
 
     for N, ax1 in enumerate(ax.flatten()):
         ax1.set_yticks([x+0.5 for x in range(len(levels))])
@@ -605,15 +601,13 @@ def ens_fss_plot(ens_fss_data, windows, levels, verification_subdomain, args):
         if N >= n_members * (n_members -1):
             ax1.set_xlabel("window size [km]")
 
-    # ax[0].set_ylabel("precip. threshold [mm]")
-    # ax[1].set_xlabel("window size [km]")
+    plt.tight_layout()
+    fig.subplots_adjust(bottom=0.12)
+    cax1 = fig.add_axes([0.1, 0.05, 0.35, 0.01])
+    cax2 = fig.add_axes([0.55, 0.05, 0.35, 0.01])
 
-    # ax[0].set_title("(a) agg. pFSS for SPP forecasts", loc="left")
-    # ax[1].set_title("(b) agg. pFSS for FDSPP forecasts", loc="left")
-    # ax[2].set_title("(c) difference, FDSPP - SPP", loc="left")
-
-    cbar1 = plt.colorbar(c1, cax=cax1, orientation="horizontal", label="agg. pFSS") #, extend="min")
-    cbar2 = plt.colorbar(c2, cax=cax2, orientation="horizontal", label="agg. pFSS difference") #, extend='both')
+    cbar1 = plt.colorbar(c1, cax=cax1, orientation="horizontal", label="pFSS") #, extend="min")
+    cbar2 = plt.colorbar(c2, cax=cax2, orientation="horizontal", label="pFSS difference") #, extend='both')
     plt.draw()  # Force rendering so labels exist
     tick_labels = [label.get_text() for label in cbar2.ax.get_xticklabels()]
     tick_positions = cbar2.ax.get_xticks()
