@@ -49,6 +49,8 @@ class Ensemble:
         for ii, idx in enumerate(self.data_indices):
             self.precip_data_resampled[ii, :, :] = data_list[idx]['precip_data_resampled']
         self.obs_data_resampled = data_list[0]['precip_data_resampled']
+        self.lon = data_list[0]['lon_resampled']
+        self.lat = data_list[0]['lat_resampled']
         logger.info(f"Created ensemble {self.name} with {self.member_count} members")
         self.thresholds = parameter_settings.get_fss_thresholds(args)
         ww = [10,20,30,40,60,80,100,120,140,160,180,200]
