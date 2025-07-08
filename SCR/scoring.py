@@ -8,6 +8,7 @@ import parameter_settings
 import logging
 logger = logging.getLogger(__name__)
 
+
 def array_minus_avg(a, t):
     """
     calculate the average value of an array and subtract it from all
