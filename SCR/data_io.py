@@ -4,6 +4,7 @@ from grib_handle_check import find_grib_handles
 from data_from_dcmdb import fill_path_file_template
 import datetime as dt
 import pygrib
+from eccodes import codes_grib_new_from_file, codes_get_array, codes_release, codes_is_defined, codes_get
 import numpy as np
 import pyresample
 import matplotlib.pyplot as plt
@@ -67,6 +68,51 @@ def get_inca_rain_accumulated(mod):
             rr += rr_
     return lon, lat, rr
 
+
+def get_icon_unstructured_read(file_name, needLonLat=False):
+    values_sum = None
+    short_names = ["lsrr", "crr", "lsfwe", "csfwe"]
+    with open(file_name, "rb") as f:
+        while True:
+            gid = codes_grib_new_from_file(f)
+            if gid is None:
+                break  # End of file
+
+            short_name = codes_get(gid, "shortName")
+
+            if short_name not in short_names:
+                codes_release(gid)
+                continue
+
+            values = codes_get_array(gid, "values")
+    
+            if values_sum is None:
+                values_sum = values
+            else:
+                values_sum += values
+
+            codes_release(gid)
+        lats = np.loadtxt("../../models/ICOND2/icond2_lat.txt")
+        lons = np.loadtxt("../../models/ICOND2/icond2_lon.txt")
+        la = np.arange(44., 51.001, 0.0125)
+        lo = np.arange( 5., 18.001, 0.0125)
+        llo, lla = np.meshgrid(lo, la)
+        targ_def = pyresample.geometry.SwathDefinition(llo, lla)
+        orig_def = pyresample.geometry.SwathDefinition(lons, lats)
+        data = pyresample.kd_tree.resample_nearest(orig_def, values_sum, targ_def, reduce_data=False, radius_of_influence=25000)
+    if needLonLat:
+        return llo, lla, data
+    else:
+        return data
+            
+
+def get_icon_unstructured(mod):
+    logger.info(f"Reading end file: {mod.end_file}")
+    lon, lat, data = get_icon_unstructured_read(mod.end_file, needLonLat=True)
+    if mod.start_file:
+        logger.info(f"Reading start file: {mod.start_file}")
+        data -= get_icon_unstructured_read(mod.start_file, needLonLat=False)
+    return lon, lat, data
 
 def get_lonlat_fallback(grb):
     Nx = None
@@ -202,6 +248,11 @@ def read_data_grib(grib_file_path, parameter, lead, get_lonlat_data=False):
             lo = np.arange(-10., 35.001, 0.025)
             la = np.arange(30., 75.001, 0.025)
             lon, lat = np.meshgrid(lo, la)   
+        elif tmp_data_list[0]['gridType'] == "unstructured_grid":
+            logger.debug("gridType unstructured_grid detected, making own!")
+            lo = np.arange(-5., 20.001, 0.0125)
+            la = np.arange(44., 51.001, 0.0125)
+            lon, lat = np.meshgrid(lo, la)   
         else:
             lat, lon = tmp_data_list[0].latlons()
         if lon.max() > 180.:
@@ -227,11 +278,19 @@ class ModelConfiguration:
         self.path_template   = self.__pick_value_by_parameter(cmc["path_template"])
         if not isinstance(self.path_template, list):
             self.path_template = [self.path_template]
+        logger.debug(f"Path template for model {self.experiment_name} is:")
+        for tmpl in self.path_template:
+            logger.debug(f"   {tmpl}")
         self.init_interval   = self.__pick_value_by_parameter(cmc["init_interval"])
         self.max_leadtime    = self.__pick_value_by_parameter(cmc["max_leadtime"])
         self.output_interval = self.__pick_value_by_parameter(cmc["output_interval"])
         self.accumulated     = self.__pick_value_by_parameter(cmc["accumulated"])
         self.unit_factor     = self.__pick_value_by_parameter(cmc["unit_factor"])
+        self.ensemble        = self.__pick_value_by_parameter(cmc["ensemble"])
+        if self.ensemble and not args.merge_ens_init_times:
+            init_str = self.init.strftime("%Y%m%d_%H")
+            self.ensemble += f"_{init_str}"
+            logger.debug(f"Treating different init times as different ensembles, changed to {self.ensemble}")
         if "on_mars" in cmc.keys():
             self.on_mars         = self.__pick_value_by_parameter(cmc["on_mars"])
         else:
@@ -292,7 +351,7 @@ class ModelConfiguration:
         need values, only experiments which do not refer to a base_experiment
         need all their values filled"""
         keys = ["init_interval", "max_leadtime", 
-                "output_interval", "unit_factor", "accumulated", "color"]
+                "output_interval", "unit_factor", "accumulated", "color", "ensemble"]
         for key in keys:
             logger.debug(f"Setting key {key}")
             if not key in cmc.keys():
@@ -363,6 +422,8 @@ class ModelConfiguration:
         else:
             if self.experiment_name == "inca-opt":
                 return get_inca_rain_accumulated(self)
+            if "ICOND2_m" in self.experiment_name:
+                return get_icon_unstructured(self)
             if self.accumulated:
                 return self.__get_data_accumulated()
             else:
@@ -565,7 +626,8 @@ def get_sims_and_file_list(data_list, args):
                     "lon": lon,
                     "lat": lat,
                     "precip_data": precip,
-                    "color" : mod.color}
+                    "color" : mod.color,
+                    "ensemble" : mod.ensemble}
                 data_list.append(sim)
     return data_list
 
