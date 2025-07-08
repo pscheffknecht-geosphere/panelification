@@ -26,7 +26,6 @@ def mars_request(exp_name, init, step,path=None):
     else:
         path = fill_path_file_template(path, init, step)
     dir_part = path.rpartition("/")[0]
-    print(dir_part)
     if not os.path.isdir(dir_part):
         logger.info(f"MARS REQUEST: {dir_part} does not exist, creating it now")
         os.system(f"mkdir -p {dir_part}")
@@ -241,8 +240,11 @@ class ModelConfiguration:
         if "ecfs_path_template" in cmc:
             self.ecfs_path_template = self.__pick_value_by_parameter(cmc["ecfs_path_template"])
             logger.debug(f"ECFS path template: {self.ecfs_path_template}")
+        # TODO: fix
+        # elif condition??:
+        #     self.ecfs_path_template = [pt.replace("/scratch", "") for pt in self.path_template]
         else:
-            self.ecfs_path_template = [pt.replace("/scratch", "") for pt in self.path_template]
+            self.ecfs_path_template = None
         if "url_template" in cmc.keys():
             self.url_template = cmc["url_template"]
         else:
@@ -289,7 +291,7 @@ class ModelConfiguration:
         """ if the experiment is deried from a base experiment, not all keys
         need values, only experiments which do not refer to a base_experiment
         need all their values filled"""
-        keys = ["path_template", "init_interval", "max_leadtime", 
+        keys = ["init_interval", "max_leadtime", 
                 "output_interval", "unit_factor", "accumulated", "color"]
         for key in keys:
             logger.debug(f"Setting key {key}")
@@ -303,13 +305,13 @@ class ModelConfiguration:
                     cmc[key] = None
                     logger.debug("Not in base experiment, setting {:s} in {:s} to None:".format(
                         key, self.experiment_name))
-        if not "on_mars" in cmc.keys():
-            if "on_mars" in args.custom_experiment_data[cmc["base_experiment"]].keys():
-                cmc["on_mars"] = args.custom_experiment_data[cmc["base_experiment"]]["on_mars"]
-            else:
-                cmc["on_mars"] = False
-        if not "url_template" in cmc.keys():
-            cmc["url_template"] = None
+        # if not "on_mars" in cmc.keys():
+        #     if "on_mars" in args.custom_experiment_data[cmc["base_experiment"]].keys():
+        #         cmc["on_mars"] = args.custom_experiment_data[cmc["base_experiment"]]["on_mars"]
+        #     else:
+        #         cmc["on_mars"] = False
+        # if not "url_template" in cmc.keys():
+        #     cmc["url_template"] = None
               
 
     def print(self):
@@ -339,13 +341,18 @@ class ModelConfiguration:
         files_to_check = [self.start_file, self.end_file] if self.accumulated else self.file_list
         if self.accumulated and not self.end_file:
             return False
+        if not self.accumulated and not any(self.file_list):
+            logger.debug(f"Model {self.experiment_name} has no accumulated values, but the file list is")
+            for fil in self.file_list:
+                logger.debug(f"  fil")
+            return False
         for fil in files_to_check:
             if fil:
                 if not os.path.isfile(str(fil)): 
-                    logger.debug(f"File {fil} not found, discarding experiment {self.experiment_name} {self.init}")
+                    logger.info(f"File {fil} not found, discarding experiment {self.experiment_name} {self.init}")
                     return False
                 elif os.path.getsize(fil) == 0:
-                    logger.debug(f"File {fil} was found but has size 0, discarding experiment {self.experiment_name}")
+                    logger.info(f"File {fil} was found but has size 0, discarding experiment {self.experiment_name}")
                     return False
         return True
 
@@ -469,6 +476,11 @@ class ModelConfiguration:
         logger.debug({path})
         return f"{directory_path}/GFS+{l:04d}_rr.grb2"
 
+    def check_pan_path_existence():
+        if not os.path.isdir(f"/home/kmek/panelification/MODEL/{self.experiment_name}"):
+            logger.info(f"MODEL/{self.experiment_name} not found, creating directory")
+            os.system(f"mkdir -p /home/kmek/panelification/MODEL/{self.experiment_name}")
+        return 0
 
     def get_file_path(self, l):
         path = None
@@ -480,9 +492,6 @@ class ModelConfiguration:
             logger.debug(f"Checking use of path template: {template_path}")
             if os.path.isfile(template_path):
                 return template_path
-        if not os.path.isdir(f"/home/kmek/panelification/MODEL/{self.experiment_name}"):
-            logger.debug(f"MODEL/{self.experiment_name} not found, creating directory")
-            os.system(f"mkdir -p /home/kmek/panelification/MODEL/{self.experiment_name}")
         panelification_path = self.gen_panelification_path(l)
         logger.debug(f"Checking panelficiation path: {panelification_path}")
         if os.path.isfile(panelification_path):
@@ -490,14 +499,16 @@ class ModelConfiguration:
         # if on mars, try that
         if self.on_mars:
             logger.debug(f"Checking MARS archive")
+            check_pan_path_existence()
             path = mars_request(self.experiment_name, self.init, l, path=panelification_path)
             if path:
                 return path
         # try ecfs
         if self.ecfs_path_template:
             logger.debug(f"Trying ECFS: {self.ecfs_path_template}")
+            check_pan_path_existence()
             path = self.get_file_from_ecfs(l)
-        return path
+        return None
             
     
     def file_path(self, lead):
