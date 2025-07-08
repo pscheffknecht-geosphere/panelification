@@ -22,12 +22,12 @@ def check_precip_fields(grb, lead):
         return [{"shortName": "tp", "forecastTime": 0}]
     except:
         pass
-    try:
-        logger.debug("Trying parameter number 8")
-        grb.select(parameterNumber=8)
-        return [{"parameterNumber": 8}]
-    except:
-        pass
+    # try:
+    #     logger.debug("Trying parameter number 8")
+    #     grb.select(parameterNumber=8)
+    #     return [{"parameterNumber": 8}]
+    # except:
+    #     pass
     try:
         logger.debug("Trying shortName RAIN_CON + RAIN_GSP + SNOW_CON + SNOW_GSP")
         grb.select(shortName="RAIN_CON")
