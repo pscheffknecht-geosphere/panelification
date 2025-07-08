@@ -164,6 +164,8 @@ def parse_arguments():
         help = 'Treat multiple init times of the same ensemble as one ensemble')
     parser.add_argument('--merge_ens_init_times', nargs='?', default=False, const=True, type=str2bool,
         help = 'Treat multiple init times of the same ensemble as one ensemble')
+    parser.add_argument('--print_colors', nargs='?', default=False, const=True, type=str2bool,
+        help = 'Adapt color map for printing')
 
     args = parser.parse_args()
     init_logging(args)
