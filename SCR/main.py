@@ -159,6 +159,8 @@ def parse_arguments():
         help = 'test green instead of white')
     parser.add_argument('--dpi', nargs='?', default=150, const=True, type=int,
         help = 'set DPI of output')
+    parser.add_argument('--print_colors', nargs='?', default=False, type=str2bool,
+        help = 'Adapt colors for printing')
     args = parser.parse_args()
     init_logging(args)
     if not args.intranet_update:  # ignore these conditions if only updating intranet
