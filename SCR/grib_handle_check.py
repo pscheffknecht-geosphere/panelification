@@ -23,6 +23,12 @@ def check_precip_fields(grb, lead):
     except:
         pass
     try:
+        logger.debug("Trying parameter number 52")
+        grb.select(parameterNumber=52)
+        return [{"parameterNumber": 52}]
+    except:
+        pass
+    try:
         logger.debug("Trying parameter number 8")
         grb.select(parameterNumber=8)
         return [{"parameterNumber": 8}]
@@ -38,6 +44,26 @@ def check_precip_fields(grb, lead):
                 {"shortName": "RAIN_GSP"},
                 {"shortName": "SNOW_CON"},
                 {"shortName": "SNOW_GSP"}]
+    except:
+        pass
+# icond2_02_045.grb2
+# edition      centre       date         dataType     gridType     typeOfLevel  level        stepRange    shortName    packingType  
+# 2            edzw         20250704     cp           unstructured_grid  surface      0            0-45         lsrr         grid_simple 
+# 2            edzw         20250704     cp           unstructured_grid  surface      0            0-45         crr          grid_simple 
+# 2            edzw         20250704     cp           unstructured_grid  surface      0            0-45         lsfwe        grid_simple 
+# 2            edzw         20250704     cp           unstructured_grid  surface      0            0-45         csfwe        grid_simple 
+# 4 of 4 messages in icond2_02_045.grb2
+# 
+    try:
+        logger.debug("Trying shortName lsrr + crr + lsfwe + csfwe (ICOND2 ens)")
+        grb.select(shortName="lsrr")
+        grb.select(shortName="crr")
+        grb.select(shortName="lsfwe")
+        grb.select(shortName="csfwe")
+        return [{"shortName": "lsrr"},
+                {"shortName": "crr"},
+                {"shortName": "lsfwe"},
+                {"shortName": "csfwe"}]
     except:
         pass
     try:
