@@ -561,36 +561,41 @@ def get_value_range(ens_fss_data):
 
 def ens_fss_plot(ens_data, windows, levels, verification_subdomain, args):
     n_members = len(ens_data)
-    fig, ax = plt.subplots(n_members, n_members, figsize=(4 * n_members, 4 * n_members), sharex=True, sharey=True, dpi=args.dpi)
+    fig, ax = plt.subplots(n_members+1, n_members+1, figsize=(4 * n_members, 4 * n_members), sharex=True, sharey=True, dpi=args.dpi)
     vmax = get_value_range(ens_data)
 
     levels1 = np.arange(0., 1.01, 0.05)
-    levels2 = np.arange(-vmax, vmax+0.001, 0.002)
+    step = 0.001
+    levels2 = np.arange(-vmax, vmax+0.001, step)
+    while levels2.size > 50:
+        step = 2 * step
+        levels2 = np.arange(-vmax, vmax+0.001, step)
+    logger.info(f"Using step = {step}, {levels2.size} levels")
     cmap1 = plt.colormaps['coolwarm_r']
     cmap2 = plt.colormaps['RdYlGn']
     norm1 = mpl.colors.BoundaryNorm(levels1, ncolors=cmap1.N)
-    norm2 = mpl.colors.BoundaryNorm(levels2, ncolors=cmap1.N)
+    norm2 = mpl.colors.BoundaryNorm(levels2, ncolors=cmap2.N)
     
     logger.info("Making pFSS plots")
     ax[0][0].axis('off')
     c1, c2 = None, None
-    for ii in range(0, n_members-1):
+    for ii in range(0, n_members):
         logger.debug(f"  preparing {ens_data[ii].name}")
         c1 = ax[0][ii+1].pcolormesh(ens_data[ii].pFSS[2], cmap=cmap1, norm=norm1)
         ax[0][ii+1].set_title(f"{ens_data[ii].name}", loc="left")
-    for jj in range(1, n_members):
+    for jj in range(0, n_members):
         logger.debug(f"  preparing {ens_data[jj].name}")
-        ax[jj][0].pcolormesh(ens_data[jj].pFSS[2], cmap=cmap1, norm=norm1)
-        ax[jj][0].set_title(f"{ens_data[jj].name}", loc="left")
-        for ii in range(0, n_members-1):
-            if ii < jj:
+        ax[jj+1][0].pcolormesh(ens_data[jj].pFSS[2], cmap=cmap1, norm=norm1)
+        ax[jj+1][0].set_title(f"{ens_data[jj].name}", loc="left")
+        for ii in range(0, n_members):
+            if ii != jj:
                 logger.debug(f"  preparing {ens_data[ii].name} - {ens_data[jj].name}")
-                c2 = ax[jj][ii+1].pcolormesh(
+                c2 = ax[jj+1][ii+1].pcolormesh(
                     ens_data[ii].pFSS[2] - ens_data[jj].pFSS[2],
                     cmap=cmap2, norm=norm2)        
-                ax[jj][ii+1].set_title(f"{ens_data[ii].name} -\n{ens_data[jj].name}", loc="left")
+                ax[jj+1][ii+1].set_title(f"{ens_data[ii].name} -\n{ens_data[jj].name}", loc="left")
             else:
-                ax[jj][ii+1].axis('off')
+                ax[jj+1][ii+1].axis('off')
 
     for N, ax1 in enumerate(ax.flatten()):
         ax1.set_yticks([x+0.5 for x in range(len(levels))])
