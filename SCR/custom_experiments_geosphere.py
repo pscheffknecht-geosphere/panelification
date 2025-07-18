@@ -132,7 +132,8 @@ experiment_configurations = {
         "unit_factor"      : 1.,
         "accumulated"      : True,
         "base_experiment"  : "arome",
-        "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_%H+%LLLL.grb",
+        "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_%H+%LLLL.grb",
+                              "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_00_%H+%LLLL.grb2"],
         "color"            : "dodgerblue"
     },
     "claef1k-mean": {
