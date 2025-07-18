@@ -286,7 +286,10 @@ class ModelConfiguration:
         self.output_interval = self.__pick_value_by_parameter(cmc["output_interval"])
         self.accumulated     = self.__pick_value_by_parameter(cmc["accumulated"])
         self.unit_factor     = self.__pick_value_by_parameter(cmc["unit_factor"])
-        self.ensemble        = self.__pick_value_by_parameter(cmc["ensemble"])
+        if "ensemble" in cmc:
+            self.ensemble    = self.__pick_value_by_parameter(cmc["ensemble"])
+        else:
+            self.ensemble    = None
         if self.ensemble and not args.merge_ens_init_times:
             init_str = self.init.strftime("%Y%m%d_%H")
             self.ensemble += f"_{init_str}"
