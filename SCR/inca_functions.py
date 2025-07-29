@@ -364,3 +364,39 @@ def read_inca_netcdf_archive(data_list, start_date, end_date, args):
     logger.debug(data_list[0]["precip_data"].max())
     logger.debug(data_list[0]["precip_data"].min())
     return data_list
+
+
+def read_incaPlus_netcdf_ana(data_list, start_date, end_date, args):
+    """ read INCA data from netcdf hourly archive"""
+    tt = start_date
+    # 1. check if all necessary files exist and are up to date:
+    fetched_current = False # if current month is found, was it updated?
+    rr_tmp = None
+    first = True
+    data_tmp = None
+    while tt < end_date:
+        tt_str = tt.strftime("%Y%m")
+        yyyymmdd = tt.strftime("%Y/%m/%d")
+        yyyymmddhh = tt.strftime("%Y%m%d%H")
+        read_file = f"/hpcperm/kmek/obs/INCAPlus_1h/inca/{yyyymmdd}/INCAPlus_1h_RR_ANA_{yyyymmddhh}00.nc"
+        logger.info(f"Reading {read_file}")
+        data_tmp = Dataset(read_file, "r")
+        if first:
+            rr_tmp = data_tmp.variables['RR'][0, :, :]
+            first = False
+        else:
+            rr_tmp += data_tmp.variables['RR'][0, :, :]
+        tt += dt(hours=1)
+    lon, lat = INCA_grid(INCAplus=True)
+    data_list.insert(0,{
+        'conf' : 'INCA',
+        'type' : 'obs',
+        'name' : 'INCA Plus Hourly',
+        'lat' : np.asarray(lat),
+        'lon' : np.asarray(lon),
+        'precip_data': rr_tmp})
+    logger.debug(data_list[0]["precip_data"])
+    logger.debug(data_list[0]["precip_data"].max())
+    logger.debug(data_list[0]["precip_data"].min())
+    return data_list
+
