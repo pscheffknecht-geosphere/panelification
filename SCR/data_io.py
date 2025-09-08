@@ -4,6 +4,7 @@ from grib_handle_check import find_grib_handles
 from data_from_dcmdb import fill_path_file_template
 import datetime as dt
 import pygrib
+from eccodes import codes_grib_new_from_file, codes_get_array, codes_release, codes_is_defined, codes_get
 import numpy as np
 import pyresample
 import matplotlib.pyplot as plt
@@ -26,7 +27,6 @@ def mars_request(exp_name, init, step,path=None):
     else:
         path = fill_path_file_template(path, init, step)
     dir_part = path.rpartition("/")[0]
-    print(dir_part)
     if not os.path.isdir(dir_part):
         logger.info(f"MARS REQUEST: {dir_part} does not exist, creating it now")
         os.system(f"mkdir -p {dir_part}")
@@ -68,6 +68,51 @@ def get_inca_rain_accumulated(mod):
             rr += rr_
     return lon, lat, rr
 
+
+def get_icon_unstructured_read(file_name, needLonLat=False):
+    values_sum = None
+    short_names = ["lsrr", "crr", "lsfwe", "csfwe"]
+    with open(file_name, "rb") as f:
+        while True:
+            gid = codes_grib_new_from_file(f)
+            if gid is None:
+                break  # End of file
+
+            short_name = codes_get(gid, "shortName")
+
+            if short_name not in short_names:
+                codes_release(gid)
+                continue
+
+            values = codes_get_array(gid, "values")
+    
+            if values_sum is None:
+                values_sum = values
+            else:
+                values_sum += values
+
+            codes_release(gid)
+        lats = np.loadtxt("../../models/ICOND2/icond2_lat.txt")
+        lons = np.loadtxt("../../models/ICOND2/icond2_lon.txt")
+        la = np.arange(44., 51.001, 0.0125)
+        lo = np.arange( 5., 18.001, 0.0125)
+        llo, lla = np.meshgrid(lo, la)
+        targ_def = pyresample.geometry.SwathDefinition(llo, lla)
+        orig_def = pyresample.geometry.SwathDefinition(lons, lats)
+        data = pyresample.kd_tree.resample_nearest(orig_def, values_sum, targ_def, reduce_data=False, radius_of_influence=25000)
+    if needLonLat:
+        return llo, lla, data
+    else:
+        return data
+            
+
+def get_icon_unstructured(mod):
+    logger.info(f"Reading end file: {mod.end_file}")
+    lon, lat, data = get_icon_unstructured_read(mod.end_file, needLonLat=True)
+    if mod.start_file:
+        logger.info(f"Reading start file: {mod.start_file}")
+        data -= get_icon_unstructured_read(mod.start_file, needLonLat=False)
+    return lon, lat, data
 
 def get_lonlat_fallback(grb):
     Nx = None
@@ -203,6 +248,11 @@ def read_data_grib(grib_file_path, parameter, lead, get_lonlat_data=False):
             lo = np.arange(-10., 35.001, 0.025)
             la = np.arange(30., 75.001, 0.025)
             lon, lat = np.meshgrid(lo, la)   
+        elif tmp_data_list[0]['gridType'] == "unstructured_grid":
+            logger.debug("gridType unstructured_grid detected, making own!")
+            lo = np.arange(-5., 20.001, 0.0125)
+            la = np.arange(44., 51.001, 0.0125)
+            lon, lat = np.meshgrid(lo, la)   
         else:
             lat, lon = tmp_data_list[0].latlons()
         if lon.max() > 180.:
@@ -228,11 +278,22 @@ class ModelConfiguration:
         self.path_template   = self.__pick_value_by_parameter(cmc["path_template"])
         if not isinstance(self.path_template, list):
             self.path_template = [self.path_template]
+        logger.debug(f"Path template for model {self.experiment_name} is:")
+        for tmpl in self.path_template:
+            logger.debug(f"   {tmpl}")
         self.init_interval   = self.__pick_value_by_parameter(cmc["init_interval"])
         self.max_leadtime    = self.__pick_value_by_parameter(cmc["max_leadtime"])
         self.output_interval = self.__pick_value_by_parameter(cmc["output_interval"])
         self.accumulated     = self.__pick_value_by_parameter(cmc["accumulated"])
         self.unit_factor     = self.__pick_value_by_parameter(cmc["unit_factor"])
+        if "ensemble" in cmc:
+            self.ensemble    = self.__pick_value_by_parameter(cmc["ensemble"])
+        else:
+            self.ensemble    = None
+        if self.ensemble and not args.merge_ens_init_times:
+            init_str = self.init.strftime("%Y%m%d_%H")
+            self.ensemble += f"_{init_str}"
+            logger.debug(f"Treating different init times as different ensembles, changed to {self.ensemble}")
         if "on_mars" in cmc.keys():
             self.on_mars         = self.__pick_value_by_parameter(cmc["on_mars"])
         else:
@@ -241,8 +302,11 @@ class ModelConfiguration:
         if "ecfs_path_template" in cmc:
             self.ecfs_path_template = self.__pick_value_by_parameter(cmc["ecfs_path_template"])
             logger.debug(f"ECFS path template: {self.ecfs_path_template}")
+        # TODO: fix
+        # elif condition??:
+        #     self.ecfs_path_template = [pt.replace("/scratch", "") for pt in self.path_template]
         else:
-            self.ecfs_path_template = [pt.replace("/scratch", "") for pt in self.path_template]
+            self.ecfs_path_template = None
         if "url_template" in cmc.keys():
             self.url_template = cmc["url_template"]
         else:
@@ -289,8 +353,8 @@ class ModelConfiguration:
         """ if the experiment is deried from a base experiment, not all keys
         need values, only experiments which do not refer to a base_experiment
         need all their values filled"""
-        keys = ["path_template", "init_interval", "max_leadtime", 
-                "output_interval", "unit_factor", "accumulated", "color"]
+        keys = ["init_interval", "max_leadtime", 
+                "output_interval", "unit_factor", "accumulated", "color", "ensemble"]
         for key in keys:
             logger.debug(f"Setting key {key}")
             if not key in cmc.keys():
@@ -303,13 +367,13 @@ class ModelConfiguration:
                     cmc[key] = None
                     logger.debug("Not in base experiment, setting {:s} in {:s} to None:".format(
                         key, self.experiment_name))
-        if not "on_mars" in cmc.keys():
-            if "on_mars" in args.custom_experiment_data[cmc["base_experiment"]].keys():
-                cmc["on_mars"] = args.custom_experiment_data[cmc["base_experiment"]]["on_mars"]
-            else:
-                cmc["on_mars"] = False
-        if not "url_template" in cmc.keys():
-            cmc["url_template"] = None
+        # if not "on_mars" in cmc.keys():
+        #     if "on_mars" in args.custom_experiment_data[cmc["base_experiment"]].keys():
+        #         cmc["on_mars"] = args.custom_experiment_data[cmc["base_experiment"]]["on_mars"]
+        #     else:
+        #         cmc["on_mars"] = False
+        # if not "url_template" in cmc.keys():
+        #     cmc["url_template"] = None
               
 
     def print(self):
@@ -339,13 +403,18 @@ class ModelConfiguration:
         files_to_check = [self.start_file, self.end_file] if self.accumulated else self.file_list
         if self.accumulated and not self.end_file:
             return False
+        if not self.accumulated and not any(self.file_list):
+            logger.debug(f"Model {self.experiment_name} has no accumulated values, but the file list is")
+            for fil in self.file_list:
+                logger.debug(f"  fil")
+            return False
         for fil in files_to_check:
             if fil:
                 if not os.path.isfile(str(fil)): 
-                    logger.debug(f"File {fil} not found, discarding experiment {self.experiment_name} {self.init}")
+                    logger.info(f"File {fil} not found, discarding experiment {self.experiment_name} {self.init}")
                     return False
                 elif os.path.getsize(fil) == 0:
-                    logger.debug(f"File {fil} was found but has size 0, discarding experiment {self.experiment_name}")
+                    logger.info(f"File {fil} was found but has size 0, discarding experiment {self.experiment_name}")
                     return False
         return True
 
@@ -356,6 +425,8 @@ class ModelConfiguration:
         else:
             if self.experiment_name == "inca-opt":
                 return get_inca_rain_accumulated(self)
+            if "ICOND2_m" in self.experiment_name:
+                return get_icon_unstructured(self)
             if self.accumulated:
                 return self.__get_data_accumulated()
             else:
@@ -469,6 +540,11 @@ class ModelConfiguration:
         logger.debug({path})
         return f"{directory_path}/GFS+{l:04d}_rr.grb2"
 
+    def check_pan_path_existence():
+        if not os.path.isdir(f"/home/kmek/panelification/MODEL/{self.experiment_name}"):
+            logger.info(f"MODEL/{self.experiment_name} not found, creating directory")
+            os.system(f"mkdir -p /home/kmek/panelification/MODEL/{self.experiment_name}")
+        return 0
 
     def get_file_path(self, l):
         path = None
@@ -480,9 +556,6 @@ class ModelConfiguration:
             logger.debug(f"Checking use of path template: {template_path}")
             if os.path.isfile(template_path):
                 return template_path
-        if not os.path.isdir(f"/home/kmek/panelification/MODEL/{self.experiment_name}"):
-            logger.debug(f"MODEL/{self.experiment_name} not found, creating directory")
-            os.system(f"mkdir -p /home/kmek/panelification/MODEL/{self.experiment_name}")
         panelification_path = self.gen_panelification_path(l)
         logger.debug(f"Checking panelficiation path: {panelification_path}")
         if os.path.isfile(panelification_path):
@@ -490,14 +563,16 @@ class ModelConfiguration:
         # if on mars, try that
         if self.on_mars:
             logger.debug(f"Checking MARS archive")
+            check_pan_path_existence()
             path = mars_request(self.experiment_name, self.init, l, path=panelification_path)
             if path:
                 return path
         # try ecfs
         if self.ecfs_path_template:
             logger.debug(f"Trying ECFS: {self.ecfs_path_template}")
+            check_pan_path_existence()
             path = self.get_file_from_ecfs(l)
-        return path
+        return None
             
     
     def file_path(self, lead):
@@ -554,7 +629,8 @@ def get_sims_and_file_list(data_list, args):
                     "lon": lon,
                     "lat": lat,
                     "precip_data": precip,
-                    "color" : mod.color}
+                    "color" : mod.color,
+                    "ensemble" : mod.ensemble}
                 data_list.append(sim)
     return data_list
 
