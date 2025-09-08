@@ -4,6 +4,8 @@ import os
 import pandas as pd
 import fss_functions
 import parameter_settings
+import csv
+
 
 import logging
 logger = logging.getLogger(__name__)
@@ -209,61 +211,23 @@ def rank_scores(data_list):
     return data_list
 
 
-def fss_overall_values(fss_ranks, windows, thresholds):
-    # takes fss as numpy array, returns some single fss_overall_values
-    fss_ranks = np.where(fss_ranks == 2, 3, fss_ranks) # merge number 1 and perfect scores
-    fss_ranks_abs = fss_ranks[ 0: 9,:] # ranks for absolute thresholds
-    fss_ranks_rel = fss_ranks[10:15,:] # ranks for percentiles
-    # fss_ranks_abs_high = fss_ranks[ 4: 9,:] # ranks for absolute thresholds
-
-    fss_total_abs_score = np.sum(np.where(fss_ranks_abs < 2, 0, 1./(fss_ranks_abs-2))) # better rank > more score
-    fss_total_rel_score = np.sum(np.where(fss_ranks_rel < 2, 0, 1./(fss_ranks_rel-2))) # better rank > more score
-    fss_success_rate_abs = np.mean(np.where(fss_ranks_abs == 1, 0, 1))
-    fss_success_rate_rel = np.mean(np.where(fss_ranks_rel == 1, 0, 1))
-    return fss_total_abs_score, fss_total_rel_score, fss_success_rate_abs, fss_success_rate_rel
-
-
-def total_fss_rankings(data_list, windows, thresholds):
-    for sim in data_list[1::]:
-        sim['fss_total_abs_score'], sim['fss_total_rel_score'], sim['fss_success_rate_abs'], sim['fss_success_rate_rel'] = fss_overall_values(sim['fss_ranks'], windows, thresholds)
-    data_list = rank_fss_all(data_list)
-    return data_list
-    
-
 def write_scores_to_csv(data_list, start_date, end_date, args, verification_subdomain, windows, thresholds):
-    # TODO
-    # sim['fss'] = fss
-    # sim['fss_ranks'] = fss
-    import csv
     name_part = '' # if args.mode == 'None' else args.mode+'_'
+    print(len(data_list))
+    for d in data_list:
+        print(type(d))
     csv_file = "../SCORES/"+args.name+"RR_"+name_part+"score_"+start_date.strftime("%Y%m%d_%HUTC_")+'{:02d}h_acc_'.format(args.duration)+verification_subdomain+'.csv'
-    tmp_file = "../SCORES/"+args.name+"RR_"+name_part+"score_"+start_date.strftime("%Y%m%d_%HUTC_")+'{:02d}h_acc_'.format(args.duration)+verification_subdomain+'.tmp'
-    score_table = []
-    score_table2 = []
-    row_labels = []
     with open(csv_file, 'w') as f:
-        score_writer = csv.writer(f, delimiter=',')
-        col_labels = ['name', 'bias', 'mae', 'rms', 'corr', 'd90', 'rank_bias', 'rank_mae', 'rank_rms', 'rank_corr',
-            'rank_d90', 'fss_rank_score', 'fss_success_rate_abs', 'fss_percentiles_rank_score',
-            'fss_success_rate_rel']
-        col_labels2 = ['Bias', 'MAE', 'RMS', 'Corr']
-        col_labels3 = ['FSS', 'SR', 'FSS%', 'SR%']
+        score_writer = csv.writer(f, delimiter=';')
+        col_labels = ["conf", "init", "lead", "name", "bias", "mae", "rms", "corr", "d90", "fss_condensed", "fss_condensed_weighted",
+                      "rank_mae", "rank_bias", "rank_rms", "rank_corr", "rank_d90", "rank_fss_condensed", "rank_fss_condensed_weighted"]
         score_writer.writerow(col_labels)
         for sim in data_list[1::]:
-            fss_total_abs_score, fss_total_rel_score, fss_success_rate_abs, fss_success_rate_rel = fss_overall_values(sim['fss_ranks'], windows, thresholds)
             score_writer.writerow([
-                sim['name'].replace(' ','_'), 
-                "{:.5f}".format(sim['bias_real']), "{:.5f}".format(sim['mae']), "{:.5f}".format(sim['rms']), "{:.5f}".format(sim['corr']), "{:.5f}".format(sim['d90']),
-                str(sim['rank_bias']), str(sim['rank_mae']), str(sim['rank_rms']), str(sim['rank_corr']), str(sim['rank_d90']),
-                "{:.5f}".format(fss_total_abs_score), "{:.5f}".format(fss_success_rate_abs), "{:.5f}".format(fss_total_rel_score),
-                "{:.5f}".format(fss_success_rate_rel)])
-            score_table.append([
-                "{:.3f}".format(sim['bias_real']), "{:.3f}".format(sim['mae']), "{:.3f}".format(sim['rms']), "{:.3f}".format(sim['corr'])])
-            score_table2.append([
-                "{:.3f}".format(fss_total_abs_score), "{:.3f}".format(fss_success_rate_abs), "{:.3f}".format(fss_total_rel_score), "{:.3f}".format(fss_success_rate_rel)])
-            row_labels.append(sim['name'])
-    os.system("column -t -s , "+csv_file+" > "+tmp_file+" && mv "+tmp_file+" "+csv_file)
-    return score_table, score_table2, col_labels2, col_labels3, row_labels
+                sim['conf'], sim['init'], sim['lead'], sim['name'], sim['bias_real'], sim['mae'], sim['rms'], sim['corr'], sim['d90'], 
+                sim['fss_condensed'], sim['fss_condensed_weighted'], 
+                sim['rank_mae'], sim['rank_bias'], sim['rank_rms'], sim['rank_corr'], sim['rank_d90'], 
+                sim['rank_fss_condensed'], sim['rank_fss_condensed_weighted']])
 
 
 def prep_windows(ww, mode, nx, ny):
