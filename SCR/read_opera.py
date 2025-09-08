@@ -25,12 +25,13 @@ logger = logging.getLogger(__name__)
 
 
 def OPERA_grid():
-    #myproj=pyproj.Proj("""epsg:31287 +units=m +proj=lcc +lat_1=49 +lat_2=46 +lat_0=47.5 +lon_0=13.33333333333333 +x_0=400000 +y_0=400000 +ellps=bessel +towgs84=577.326,90.129,463.919,5.137,1.474,5.297,2.4232 +no_defs""")
-    myproj=pyproj.Proj("""+proj=laea +lat_0=55.0 +lon_0=10.0 +x_0=1950000.0 +y_0=+2100000.0 +units=m +ellps=WGS84""")
+    # NEW VALUES FOUND USING MINIMIZATION OF CORNER ERROR
+    myproj = pyproj.Proj("""+proj=laea +lat_0=55.0 +lon_0=10.0 +x_0=1950000.0 +y_0=+2300000.0 +units=m +ellps=WGS84""")
     NX=1900
     NY=2200
-    X=np.arange(NX)*2000.
-    Y=np.arange(NY)*2000.
+    # NEW VALUES FOUND USING MINIMIZATION OF CORNER ERROR
+    X=np.arange(NX) * 2001.0888671875
+    Y=np.arange(NY) * 2000.90625
     XX,YY=np.meshgrid(X,Y)
     lon_OPERA,lat_OPERA=myproj(XX,YY,inverse=True)
     return lon_OPERA,lat_OPERA
