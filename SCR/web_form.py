@@ -13,7 +13,7 @@ import subprocess
 import datetime as dt
 
 import regions
-import custom_experiments
+import custom_experiments_geosphere as custom_experiments
 
 app = Flask(__name__)
 
