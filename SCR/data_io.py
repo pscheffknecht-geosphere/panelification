@@ -750,6 +750,7 @@ def get_sims_and_file_list(data_list, args):
                     "conf": model_name,
                     "type": "model",
                     "init": exp_init_date,
+                    "lead": leadmin,
                     "name": "{:s} {:s}".format(model_name, exp_init_date.strftime("%Y-%m-%d %H")),
                     # "start_file": mod.file_path(exp_lead),
                     # "end_file": mod.end_file,
