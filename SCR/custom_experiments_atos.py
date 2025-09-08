@@ -456,4 +456,85 @@ experiment_configurations = {
         "base_experiment"  : "deode_arome_500_austria",
         "path_template"    : "/scratch/aut6432/DE_NWP/deode/%Y/%m/%d/%H/storm/1/ALARO_500m/GRIBPFDEOD+%LLLLh00m00s",
     },
+# drwxr-s--- 7 kmw msdeode 4.0K May 15 20:07 CY49t2_AROME_DP_AUT_1500x1500_500m_v0_15_0
+    "CY49t2_AROME_DP" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/scratch/kmw/deode/CY49t2_AROME_DP_AUT_1500x1500_500m_v0_15_0/archive/%Y/%m/%d/%H/GRIBPFDEOD+%LLLLh00m00s",
+    },
+# drwxr-s--- 7 kmw msdeode 4.0K May 17 08:35 CY49t2_AROME_SP_AUT_1500x1500_500m_v0_15_0
+    "CY49t2_AROME_SP" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/scratch/kmw/deode/CY49t2_AROME_SP_AUT_1500x1500_500m_v0_15_0/archive/%Y/%m/%d/%H/GRIBPFDEOD+%LLLLh00m00s",
+    },
+# drwxr-s--- 5 kmw msdeode 4.0K May 23 07:44 CY49t2_HARMONIE_AROME_DP_AUT_1500x1500_500m_v0_15_0
+    "CY49t2_HARMONIE_AROME_DP" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/scratch/kmw/deode/CY49t2_HARMONIE_AROME_DP_AUT_1500x1500_500m_v0_15_0/archive/%Y/%m/%d/%H/GRIBPFDEOD+%LLLLh00m00s",
+    },
+# drwxr-s--- 5 kmw msdeode 4.0K May 23 07:46 CY49t2_HARMONIE_AROME_SP_AUT_1500x1500_500m_v0_15_0
+    "CY49t2_HARMONIE_AROME_SP" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/scratch/kmw/deode/CY49t2_HARMONIE_AROME_SP_AUT_1500x1500_500m_v0_15_0/archive/%Y/%m/%d/%H/GRIBPFDEOD+%LLLLh00m00s",
+    },
+# drwxr-s--- 5 kmw msdeode 4.0K May 23 07:50 CY48t3_AROME_DP_AUT_1500x1500_500m_v0_15_0
+    "CY48t3_AROME_DP" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/scratch/kmw/deode/CY48t3_AROME_DP_AUT_1500x1500_500m_v0_15_0/archive/%Y/%m/%d/%H/GRIBPFDEOD+%LLLLh00m00s",
+    },
+# /scratch/kmw/deode/CY49t2_ALARO_AUT_1500x1500_500m_v0_15_0/archive/2024/08/13/00/GRIBPFDEOD+0012h00m00s
+    "CY49t2_ALARO" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        # "path_template"    : "/scratch/kmw/deode/CY48t3_AROME_DP_AUT_1500x1500_500m_v0_15_0/archive/%Y/%m/%d/%H/GRIBPFDEOD+%LLLLh00m00s",
+        "path_template"    : "/scratch/kmw/deode/CY49t2_ALARO_AUT_1500x1500_500m_v0_15_0/archive/%Y/%m/%d/%H/GRIBPFDEOD+%LLLLh00m00s",
+    },
+# /scratch/kmw/deode/CY49t2_AROME_AUT_1500x1500_500m_v2/archive/2024/08/13/00/GRIBPFDEOD+0012h00m00s
+    "CY49t2_AROME_v2" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        # "path_template"    : "/scratch/kmw/deode/CY48t3_AROME_DP_AUT_1500x1500_500m_v0_15_0/archive/%Y/%m/%d/%H/GRIBPFDEOD+%LLLLh00m00s",
+        "path_template"    : "/scratch/kmw/deode/CY49t2_AROME_AUT_1500x1500_500m_v2/archive/%Y/%m/%d/%H/GRIBPFDEOD+%LLLLh00m00s",
+    },
+# /scratch/kmw/deode/CY49t2_HARMONIE_AROME_AUT_1500x1500_500m_v2/archive/2024/08/13/00/GRIBPFDEOD+0012h00m00s
+    "CY49t2_HARMONIE_AROME_v2" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/scratch/kmw/deode/CY48t3_AROME_DP_AUT_1500x1500_500m_v0_15_0/archive/%Y/%m/%d/%H/GRIBPFDEOD+%LLLLh00m00s",
+        "path_template"    : "/scratch/kmw/deode/CY49t2_HARMONIE_AROME_AUT_1500x1500_500m_v2/archive/%Y/%m/%d/%H/GRIBPFDEOD+%LLLLh00m00s",
+    },
+
+# /ec/res4/scratch/kmcw/claef1k/DATA/20250604/00/MEM_00/ADDGRIB_60/AT10/CLAEF00+0024:00.grb
+    "60": {
+        "base_experiment"  : "arome",
+        "path_template"    : "/ec/res4/scratch/kmcw/claef1k/DATA/%Y%m%d/%H/MEM_00/ADDGRIB_60/AT10/CLAEF00+%LLLL:00.grb",
+        # "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_%H+%LLLL.grb",
+        "color"            : "dodgerblue"
+    },
+# /ec/res4/scratch/kmcw/claef1k/DATA/20250604/00/MEM_00/ADDGRIB_comad/AT10/CLAEF00+0024:00.grb
+    "comad": {
+        "base_experiment"  : "arome",
+        "path_template"    : "/ec/res4/scratch/kmcw/claef1k/DATA/%Y%m%d/%H/MEM_00/ADDGRIB_comad/AT10/CLAEF00+%LLLL:00.grb",
+        # "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_%H+%LLLL.grb",
+        "color"            : "dodgerblue"
+    },
+# /ec/res4/scratch/kmcw/claef1k/DATA/20250604/00/MEM_00/ADDGRIB_damp/AT10/CLAEF00+0024:00.grb
+    "damp": {
+        "base_experiment"  : "arome",
+        "path_template"    : "/ec/res4/scratch/kmcw/claef1k/DATA/%Y%m%d/%H/MEM_00/ADDGRIB_damp/AT10/CLAEF00+%LLLL:00.grb",
+        # "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_%H+%LLLL.grb",
+        "color"            : "dodgerblue"
+    },
+# /ec/res4/scratch/kmcw/claef1k/DATA/20250604/00/MEM_00/ADDGRIB_facraf/AT10/CLAEF00+0024:00.grb
+    "facraf": {
+        "base_experiment"  : "arome",
+        "path_template"    : "/ec/res4/scratch/kmcw/claef1k/DATA/%Y%m%d/%H/MEM_00/ADDGRIB_facraf/AT10/CLAEF00+%LLLL:00.grb",
+        # "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_%H+%LLLL.grb",
+        "color"            : "dodgerblue"
+    },
+# /ec/res4/scratch/kmcw/claef1k/DATA/20250604/00/MEM_00/ADDGRIB_zacs/AT10/CLAEF00+0024:00.grb
+    "zacs": {
+        "base_experiment"  : "arome",
+        "path_template"    : "/ec/res4/scratch/kmcw/claef1k/DATA/%Y%m%d/%H/MEM_00/ADDGRIB_zacs/AT10/CLAEF00+%LLLL:00.grb",
+        # "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_%H+%LLLL.grb",
+        "color"            : "dodgerblue"
+    },
+
+
 }
