@@ -46,7 +46,7 @@ def mars_request(exp_name, init, step,path=None):
         request = request.replace(key, val) 
     with open("../TMP/mars_request_tmp", "w") as f: 
         f.write(request) 
-    os.system("mars ../TMP/mars_request_tmp") 
+    os.system("/usr/local/bin/mars ../TMP/mars_request_tmp") 
     if os.path.isfile(path): # check if operation produced the target file
         return path
     else:
@@ -435,11 +435,11 @@ class ModelConfiguration:
         for ecfs_path_template in self.ecfs_path_template:
             ecfs_file = fill_path_file_template(ecfs_path_template, self.init, l)
             logger.debug(f"looking for: {ecfs_file}")
-            ret = os.system(f"els ec:{ecfs_file}")
+            ret = os.system(f"/usr/local/bin/els ec:{ecfs_file}")
             if ret == 0:
                 logger.info(f"copying from ec:{ecfs_file}")
                 logger.info(f"to {tmp_dir}/{tmp_fil}")
-                os.system(f"ecp ec:{ecfs_file} {tmp_dir}/{tmp_fil}")
+                os.system(f"/usr/local/bin/ecp ec:{ecfs_file} {tmp_dir}/{tmp_fil}")
                 return f"{tmp_dir}/{tmp_fil}"
             else:
                 logger.debug(f"{ecfs_file} not found")
