@@ -265,6 +265,8 @@ def main():
     # if args.parameter in ['precip', 'precip2', 'precip3', 'sunshine']:
     if args.precip_verif_dataset == "INCA":
         data_list = inca.read_INCA(data_list, start_date, end_date, args)
+    elif args.precip_verif_dataset == "INCAplus":
+        data_list = inca.read_incaPlus_netcdf_ana(data_list, start_date, end_date, args)
     elif args.precip_verif_dataset == "INCA_archive":
         data_list = inca.read_inca_netcdf_archive(data_list, start_date, end_date, args)
     elif args.precip_verif_dataset == "OPERA":
@@ -285,8 +287,6 @@ def main():
     #     logging.critical("Parameter {:s} unknown, accepted parameters: precip, sunshine, hail, lightning".format(
     #         args.parameter))
     #     exit(1)
-    for sim in data_list:
-        print(sim['name'])
     if args.region == "Dynamic":
         region_data = regions.regions
         region_data = regions.dynamic_region(data_list, region_data)

@@ -3,15 +3,36 @@ import os
 from grib_handle_check import find_grib_handles
 from data_from_dcmdb import fill_path_file_template
 import datetime as dt
+import re
 import pygrib
-from eccodes import codes_grib_new_from_file, codes_get_array, codes_release, codes_is_defined, codes_get
+try:
+    from eccodes import codes_grib_new_from_file, codes_get_array, codes_release, codes_is_defined, codes_get
+except ImportError:
+    print("Error: Required libraries (eccodes) not found. Please install them.")
+
 import numpy as np
-import pyresample
+try:
+    import pyresample
+except ImportError:
+    print("Error: Required libraries (pyresample) not found. Please install them.")
+
 import matplotlib.pyplot as plt
-from mars_request_templates import mars_request_templates
+try:
+    from mars_request_templates import mars_request_templates
+except ImportError:
+    print("Error: Required libraries (pyresample) not found. Please install them.")
 import urllib.request
 from pathlib import Path
-from osgeo import gdal
+
+try:
+    from osgeo import gdal
+except ImportError:
+    print("Error: GDAL library not found. Please install it using 'pip install gdal'")
+
+try:
+    import xarray as xr
+except ImportError:
+    print("Error: Required libraries (xarray) not found. Please install them.")
 
 import logging
 logger = logging.getLogger(__name__)
@@ -46,7 +67,7 @@ def mars_request(exp_name, init, step,path=None):
         request = request.replace(key, val) 
     with open("../TMP/mars_request_tmp", "w") as f: 
         f.write(request) 
-    os.system("mars ../TMP/mars_request_tmp") 
+    os.system("/usr/local/bin/mars ../TMP/mars_request_tmp") 
     if os.path.isfile(path): # check if operation produced the target file
         return path
     else:
@@ -204,6 +225,84 @@ def calc_data(tmp_data_list, parameter):
        }
     return calc_funcs[parameter](tmp_data_list)
 
+def read_samos_files(file_paths_dict):
+    """
+    Reads SAMOS precipitation data from a dictionary of NetCDF file paths.
+    Each file is expected to contain a 'prec' variable.
+
+    Args:
+        file_paths_dict (dict): A dictionary where keys are lead-times (int)
+                                and values are full paths to the NetCDF files (str).
+
+    Returns:
+        tuple:
+            - RR_list (list of np.ndarray): List of 3D (bands, height, width)
+                                            precipitation arrays, sorted by lead-time.
+            - NWP_list_dates (list of datetime): List of valid times for each file,
+                                                  sorted by lead-time.
+
+    Raises:
+        FileNotFoundError: If a specified file does not exist.
+        Exception: For other errors during file opening or data reading.
+    """
+    # Sort file paths by lead time before processing
+    sorted_file_paths = [file_paths_dict[lt] for lt in sorted(file_paths_dict.keys())]
+
+    logger.info(f"💾 Reading {len(sorted_file_paths)} SAMOS forecast files...")
+    RR_list = []
+    NWP_list_dates = []
+
+    # Extract init_time from the first file path (assuming consistent naming)
+    # FC_samos_prec_YYYYmmddHH_ltHHHh.nc
+    if not sorted_file_paths:
+        logger.warning("No files to read.")
+        return [], []
+
+    first_filename = Path(sorted_file_paths[0]).name
+    try:
+        init_time_str = first_filename.split('_')[3]
+        init_time = dt.datetime.strptime(init_time_str, '%Y%m%d%H')
+    except IndexError:
+        logger.error(f"Could not extract initialization time from filename: {first_filename}")
+        raise ValueError("Invalid filename format for extracting initialization time.")
+    except ValueError:
+        logger.error(f"Could not parse initialization time '{init_time_str}' from filename: {first_filename}")
+        raise ValueError("Invalid initialization time format in filename.")
+
+
+    for i, filepath in enumerate(sorted_file_paths):
+        try:
+            filename_basename = Path(filepath).name
+            logger.info(f"  Reading file ({i+1}/{len(sorted_file_paths)}): {filename_basename}")
+            ds = xr.open_dataset(filepath, decode_cf=False)
+            
+            # Extract lead time from filename for valid_time calculation
+            match = re.search(r"_lt(\d{3})h\.nc$", filename_basename)
+            if match:
+                lead = int(match.group(1))
+                valid_time = init_time + dt.timedelta(hours=lead)
+                NWP_list_dates.append(valid_time)
+            else:
+                logger.warning(f"⚠️ Could not extract lead time from {filename_basename}. Valid time might be incorrect.")
+                # Fallback: try to get time from dataset or use a dummy.
+                # For this specific case, the watchdog ensures 12 files so we expect a match.
+                NWP_list_dates.append(init_time + dt.timedelta(hours=i+1)) # Best guess
+
+            RR_list.append(ds['prec'].values[0])  # Assuming 'prec' is the variable and needs first slice
+            ds.close()
+        except FileNotFoundError:
+            logger.error(f"  🛑 File not found: {filepath}.")
+            raise
+        except KeyError:
+            logger.error(f"  🛑 Variable 'prec' not found in {filepath}. Check NetCDF file structure.")
+            raise
+        except Exception as e:
+            logger.error(f"  ❌ Error opening or reading {filepath}: {e}", exc_info=True)
+            raise
+    
+    logger.info(f"✅ Successfully read {len(RR_list)} precipitation arrays.")
+    return RR_list, NWP_list_dates
+
 
 def read_data_samos(file_path, parameter, lead, get_lonlat_data=False):
     """ calls the grib handle check and returns fields with or without lon and lat data,
@@ -223,6 +322,35 @@ def read_data_samos(file_path, parameter, lead, get_lonlat_data=False):
     else:
         return data
 
+# --- Helper Function for expected file paths ---
+def get_expected_samos_files(init_time_dt, base_dir="/samos_arch/FCruc.EVNO/prec/",REQUIRED_LEAD_TIMES = 12 ):
+    """
+    Generates a list of expected file paths for all 12 lead times
+    for a given SAMOS initialization timestamp.
+
+    Args:
+        init_time_dt (datetime.datetime): The datetime object representing
+                                          the initialization time (YYYYmmddHH).
+        base_dir (str): The base directory where SAMOS files are stored.
+        REQUIRED_LEAD_TIMES (int): The number of expected lead-times
+
+    Returns:
+        dict: A dictionary mapping lead-time (int 1-12) to full file path (str).
+    """
+    init_time_str = init_time_dt.strftime("%Y%m%d%H")
+    year_str = init_time_dt.strftime("%Y")
+    month_str = init_time_dt.strftime("%m")
+    day_str = init_time_dt.strftime("%d")
+
+    base_folder = Path(base_dir) / year_str / month_str / day_str
+    
+    expected_files = {} # Dict to store lead_time -> path
+    for lt in range(1, REQUIRED_LEAD_TIMES + 1): # Lead times 001h to 012h
+        lt_str = f"{lt:03d}"
+        filename = f"FC_samos_prec_{init_time_str}_lt{lt_str}h.nc"
+        filepath = base_folder / filename
+        expected_files[lt] = str(filepath)
+    return expected_files
 
 def read_data_grib(grib_file_path, parameter, lead, get_lonlat_data=False):
     """ calls the grib handle check and returns fields with or without lon and lat data,
@@ -506,11 +634,11 @@ class ModelConfiguration:
         for ecfs_path_template in self.ecfs_path_template:
             ecfs_file = fill_path_file_template(ecfs_path_template, self.init, l)
             logger.debug(f"looking for: {ecfs_file}")
-            ret = os.system(f"els ec:{ecfs_file}")
+            ret = os.system(f"/usr/local/bin/els ec:{ecfs_file}")
             if ret == 0:
                 logger.info(f"copying from ec:{ecfs_file}")
                 logger.info(f"to {tmp_dir}/{tmp_fil}")
-                os.system(f"ecp ec:{ecfs_file} {tmp_dir}/{tmp_fil}")
+                os.system(f"/usr/local/bin/ecp ec:{ecfs_file} {tmp_dir}/{tmp_fil}")
                 return f"{tmp_dir}/{tmp_fil}"
             else:
                 logger.debug(f"{ecfs_file} not found")
