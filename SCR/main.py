@@ -328,10 +328,11 @@ def main():
             plot_duration = datetime.now() - plot_start
             logging.info("Plotting "+str(len(data_list))+"panels took "+str(plot_duration))
             logging.info("File saved to: " + os.path.abspath(outfilename))
-        if args.save:
-            data_io.save_data(data_list, subdomain_name, start_date, end_date, args)
-        if args.save_full_fss:
-            data_io.save_fss(data_list, subdomain_name, start_date, end_date, args)
+        if dom['score']:
+            if args.save:
+                data_io.save_data(data_list, subdomain_name, start_date, end_date, args)
+            if args.save_full_fss:
+                data_io.save_fss(data_list, subdomain_name, start_date, end_date, args)
 
 
 if __name__ == '__main__':
