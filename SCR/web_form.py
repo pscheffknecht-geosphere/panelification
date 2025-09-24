@@ -1,6 +1,7 @@
 import time
-from flask import Flask, render_template, redirect, url_for, jsonify
+from flask import Flask, render_template, redirect, url_for, jsonify, request
 from flask_bootstrap import Bootstrap5
+from flask import Response
 
 from flask_wtf import FlaskForm, CSRFProtect
 from wtforms import StringField, SubmitField, SelectField, SelectMultipleField, BooleanField, \
@@ -154,32 +155,62 @@ def get_img_path(stdout_strings):
 def panelify():
     form = PanelificationRequest()
     names = ['bogus', 'names']
-    message = ""
-    if form.validate_on_submit():
-        message = make_panelification_command(form)
-        proc = subprocess.Popen(
-            message,
-            # "for ii in $(seq 1 5); do sleep 1; echo $ii; done",
-            shell=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
-        stdout_strings = []
-        while proc.poll() is None:
-            time.sleep(1)
-        emptycounter = 0
-        while emptycounter < 5:
-            newline = proc.stderr.readline().rstrip().decode('UTF-8')
-            if len(newline) < 5:
-                emptycounter += 1
-            stdout_strings.append(newline)
-        img_path = get_img_path(stdout_strings)
-        return render_template('index.html', names=names, form=form, 
-            message=message, stdout=stdout_strings, img_path=img_path, img_name=img_path.split("/")[-1])
 
+    if form.validate_on_submit():
+        # Build the command string from form
+        message = make_panelification_command(form)
+        # Render page with log <div> + JS to connect to /stream
+        return render_template(
+            'index.html',
+            names=names,
+            form=form,
+            message=message,
+            stdout=[],  # nothing yet
+            img_path="No image yet",
+            img_name="",
+            stream_url="/stream?cmd=" + message  # pass command to SSE endpoint
+        )
     else:
-        message = "No valid command (yet?)"
-        return render_template('index.html', names=names, form=form, 
-            message=message, stdout=["No console output"], img_path="No image generated (yet?)")
+        return render_template(
+            'index.html',
+            names=names,
+            form=form,
+            message="No valid command yet",
+            stdout=["No console output"],
+            img_path="No image generated (yet?)",
+            img_name="",
+            stream_url=None
+        )
+
+## def panelify():
+##     form = PanelificationRequest()
+##     names = ['bogus', 'names']
+##     message = ""
+##     if form.validate_on_submit():
+##         message = make_panelification_command(form)
+##         proc = subprocess.Popen(
+##             message,
+##             # "for ii in $(seq 1 5); do sleep 1; echo $ii; done",
+##             shell=True,
+##             stdout=subprocess.PIPE,
+##             stderr=subprocess.PIPE)
+##         stdout_strings = []
+##         while proc.poll() is None:
+##             time.sleep(1)
+##         emptycounter = 0
+##         while emptycounter < 5:
+##             newline = proc.stderr.readline().rstrip().decode('UTF-8')
+##             if len(newline) < 5:
+##                 emptycounter += 1
+##             stdout_strings.append(newline)
+##         img_path = get_img_path(stdout_strings)
+##         return render_template('index.html', names=names, form=form, 
+##             message=message, stdout=stdout_strings, img_path=img_path, img_name=img_path.split("/")[-1])
+## 
+##     else:
+##         message = "No valid command (yet?)"
+##         return render_template('index.html', names=names, form=form, 
+##             message=message, stdout=["No console output"], img_path="No image generated (yet?)")
 
 
 @app.route('/browse_graphics')
@@ -202,6 +233,22 @@ def subdomains(region):
 
     return jsonify({'verification_subdomains': subdomain_array})
 
+@app.route('/stream')
+def stream():
+    """SSE endpoint that runs the command and streams output"""
+    cmd = request.args.get('cmd')
+    if not cmd:
+        return Response("data: No command provided\n\n", mimetype='text/event-stream')
+
+    def generate():
+        # run the command
+        proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
+        for line in proc.stdout:
+            yield f"data: {line.strip()}\n\n"  # SSE
+        proc.wait()
+        yield "data: [DONE]\n\n"
+
+    return Response(generate(), mimetype='text/event-stream')
 
 if __name__ == "__main__":
     app.run()
