@@ -675,6 +675,7 @@ class ModelConfiguration:
         return 0
 
     def get_file_path(self, l):
+        logger.debug(f"Getting file path for model {self.name}")
         path = None
         if l == 0:
             return None
@@ -691,15 +692,20 @@ class ModelConfiguration:
         # if on mars, try that
         if self.on_mars:
             logger.debug(f"Checking MARS archive")
-            check_pan_path_existence()
+            self.check_pan_path_existence()
             path = mars_request(self.experiment_name, self.init, l, path=panelification_path)
             if path:
                 return path
         # try ecfs
         if self.ecfs_path_template:
             logger.debug(f"Trying ECFS: {self.ecfs_path_template}")
-            check_pan_path_existence()
+            self.check_pan_path_existence()
             path = self.get_file_from_ecfs(l)
+        # try online
+        if self.url_template:
+            logger.info(f"Attempting to download...")
+            self.check_pan_path_existence()
+            path = self.download_file(panelification_path, l)
         return None
             
     
