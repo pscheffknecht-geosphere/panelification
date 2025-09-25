@@ -5,37 +5,39 @@ from data_from_dcmdb import fill_path_file_template
 import datetime as dt
 import re
 import pygrib
+
+import logging
+logger = logging.getLogger(__name__)
+
 try:
     from eccodes import codes_grib_new_from_file, codes_get_array, codes_release, codes_is_defined, codes_get
 except ImportError:
-    print("Error: Required libraries (eccodes) not found. Please install them.")
+    logger.warning("Error: Required libraries (eccodes) not found. Please install them.")
 
 import numpy as np
 try:
     import pyresample
 except ImportError:
-    print("Error: Required libraries (pyresample) not found. Please install them.")
+    logger.warning("Error: Required libraries (pyresample) not found. Please install them.")
 
 import matplotlib.pyplot as plt
 try:
     from mars_request_templates import mars_request_templates
 except ImportError:
-    print("Error: Required libraries (pyresample) not found. Please install them.")
+    logger.warning("Error: Required libraries (pyresample) not found. Please install them.")
 import urllib.request
 from pathlib import Path
 
 try:
     from osgeo import gdal
 except ImportError:
-    print("Error: GDAL library not found. Please install it using 'pip install gdal'")
+    logger.warning("Error: GDAL library not found. Please install it using 'pip install gdal'")
 
 try:
     import xarray as xr
 except ImportError:
-    print("Error: Required libraries (xarray) not found. Please install them.")
+    logger.warning("Error: Required libraries (xarray) not found. Please install them.")
 
-import logging
-logger = logging.getLogger(__name__)
 
 #        tmp_dir = f"/perm/kmek/panelification/MODEL/{self.experiment_name}/{init_str}/{hour_str}"
 #        tmp_fil = f"{self.experiment_name}_{l:04d}.grb"
@@ -675,7 +677,7 @@ class ModelConfiguration:
         return 0
 
     def get_file_path(self, l):
-        logger.debug(f"Getting file path for model {self.name}")
+        logger.debug(f"Getting file path for model {self.experiment_name}")
         path = None
         if l == 0:
             return None
