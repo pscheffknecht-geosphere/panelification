@@ -213,9 +213,6 @@ def rank_scores(data_list):
 
 def write_scores_to_csv(data_list, start_date, end_date, args, verification_subdomain, windows, thresholds):
     name_part = '' # if args.mode == 'None' else args.mode+'_'
-    print(len(data_list))
-    for d in data_list:
-        print(type(d))
     csv_file = "../SCORES/"+args.name+"RR_"+name_part+"score_"+start_date.strftime("%Y%m%d_%HUTC_")+'{:02d}h_acc_'.format(args.duration)+verification_subdomain+'.csv'
     with open(csv_file, 'w') as f:
         score_writer = csv.writer(f, delimiter=';')
