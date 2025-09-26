@@ -38,11 +38,6 @@ try:
 except ImportError:
     logger.warning("Error: Required libraries (xarray) not found. Please install them.")
 
-
-#        tmp_dir = f"/perm/kmek/panelification/MODEL/{self.experiment_name}/{init_str}/{hour_str}"
-#        tmp_fil = f"{self.experiment_name}_{l:04d}.grb"
-
-
 def mars_request(exp_name, init, step,path=None):
     year, month, day, hour = init.year, init.month, init.day, init.hour
     if not path:
@@ -614,7 +609,7 @@ class ModelConfiguration:
     def gen_panelification_path(self, l):
         init_str = self.init.strftime("%Y%m%d")
         hour_str = self.init.strftime("%H")
-        tmp_dir = f"/perm/kmek/panelification/MODEL/{self.experiment_name}/{init_str}/{hour_str}"
+        tmp_dir = f"../MODEL/{self.experiment_name}/{init_str}/{hour_str}"
         tmp_fil = f"{self.experiment_name}_{l:04d}.grb"
         return f"{tmp_dir}/{tmp_fil}"
 
@@ -625,7 +620,7 @@ class ModelConfiguration:
         logger.debug(f"ecfs template: {self.ecfs_path_template}")
         init_str = self.init.strftime("%Y%m%d")
         hour_str = self.init.strftime("%H")
-        tmp_dir = f"/perm/kmek/panelification/MODEL/{self.experiment_name}/{init_str}/{hour_str}"
+        tmp_dir = f"../MODEL/{self.experiment_name}/{init_str}/{hour_str}"
         tmp_fil = f"{self.experiment_name}_{l:04d}.grb"
         logger.debug(f"ecfs file: ec:{tmp_dir}/{tmp_fil}")
         if not os.path.isdir(tmp_dir):
@@ -670,10 +665,10 @@ class ModelConfiguration:
         logger.debug({path})
         return f"{directory_path}/GFS+{l:04d}_rr.grb2"
 
-    def check_pan_path_existence():
-        if not os.path.isdir(f"/home/kmek/panelification/MODEL/{self.experiment_name}"):
+    def check_pan_path_existence(self):
+        if not os.path.isdir(f"../MODEL/{self.experiment_name}"):
             logger.info(f"MODEL/{self.experiment_name} not found, creating directory")
-            os.system(f"mkdir -p /home/kmek/panelification/MODEL/{self.experiment_name}")
+            os.system(f"mkdir -p ../MODEL/{self.experiment_name}")
         return 0
 
     def get_file_path(self, l):
