@@ -73,6 +73,8 @@ class PanelificationRequest(FlaskForm):
         choices=model_choices, default=['0', '1'])
     sorting = SelectField(choices=['default', 'model', 'init'], default='default')
     draw_subdomain = BooleanField(default="checked")
+    greens = BooleanField(default="checked")
+    print_colors = BooleanField()
     draw = BooleanField(default="checked")
     zoom_to_subdomain = BooleanField(default="unchecked")
     forcedraw = BooleanField(default="checked")
@@ -116,6 +118,8 @@ def make_panelification_command(form):
         command_string += "--sorting "+form.sorting.data+" "
     # process boolean arguments:
     command_string += "--draw_subdomain " + str(form.draw_subdomain.data) + " "
+    command_string += "--print_colors " + str(form.print_colors.data) + " "
+    command_string += "--greens " + str(form.greens.data) + " "
     command_string += "--draw " + str(form.draw.data) + " "
     command_string += "--zoom_to_subdomain " +str(form.zoom_to_subdomain.data) + " "
     command_string += "--forcedraw " + str(form.forcedraw.data) + " "
@@ -234,6 +238,7 @@ def subdomains(region):
     return jsonify({'verification_subdomains': subdomain_array})
 
 @app.route('/stream')
+@csrf.exempt
 def stream():
     """SSE endpoint that runs the command and streams output"""
     cmd = request.args.get('cmd')
