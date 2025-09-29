@@ -268,6 +268,11 @@ def fetch_inca(month):
     example file: https://public.hub.geosphere.at/datahub/resources/inca-v1-1h-1km/filelisting/RR/INCAL_HOURLY_RR_201106.nc"""
     dt_string = month.strftime("%Y%m")
     fetch_file = f"https://public.hub.geosphere.at/datahub/resources/inca-v1-1h-1km/filelisting/RR/INCAL_HOURLY_RR_{dt_string}.nc"
+    print(f"checking whether {PAN_DIR_OBS}/INCA_netcdf exists...")
+    print(os.path.isdir(f"{PAN_DIR_OBS}/INCA_netcdf"))
+    if not os.path.isdir(f"{PAN_DIR_OBS}/INCA_netcdf"):
+        logger.info(f"could not find {PAN_DIR_OBS}/INCA_netcdf, creating it now...")
+        os.system(f"mkdir -p {PAN_DIR_OBS}/INCA_netcdf")
     local_file = f"{PAN_DIR_OBS}/INCA_netcdf/INCAL_HOURLY_RR_{dt_string}.nc"
     logger.info(f"did not find {local_file}")
     logger.info(f"downloading {fetch_file}")
@@ -322,6 +327,9 @@ def fetch_inca(month):
     dt_string = month.strftime("%Y%m")
     fetch_file = f"https://public.hub.geosphere.at/datahub/resources/inca-v1-1h-1km/filelisting/RR/INCAL_HOURLY_RR_{dt_string}.nc"
     local_file = f"{PAN_DIR_OBS}/INCA_netcdf/INCAL_HOURLY_RR_{dt_string}.nc"
+    if not os.path.isdir(f"{PAN_DIR_OBS}/INCA_netcdf"):
+        logger.info(f"could not find {PAN_DIR_OBS}/INCA_netcdf, creating it now...")
+        os.system(f"mkdir -p {PAN_DIR_OBS}/INCA_netcdf")
     logger.info(f"did not find {local_file}")
     logger.info(f"downloading {fetch_file}")
     urllib.request.urlretrieve(fetch_file, local_file)
