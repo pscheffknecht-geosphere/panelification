@@ -8,6 +8,8 @@ import progress
 from inca_functions import INCA_grid
 # import matplotlib.pyplot as plt
 
+from paths import PAN_DIR_OBS_ARCH
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -233,10 +235,9 @@ def get_lightning_from_sybase(start_date, end_date):
 
 
 def array_to_csv(arr, start_date, end_date, param):
-    fil_nam = "../OBS_archive/{:s}_{:s}_{:s}.csv".format(
-        param,
-        start_date.strftime("%Y%m%d%H%M"),
-        end_date.strftime("%Y%m%d%H%M"))
+    start_date_str = start_date.strftime("%Y%m%d%H%M")
+    end_date_str = end_date.strftime("%Y%m%d%H%M")
+    fil_nam = f"{PAN_DIR_OBS_ARCH}/{param}_{start_date_str}_{end_date_str}.csv"
     logger.info("Writing {:s} data to {:s}".format(param, fil_nam))
     if param == "lightning":
         fmtstr = "%.0f"
@@ -246,7 +247,9 @@ def array_to_csv(arr, start_date, end_date, param):
 
 
 def read_archived_file(start_date, end_date, param):
-    fil_nam = "../OBS_archive/{:s}_{:s}_{:s}.csv".format(
+    start_date_str = start_date.strftime("%Y%m%d%H%M")
+    end_date_str = end_date.strftime("%Y%m%d%H%M")
+    fil_nam = f"{PAN_DIR_OBS_ARCH}/{param}_{start_date_str}_{end_date_str}.csv".format(
         param, start_date.strftime("%Y%m%d%H%M"), end_date.strftime("%Y%m%d%H%M"))
     logger.info("Checking for archived obs in {:s}".format(fil_nam))
     if os.path.exists(fil_nam):

@@ -2,6 +2,7 @@ import numpy as np
 from shutil import copyfile
 import os
 from model_parameters import inca_ana_paths
+from paths import PAN_DIR_TMP
 
 import logging
 logger = logging.getLogger(__name__)
@@ -39,7 +40,6 @@ def check_paths(date):
     return False
 
 def bring(date, inca_file=None):
-    DIR_TMP='../TMP/'
     if inca_file:
         file_OBS = inca_file
     else:
@@ -47,7 +47,7 @@ def bring(date, inca_file=None):
         if not file_OBS:
             return False
     logger.info("reading: {:s}".format(file_OBS))
-    file_TMP=DIR_TMP+'INCA_OBS'+'%05d' %((np.random.rand(1)*10000).astype(int))+'.gz'
+    file_TMP=PAN_DIR_TMP+'INCA_OBS'+'%05d' %((np.random.rand(1)*10000).astype(int))+'.gz'
 
     copyfile(file_OBS, file_TMP)
     order_unzip="gzip -df "+file_TMP

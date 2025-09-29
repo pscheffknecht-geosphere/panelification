@@ -6,6 +6,8 @@ import datetime as dt
 import re
 import pygrib
 
+from paths import PAN_DIR_TMP, PAN_DIR_MODEL, PAN_DIR_MODEL2, PAN_DIR_DATA
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -41,7 +43,7 @@ except ImportError:
 def mars_request(exp_name, init, step,path=None):
     year, month, day, hour = init.year, init.month, init.day, init.hour
     if not path:
-        path = "../MODEL/{exp_name}/{year}{month:02d}{day:02d}/{hour:02d}/{exp_name}_{hour:04d}.grb"
+        path = f"{PAN_DIR_MODEL}/{exp_name}/{year}{month:02d}{day:02d}/{hour:02d}/{exp_name}_{hour:04d}.grb"
     else:
         path = fill_path_file_template(path, init, step)
     dir_part = path.rpartition("/")[0]
@@ -62,9 +64,9 @@ def mars_request(exp_name, init, step,path=None):
     request = mars_request_templates[exp_name]
     for key, val in replace_dict.items(): 
         request = request.replace(key, val) 
-    with open("../TMP/mars_request_tmp", "w") as f: 
+    with open(f"{PAN_DIR_TMP}/mars_request_tmp", "w") as f: 
         f.write(request) 
-    os.system("/usr/local/bin/mars ../TMP/mars_request_tmp") 
+    os.system(f"/usr/local/bin/mars {PAN_DIR_TMP}/mars_request_tmp") 
     if os.path.isfile(path): # check if operation produced the target file
         return path
     else:
@@ -110,8 +112,8 @@ def get_icon_unstructured_read(file_name, needLonLat=False):
                 values_sum += values
 
             codes_release(gid)
-        lats = np.loadtxt("../../models/ICOND2/icond2_lat.txt")
-        lons = np.loadtxt("../../models/ICOND2/icond2_lon.txt")
+        lats = np.loadtxt(f"{PAN_DIR_MODEL2}/ICOND2/icond2_lat.txt")
+        lons = np.loadtxt(f"{PAN_DIR_MODEL2}/ICOND2/icond2_lon.txt")
         la = np.arange(44., 51.001, 0.0125)
         lo = np.arange( 5., 18.001, 0.0125)
         llo, lla = np.meshgrid(lo, la)
@@ -609,7 +611,7 @@ class ModelConfiguration:
     def gen_panelification_path(self, l):
         init_str = self.init.strftime("%Y%m%d")
         hour_str = self.init.strftime("%H")
-        tmp_dir = f"../MODEL/{self.experiment_name}/{init_str}/{hour_str}"
+        tmp_dir = f"{PAN_DIR_MODEL}/{self.experiment_name}/{init_str}/{hour_str}"
         tmp_fil = f"{self.experiment_name}_{l:04d}.grb"
         return f"{tmp_dir}/{tmp_fil}"
 
@@ -620,7 +622,7 @@ class ModelConfiguration:
         logger.debug(f"ecfs template: {self.ecfs_path_template}")
         init_str = self.init.strftime("%Y%m%d")
         hour_str = self.init.strftime("%H")
-        tmp_dir = f"../MODEL/{self.experiment_name}/{init_str}/{hour_str}"
+        tmp_dir = f"{PAN_DIR_MODEL}/{self.experiment_name}/{init_str}/{hour_str}"
         tmp_fil = f"{self.experiment_name}_{l:04d}.grb"
         logger.debug(f"ecfs file: ec:{tmp_dir}/{tmp_fil}")
         if not os.path.isdir(tmp_dir):
@@ -666,9 +668,9 @@ class ModelConfiguration:
         return f"{directory_path}/GFS+{l:04d}_rr.grb2"
 
     def check_pan_path_existence(self):
-        if not os.path.isdir(f"../MODEL/{self.experiment_name}"):
+        if not os.path.isdir(f"{PAN_DIR_MODEL}/{self.experiment_name}"):
             logger.info(f"MODEL/{self.experiment_name} not found, creating directory")
-            os.system(f"mkdir -p ../MODEL/{self.experiment_name}")
+            os.system(f"mkdir -p {PAN_DIR_MODEL}/{self.experiment_name}")
         return 0
 
     def get_file_path(self, l):
@@ -772,7 +774,7 @@ def get_sims_and_file_list(data_list, args):
 def save_data(data_list, verification_subdomain, start_date, end_date, args):
     """ write all data to a pickle file """
     start_date_str = start_date.strftime("%Y%m%d_%HUTC_")
-    outfilename = f"../DATA/{args.name}RR_data_{start_date_str}{args.duration:02d}h_acc_{verification_subdomain}.p"
+    outfilename = f"{PAN_DIR_DATA}/{args.name}RR_data_{start_date_str}{args.duration:02d}h_acc_{verification_subdomain}.p"
     with open(outfilename, 'wb') as f:
         pickle.dump(data_list, f)
     logger.info(outfilename+" written sucessfully.")
@@ -781,7 +783,7 @@ def save_data(data_list, verification_subdomain, start_date, end_date, args):
 def save_fss(data_list, verification_subdomain, start_date, end_date, args):
     """ write all data to a pickle file """
     start_date_str = start_date.strftime("%Y%m%d_%HUTC_")
-    outfilename = f"../DATA/{args.name}FSS_data_{start_date_str}{args.duration:02d}h_acc_{verification_subdomain}.p"
+    outfilename = f"{PAN_DIR_DATA}/{args.name}FSS_data_{start_date_str}{args.duration:02d}h_acc_{verification_subdomain}.p"
     fss_dict = {}
     for sim in data_list[1::]:
         sim_dict = {

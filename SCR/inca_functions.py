@@ -14,6 +14,8 @@ import grib_handles
 from netCDF4 import Dataset
 import urllib.request
 
+from paths import PAN_DIR_OBS
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -264,7 +266,7 @@ def fetch_inca(month):
     example file: https://public.hub.geosphere.at/datahub/resources/inca-v1-1h-1km/filelisting/RR/INCAL_HOURLY_RR_201106.nc"""
     dt_string = month.strftime("%Y%m")
     fetch_file = f"https://public.hub.geosphere.at/datahub/resources/inca-v1-1h-1km/filelisting/RR/INCAL_HOURLY_RR_{dt_string}.nc"
-    local_file = f"../OBS/INCA_netcdf/INCAL_HOURLY_RR_{dt_string}.nc"
+    local_file = f"{PAN_DIR_OBS}/INCA_netcdf/INCAL_HOURLY_RR_{dt_string}.nc"
     logger.info(f"did not find {local_file}")
     logger.info(f"downloading {fetch_file}")
     urllib.request.urlretrieve(fetch_file, local_file)
@@ -282,7 +284,7 @@ def read_inca_netcdf_archive(data_list, start_date, end_date, args):
     this_month = datetime(datetime.now().year, datetime.now().month, 1)
     while tt < end_date:
         tt_str = tt.strftime("%Y%m")
-        read_file = f"../OBS/INCA_netcdf/INCAL_HOURLY_RR_{tt_str}.nc"
+        read_file = f"{PAN_DIR_OBS}/INCA_netcdf/INCAL_HOURLY_RR_{tt_str}.nc"
         if not read_file == previous_file:
             if datetime(tt.year, tt.month, 1) == this_month and not fetched_current:
                 fetch_inca(tt)
@@ -317,7 +319,7 @@ def fetch_inca(month):
     example file: https://public.hub.geosphere.at/datahub/resources/inca-v1-1h-1km/filelisting/RR/INCAL_HOURLY_RR_201106.nc"""
     dt_string = month.strftime("%Y%m")
     fetch_file = f"https://public.hub.geosphere.at/datahub/resources/inca-v1-1h-1km/filelisting/RR/INCAL_HOURLY_RR_{dt_string}.nc"
-    local_file = f"../OBS/INCA_netcdf/INCAL_HOURLY_RR_{dt_string}.nc"
+    local_file = f"{PAN_DIR_OBS}/INCA_netcdf/INCAL_HOURLY_RR_{dt_string}.nc"
     logger.info(f"did not find {local_file}")
     logger.info(f"downloading {fetch_file}")
     urllib.request.urlretrieve(fetch_file, local_file)
@@ -336,7 +338,7 @@ def read_inca_netcdf_archive(data_list, start_date, end_date, args):
     this_month = datetime(datetime.now().year, datetime.now().month, 1)
     while tt < end_date:
         tt_str = tt.strftime("%Y%m")
-        read_file = f"../OBS/INCA_netcdf/INCAL_HOURLY_RR_{tt_str}.nc"
+        read_file = f"{PAN_DIR_OBS}/INCA_netcdf/INCAL_HOURLY_RR_{tt_str}.nc"
         if not read_file == previous_file:
             if datetime(tt.year, tt.month, 1) == this_month and not fetched_current:
                 fetch_inca(tt)

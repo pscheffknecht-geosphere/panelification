@@ -23,6 +23,8 @@ from multiprocessing import Pool
 import pickle
 import scipy.ndimage as ndimage
 
+from paths import PAN_DIR_TMP, PAN_DIR_PLOTS, PAN_DIR_SCR
+
 import logging
 logger = logging.getLogger(__name__)
 logging.getLogger('matplotlib').setLevel(logging.WARNING)
@@ -257,7 +259,7 @@ def draw_solo_colorbar(levels, cmap, norm, tmp_string, args):
         orientation='horizontal', ticks=levels, extend='max')
     cb.cmap.set_bad('gray')
     cb.set_label(parameter_settings.colorbar_label[args.parameter])
-    plt.savefig('../TMP/'+tmp_string+'/cbar.png')
+    plt.savefig(f"{PAN_DIR_TMP}/{tmp_string}/cbar.png")
 
 def draw_RGB_colorbars(tmp_string, args):
     """ Draw colorbars for greens, blues and reds used to show FSS score
@@ -278,7 +280,7 @@ def draw_RGB_colorbars(tmp_string, args):
     cb_bias = mpl.colorbar.ColorbarBase(ax_bias, cmap="RdBu", ticks=ticksb,
         orientation='horizontal', norm=rel_normb, extend="both")
     cb_bias.set_label("Frequency Bias [% of grid points]")
-    plt.savefig('../TMP/'+tmp_string+'/cbar2.png')
+    plt.savefig(f"{PAN_DIR_TMP}/{tmp_string}/cbar2.png")
 
 
 
@@ -384,7 +386,7 @@ def draw_single_figure(sim, obs, r, jj, levels, cmap, norm, verification_subdoma
     gl = ax.gridlines(crs=args.region.data_projection, draw_labels=False, dms=True, x_inline=False, y_inline=False)
     gl.left_labels=False
     gl.top_labels=False
-    plt.savefig('../TMP/'+tmp_string+'/'+str(jj).zfill(3)+".png")
+    plt.savefig(f"{PAN_DIR_TMP}/{tmp_string}/{str(jj).zfill(3)}.png")
     plt.close('all')
     if sim['type'] == 'obs':
         draw_solo_colorbar(levels, cmap, norm, tmp_string, args)
@@ -467,7 +469,7 @@ def score_time_series(data_list, r, tmp_string, args):
         ax.set_title(title, loc='left')
         # ax.set_ylim([0., 122])
         plt.tight_layout()
-        plt.savefig('../TMP/' + tmp_string + '/' + str(990 + sidx) + '.png')
+        plt.savefig(f"{PAN_DIR_TMP}/{tmp_string}/{str(990 + sidx)}.png")
         # exit()
         
 
@@ -505,35 +507,34 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
     # init projections
     suptit = "'"+parameter_settings.title_part[args.parameter] + " from "+start_date.strftime("%Y%m%d %H")+" to "+end_date.strftime("%Y%m%d %H UTC")+"'"
     name_part = '' #if args.mode == 'None' else args.mode+'_'
-    outfilename = "../PLOTS/"+args.name+"_"+args.parameter+"_"+name_part+"panel_"+start_date.strftime("%Y%m%d_%HUTC_")+'{:02d}h_acc_'.format(args.duration)+verification_subdomain+'.png' #+args.output_format
+    start_date_str = start_date.strftime("%Y%m%d_%H")
+    outfilename = f"{PAN_DIR_PLOTS}/{args.name}_{args.parameter}_{name_part}panel_{start_date_str}UTC_{args.duration:02d}h_acc_{verification_subdomain}.png"
     # generate a random subdirectory within TMP to avoid collisions if multiple instances of panelification are
     # run at the same time
     tmp_string = dt.datetime.now().strftime("%Y%m%d%H%M%S")+str(np.random.randint(1000000000)).zfill(9)
     # generate figure and axes objects for loop and go
-    os.system('mkdir ../TMP/'+tmp_string)
-    logger.debug('mkdir ../TMP/'+tmp_string)
+    os.system(f"mkdir {PAN_DIR_TMP}/{tmp_string}")
+    logger.debug(f"mkdir {PAN_DIR_TMP}/{tmp_string}")
     # dump data for each model into a single pickle file
     if args.rank_score_time_series:
         score_time_series(data_list, r, tmp_string, args)
     for jj, sim in enumerate(data_list):
         pickle.dump([sim, data_list[0], r, jj, levels, cmap,
             norm, verification_subdomain, rank_colors, data_list[0]['max_rank'], args, tmp_string], 
-            open('../TMP/'+tmp_string+'/'+str(jj).zfill(3)+".p", 'wb'))
+            open(f"{PAN_DIR_TMP}/{tmp_string}/{str(jj).zfill(3)}.p", 'wb'))
+        print(f"saving pickle to {PAN_DIR_TMP}/{tmp_string}/{str(jj).zfill(3)}.p")
     # generate a list of commands, one for each model, these will call panel_plotter.py to draw a single model
-    cmd_list = [f"{sys.executable} panel_plotter.py -p {pickle_file}" for pickle_file in glob.glob(f"../TMP/{tmp_string}/???.p")]
+    cmd_list = [f"{sys.executable} {PAN_DIR_SCR}/panel_plotter.py -p {pickle_file}" for pickle_file in glob.glob(f"{PAN_DIR_TMP}/{tmp_string}/???.p")]
     # execute the commands in parallel
     Parallel(n_jobs=2)(delayed(os.system)(cmd) for cmd in cmd_list)
-    logger.debug('montage ../TMP/{:s}/???.png -geometry +0+0 -tile {:d}x{:d} -title {:s} ../TMP/{:s}/999.png'.format(
-        tmp_string, lins, cols, suptit, tmp_string))
+    logger.debug(f"montage {PAN_DIR_TMP}/{tmp_string}/???.png -geometry +0+0 -tile {lins}x{cols} -title {suptit} {PAN_DIR_TMP}/{tmp_string}/999.png")
     # use the individual panels and combine them into one large plot using imagemagick
-    os.system('montage ../TMP/{:s}/???.png -geometry +0+0 -tile {:d}x{:d} -title {:s} ../TMP/{:s}/999.png'.format(
-        tmp_string, lins, cols, suptit, tmp_string))
+    os.system(f"montage {PAN_DIR_TMP}/{tmp_string}/???.png -geometry +0+0 -tile {lins}x{cols} -title {suptit} {PAN_DIR_TMP}/{tmp_string}/999.png")
     # add the color bar using imagemagick
-    os.system('convert ../TMP/'+tmp_string+'/999.png ../TMP/'+tmp_string+'/cbar.png -gravity center -append ../TMP/'+tmp_string+'/999A.png')
-    os.system('convert ../TMP/'+tmp_string+'/999A.png ../TMP/'+tmp_string+'/cbar2.png -gravity center -append '+outfilename)
-    # os.system('rm ../TMP/'+tmp_string+'/???.p ../TMP/'+tmp_string+'/*.png')
+    os.system(f"convert {PAN_DIR_TMP}/{tmp_string}/999.png {PAN_DIR_TMP}/{tmp_string}/cbar.png -gravity center -append {PAN_DIR_TMP}/{tmp_string}/999A.png")
+    os.system(f"convert {PAN_DIR_TMP}/{tmp_string}/999A.png {PAN_DIR_TMP}/{tmp_string}/cbar2.png -gravity center -append {outfilename}")
     # clear temporary data directory
-    os.system('rm -R ../TMP/'+tmp_string)
+    os.system(f"rm -R {PAN_DIR_TMP}/{tmp_string}")
     return outfilename
 
 
@@ -623,7 +624,7 @@ def ens_fss_plot(ens_data, windows, levels, verification_subdomain, args):
     cbar2.ax.set_xticklabels(tick_labels, rotation=30)
     
     start_date_str = dt.datetime.strptime(args.start, "%Y%m%d%H").strftime("%Y%m%d_%H")
-    outfilename = f"../PLOTS/{args.name}_{args.parameter}_pFSS_{start_date_str}UTC_acc_{args.duration}_{verification_subdomain}.png"
+    outfilename = f"{PAN_DIR_PLOTS}/{args.name}_{args.parameter}_pFSS_{start_date_str}UTC_acc_{args.duration}_{verification_subdomain}.png"
     plt.savefig(outfilename)
 
 
