@@ -147,6 +147,8 @@ def read_INCA(data_list, start_date, end_date, args):
         'conf' : 'INCA',
         'type' : 'obs',
         'name' : 'INCA',
+        'init' : -1,
+        'lead' : -1,
         'lat' : np.asarray(lat),
         'lon' : np.asarray(lon),
         'precip_data': var_tmp})

@@ -222,12 +222,18 @@ def write_scores_to_csv(data_list, start_date, end_date, args, verification_subd
     print(csv_file)
     with open(csv_file, 'w') as f:
         score_writer = csv.writer(f, delimiter=';')
-        col_labels = ["conf", "init", "lead", "name", "bias", "mae", "rms", "corr", "d90", "fss_condensed", "fss_condensed_weighted",
+        col_labels = ["conf", "init", "lead", "name", "maximum", "average", "99th", "95th", "90th", "75th", "50th",
+                      "bias", "mae", "rms", "corr", "d90", "fss_condensed", "fss_condensed_weighted",
                       "rank_mae", "rank_bias", "rank_rms", "rank_corr", "rank_d90", "rank_fss_condensed", "rank_fss_condensed_weighted"]
         score_writer.writerow(col_labels)
-        for sim in data_list[1::]:
+        for sim in data_list:
+            percs = [sim["precip_data_resampled"].max(), sim["precip_data_resampled"].mean()]
+            for p in [99., 95., 90., 75., 50.]:
+                percs.append(np.percentile(sim["precip_data_resampled"], p))
             score_writer.writerow([
-                sim['conf'], sim['init'], sim['lead'], sim['name'], sim['bias_real'], sim['mae'], sim['rms'], sim['corr'], sim['d90'], 
+                sim['conf'], sim['init'], sim['lead'], sim['name'], 
+                percs[0], percs[1], percs[2], percs[3], percs[4], percs[5], percs[6],
+                sim['bias_real'], sim['mae'], sim['rms'], sim['corr'], sim['d90'], 
                 sim['fss_condensed'], sim['fss_condensed_weighted'], 
                 sim['rank_mae'], sim['rank_bias'], sim['rank_rms'], sim['rank_corr'], sim['rank_d90'], 
                 sim['rank_fss_condensed'], sim['rank_fss_condensed_weighted']])
@@ -256,6 +262,7 @@ def calc_scores(sim, obs, args):
     windows = prep_windows(windows, args.fss_calc_mode, nx, ny)
     if sim['type'] == 'obs':
         sim['bias'] = 999
+        sim['bias_real'] = 999
         sim['mae'] = 999
         sim['rms'] = 999
         sim['corr'] = -999
