@@ -147,8 +147,6 @@ def read_INCA(data_list, start_date, end_date, args):
         'conf' : 'INCA',
         'type' : 'obs',
         'name' : 'INCA',
-        'init' : -1,
-        'lead' : -1,
         'lat' : np.asarray(lat),
         'lon' : np.asarray(lon),
         'precip_data': var_tmp})
@@ -262,22 +260,6 @@ def read_INCA_plus(inca_file, k_start, k_end):
         else:
             rr_tmp += f.select(**grib_handle)[0]
     return rr_tmp.values
-
-def fetch_inca(month):
-    """ fetch INCA netcdf from GeoSphere archive
-    example file: https://public.hub.geosphere.at/datahub/resources/inca-v1-1h-1km/filelisting/RR/INCAL_HOURLY_RR_201106.nc"""
-    dt_string = month.strftime("%Y%m")
-    fetch_file = f"https://public.hub.geosphere.at/datahub/resources/inca-v1-1h-1km/filelisting/RR/INCAL_HOURLY_RR_{dt_string}.nc"
-    print(f"checking whether {PAN_DIR_OBS}/INCA_netcdf exists...")
-    print(os.path.isdir(f"{PAN_DIR_OBS}/INCA_netcdf"))
-    if not os.path.isdir(f"{PAN_DIR_OBS}/INCA_netcdf"):
-        logger.info(f"could not find {PAN_DIR_OBS}/INCA_netcdf, creating it now...")
-        os.system(f"mkdir -p {PAN_DIR_OBS}/INCA_netcdf")
-    local_file = f"{PAN_DIR_OBS}/INCA_netcdf/INCAL_HOURLY_RR_{dt_string}.nc"
-    logger.info(f"did not find {local_file}")
-    logger.info(f"downloading {fetch_file}")
-    urllib.request.urlretrieve(fetch_file, local_file)
-    return 0
 
 
 def read_inca_netcdf_archive(data_list, start_date, end_date, args):
