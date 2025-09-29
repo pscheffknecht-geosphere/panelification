@@ -279,6 +279,9 @@ def calc_scores(sim, obs, args):
         sim['fssp_num'] = None
         sim['fss_den'] = None
         sim['fssp_den'] = None
+        # also add bogus init and lead for csv output
+        sim['init'] = "1900-01-01 00:00:00"
+        sim['lead'] = -1
     else:
         thresholds = []
         thresholds_percs = []
