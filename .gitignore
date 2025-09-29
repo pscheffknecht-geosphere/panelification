@@ -2,15 +2,10 @@
 *.ipynb
 *.asc
 *.bak
-*.grb
-*.grb2
-*.grib
-*.grib2
 *.gz
 *.info
 *.ipynb
 *.log
-*.nc
 *.png
 *.pyc
 *.swp
