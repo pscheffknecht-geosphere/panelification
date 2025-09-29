@@ -10,6 +10,7 @@ import csv
 import logging
 logger = logging.getLogger(__name__)
 
+from paths import PAN_DIR_SCORES
 
 def array_minus_avg(a, t):
     """
@@ -214,6 +215,11 @@ def rank_scores(data_list):
 def write_scores_to_csv(data_list, start_date, end_date, args, verification_subdomain, windows, thresholds):
     name_part = '' # if args.mode == 'None' else args.mode+'_'
     csv_file = "../SCORES/"+args.name+"RR_"+name_part+"score_"+start_date.strftime("%Y%m%d_%HUTC_")+'{:02d}h_acc_'.format(args.duration)+verification_subdomain+'.csv'
+    print(csv_file)
+    start_date_str = start_date.strftime("%Y%m%d_%H")
+    end_date_str = end_date.strftime("%Y%m%d_%H")
+    csv_file = f"{PAN_DIR_SCORES}/{args.name}RR_{name_part}score_{start_date_str}UTC_{args.duration:02d}h_acc_{verification_subdomain}.csv"
+    print(csv_file)
     with open(csv_file, 'w') as f:
         score_writer = csv.writer(f, delimiter=';')
         col_labels = ["conf", "init", "lead", "name", "bias", "mae", "rms", "corr", "d90", "fss_condensed", "fss_condensed_weighted",

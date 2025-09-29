@@ -5,6 +5,8 @@ import datetime as dt
 import logging
 logger = logging.getLogger(__name__)
 
+from paths import PAN_DIR_PLOTS
+
 remote_base_path = "/modelle/prod/mgruppe/WEB/PRECIP_VERIF_PANELS/"
 
 
@@ -17,8 +19,9 @@ def today():
 def send_panels_to_mgruppe(d_curr=None):
     d_curr = today() - dt.timedelta(days=1) if not d_curr else d_curr
     ttstr = d_curr.strftime("%Y%m%d")
-    logger.info(f"checking for panels: ../PLOTS/*cast*{ttstr}*.png")
-    flist = glob.glob('../PLOTS/*cast*'+d_curr.strftime("%Y%m%d")+"*png")
+    logger.info(f"checking for panels: {PAN_DIR_PLOTS}/*cast*{ttstr}*.png")
+    d_curr_str = d_curr.strftime("%Y%m%d")
+    flist = glob.glob(f"{PAN_DIR_PLOTS}/*cast*{d_curr_str}*png")
     if flist == []:
         logger.info("No panels found for today, sending nothing.")
     else:
@@ -46,8 +49,9 @@ def get_file_lists(d_curr):
     nclist = []
     t_ = d_curr
     while d_curr > t_ - dt.timedelta(days=160):
-        _fclist = glob.glob('../PLOTS/*forecast*'+d_curr.strftime("%Y%m%d")+"*png")
-        _nclist = glob.glob('../PLOTS/*nowcast*'+d_curr.strftime("%Y%m%d")+"*png")
+        d_curr_str = d_curr.strftime("%Y%m%d")
+        _fclist = glob.glob(f"{PAN_DIR_PLOTS}/*forecast*{d_curr_str}*png")
+        _nclist = glob.glob(f"{PAN_DIR_PLOTS}/*nowcast*d_curr_str*png")
         for _fc in _fclist:
             logger.info("Found panel: {file}".format(
                 file = _fc))
