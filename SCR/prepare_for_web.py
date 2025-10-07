@@ -51,7 +51,7 @@ def get_file_lists(d_curr):
     while d_curr > t_ - dt.timedelta(days=160):
         d_curr_str = d_curr.strftime("%Y%m%d")
         _fclist = glob.glob(f"../PLOTS/*forecast*{d_curr_str}*png")
-        _nclist = glob.glob(f"../PLOTS/*nowcast*d_curr_str*png")
+        _nclist = glob.glob(f"../PLOTS/*nowcast*{d_curr_str}*png")
         for _fc in _fclist:
             logger.info("Found panel: {file}".format(
                 file = _fc))
