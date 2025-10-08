@@ -39,6 +39,8 @@ try:
     import xarray as xr
 except ImportError:
     logger.warning("Error: Required libraries (xarray) not found. Please install them.")
+import netCDF4 as nc
+
 
 def mars_request(exp_name, init, step,path=None):
     year, month, day, hour = init.year, init.month, init.day, init.hour
@@ -388,6 +390,64 @@ def read_data_grib(grib_file_path, parameter, lead, get_lonlat_data=False):
     else:
         return tmp_data_field
 
+# --- New function to read NetCDF files ---
+def read_data_netcdf(nc_file_path, parameter, valid_time, get_lonlat_data=False):
+    """
+    Reads data from a NetCDF file, fixed to work with daily timesteps and
+    robustly handle common coordinate variable names.
+    """
+    parameter = "precipitation"
+    with nc.Dataset(nc_file_path, 'r') as ds:
+        if parameter not in ds.variables:
+            logger.error(f"Parameter '{parameter}' not found in file: {nc_file_path}")
+            return None, None, None
+
+        var = ds.variables[parameter]
+        time_dim_name = [d for d in var.dimensions if d.startswith('time')][0]
+        time_var = ds.variables[time_dim_name]
+
+        file_times = nc.num2date(time_var[:], units=time_var.units)
+
+        time_idx = (np.abs(file_times - valid_time)).argmin()
+
+        if np.abs(file_times[time_idx] - valid_time) > dt.timedelta(minutes=30):
+            logger.error(f"Requested valid time {valid_time} not found in file {nc_file_path}")
+            return None, None, None
+
+        data = var[time_idx, ...]
+        logger.info(f"The time index is {time_idx} and valid time is {valid_time}")
+        if get_lonlat_data:
+            lat_names = ['lat', 'latitude', 'lats', 'Latitude']
+            lon_names = ['lon', 'longitude', 'lons', 'Longitude']
+
+            lat_var_name = None
+            for name in lat_names:
+                if name in ds.variables:
+                    lat_var_name = name
+                    break
+
+            lon_var_name = None
+            for name in lon_names:
+                if name in ds.variables:
+                    lon_var_name = name
+                    break
+
+            if not lat_var_name or not lon_var_name:
+                logger.error(f"Could not find latitude or longitude variables in {nc_file_path}")
+                return None, None, None
+
+            lat = ds.variables[lat_var_name][:]
+            lon = ds.variables[lon_var_name][:]
+
+            if lat.ndim == 1 and lon.ndim == 1:
+                lon_2d, lat_2d = np.meshgrid(lon, lat)
+            else:
+                lon_2d, lat_2d = lon, lat
+
+            return lon_2d, lat_2d, data
+        else:
+            return None, None, data
+
 
 class ModelConfiguration:
     def __init__(self, custom_experiment_name, init, lead, args):
@@ -405,6 +465,14 @@ class ModelConfiguration:
         self.path_template   = self.__pick_value_by_parameter(cmc["path_template"])
         if not isinstance(self.path_template, list):
             self.path_template = [self.path_template]
+
+        # Determine file type from the first path template
+        if self.path_template and any(p.endswith('.nc') for p in self.path_template):
+            self.file_type = 'netcdf'
+        elif self.path_template and any(p.endswith('.grib') or p.endswith('.grb') or p.endswith('.grb2') for p in self.path_template):
+            self.file_type = 'grib'
+        else:
+            self.file_type = 'unknown'
         logger.debug(f"Path template for model {self.experiment_name} is:")
         for tmpl in self.path_template:
             logger.debug(f"   {tmpl}")
@@ -454,6 +522,36 @@ class ModelConfiguration:
 
 
     def __pick_value_by_parameter(self, custom_experiment_item):
+        ret = None
+        if isinstance(custom_experiment_item, dict):
+            # Try to find the exact parameter name first
+            if self.parameter in custom_experiment_item:
+                return custom_experiment_item[self.parameter]
+        
+            # If not found, check for a more general "precip" key
+            elif "precip" in custom_experiment_item:
+                return custom_experiment_item["precip"]
+
+           # If still not found, check for a key with the substring "precip"
+           # This part of the original logic is not needed with the above changes.
+           # It's better to be explicit. The 'else' key handles the fallback.
+        
+            # Fallback to the 'else' key if no other match is found
+            elif 'else' in custom_experiment_item:
+                return custom_experiment_item['else']
+
+            # Log an error if a suitable key cannot be found
+            else:
+                logger.critical(f"Could not find a valid key for parameter '{self.parameter}' "
+                            f"in experiment '{self.experiment_name}'. "
+                            f"The dictionary needs a key for '{self.parameter}', 'precip', or 'else'.")
+                return None
+        else:
+            # If it's not a dictionary, return the item itself
+            return custom_experiment_item
+
+
+    def __pick_value_by_parameter_old(self, custom_experiment_item):
         """ If path template is a dictionary, return the correct item for the given parameter
             if it is a string, return the string
             else raise a ValueError"""
@@ -559,20 +657,32 @@ class ModelConfiguration:
             else:
                 return self.__get_data_not_accumulated()
 
-
     def __get_data_not_accumulated(self):
         first = True
-        read_data = read_data_samos if "samos" in self.experiment_name else read_data_grib
+        read_func = read_data_samos if "samos" in self.experiment_name else (read_data_grib if self.file_type == 'grib' else read_data_netcdf)
+        
+        tmp_data = None
+        lon, lat = None, None
+        
         for i, fil in enumerate(self.file_list):
+            valid_time = self.init + dt.timedelta(hours=self.lead + (i * self.output_interval))
             logger.info("Reading file ({:d}): {:s}".format(i, fil))
+            
             if first:
-                lon, lat, tmp_data = read_data(fil, self.parameter, 0, get_lonlat_data=True) # 0 for lead time, unused for unaccmulated models
+#                lon, lat, tmp_data = read_func(fil, self.parameter, self.lead, get_lonlat_data=True)
+                lon, lat, tmp_data = read_func(fil, self.parameter, valid_time, get_lonlat_data=True)
                 first = False
             else:
-                tmp_data += read_data(fil, self.parameter, 0)
-        tmp_data = np.where(tmp_data < 0., 0., tmp_data)
-        return lon, lat, self.unit_factor * tmp_data
-
+#                _, _, data_to_add = read_func(fil, self.parameter, self.lead, get_lonlat_data=False)
+                _, _, data_to_add = read_func(fil, self.parameter, valid_time, get_lonlat_data=False)
+                if tmp_data is not None and data_to_add is not None:
+                    tmp_data += data_to_add
+        
+        if tmp_data is not None:
+            tmp_data = np.where(tmp_data < 0., 0., tmp_data)
+            return lon, lat, self.unit_factor * tmp_data
+        
+        return None, None, None
 
     def __get_data_max(self):
         first = True
