@@ -219,7 +219,6 @@ def write_scores_to_csv(data_list, start_date, end_date, args, verification_subd
     start_date_str = start_date.strftime("%Y%m%d_%H")
     end_date_str = end_date.strftime("%Y%m%d_%H")
     csv_file = f"{PAN_DIR_SCORES}/{args.name}RR_{name_part}score_{start_date_str}UTC_{args.duration:02d}h_acc_{verification_subdomain}.csv"
-    print(csv_file)
     with open(csv_file, 'w') as f:
         score_writer = csv.writer(f, delimiter=';')
         col_labels = ["conf", "init", "lead", "name", "maximum", "average", "99th", "95th", "90th", "75th", "50th",
@@ -237,6 +236,20 @@ def write_scores_to_csv(data_list, start_date, end_date, args, verification_subd
                 sim['fss_condensed'], sim['fss_condensed_weighted'], 
                 sim['rank_mae'], sim['rank_bias'], sim['rank_rms'], sim['rank_corr'], sim['rank_d90'], 
                 sim['rank_fss_condensed'], sim['rank_fss_condensed_weighted']])
+    if args.save_percentiles:
+        csv_file = f"{PAN_DIR_SCORES}/{args.name}RR_percentiles_{name_part}score_{start_date_str}UTC_{args.duration:02d}h_acc_{verification_subdomain}.csv"
+        with open(csv_file, 'w') as f:
+            score_writer = csv.writer(f, delimiter=';')
+            col_labels = ["conf", "init", "lead", "name"]
+            for p in range(0, 101):
+                col_labels.append(f"{p:d}th")
+            score_writer.writerow(col_labels)
+            for sim in data_list:
+                percs = []
+                for p in range(0, 101):
+                    percs.append(np.percentile(sim["precip_data_resampled"], p))
+                write_data = [sim['conf'], sim['init'], sim['lead'], sim['name'], *percs]
+                score_writer.writerow(write_data)
 
 
 def prep_windows(ww, mode, nx, ny):
