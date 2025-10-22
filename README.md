@@ -11,8 +11,7 @@ Set up the diretcory structure, it is recommended to install the code in /texttt
 
 Load the anaconda module: module load conda and set up the conda environment using the `panelification_deode.yml`.
 NOTE: Users have reported problems in getting the environment to build from the `.yml` file, I tested the following command to create a working environment:
-`conda create --name panelification_new python=3.8 numpy scipy pygrib pandas cartopy matplotlib flask pyresample joblib h5py xarray`
-
+`conda create --name panelification matplotlib jupyter pandas scipy xarray netCDF4 pyresample sqlite3 pymssql`
 
 # Usage
 `python main.py -s YYYYMMDDHH -d H -l H (H) --case [case as in DCMDB] --experiments [experiment names as in DCMDB]`
