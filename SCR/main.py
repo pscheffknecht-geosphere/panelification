@@ -9,6 +9,7 @@ import logging
 from joblib import Parallel, delayed
 import numpy as np
 import os
+import sys
 
 from model_parameters import *
 import scoring
@@ -166,6 +167,8 @@ def parse_arguments():
         help = 'Treat multiple init times of the same ensemble as one ensemble')
     parser.add_argument('--print_colors', nargs='?', default=False, const=True, type=str2bool,
         help = 'Adapt color map for printing')
+    parser.add_argument('--save_percentiles', nargs='?', default=False, const=True, type=str2bool,
+        help = 'Save all percentiles to CSV')
 
     args = parser.parse_args()
     init_logging(args)
@@ -245,7 +248,7 @@ def main():
         prepare_for_web.send_panels_to_mgruppe()
         prepare_for_web.send_html_to_mgruppe()
         prepare_for_web.clean_old_panels
-        exit()
+        sys.exit(0)
     region = args.region
     min_lead, max_lead = get_lead_limits(args)
     start_date = datetime.strptime(args.start, "%Y%m%d%H")
@@ -265,8 +268,8 @@ def main():
     # if args.parameter in ['precip', 'precip2', 'precip3', 'sunshine']:
     if args.precip_verif_dataset == "INCA":
         data_list = inca.read_INCA(data_list, start_date, end_date, args)
-    elif args.precip_verif_dataset == "INCAplus":
-        data_list = inca.read_incaPlus_netcdf_ana(data_list, start_date, end_date, args)
+    elif args.precip_verif_dataset == "INCAPlus":
+        data_list = inca.read_INCAPlus_ANA(data_list, start_date, end_date, args)
     elif args.precip_verif_dataset == "INCA_archive":
         data_list = inca.read_inca_netcdf_archive(data_list, start_date, end_date, args)
     elif args.precip_verif_dataset == "OPERA":
