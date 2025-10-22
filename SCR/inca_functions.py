@@ -13,7 +13,7 @@ from model_parameters import verification_subdomains, inca_ana_paths
 import grib_handles
 from netCDF4 import Dataset
 import urllib.request
-
+from netCDF4 import Dataset
 from paths import PAN_DIR_OBS
 
 import logging
@@ -82,78 +82,60 @@ def resample_data(data_list, verification_subdomain, args):
         sim['p90_color'] = 'black' if p90 <= 10. else 'white'
     return data_list
 
-def INCA_grid(INCAplus=False):
-    """
-    function that returns a meshgrid of latitudes and longitudes
-    for plotting INCA data
-
-    usage: lon, lat = INCA_grid()
-    """
-    if INCAplus:
-        myproj=pyproj.Proj("""epsg:31287 +units=m +proj=lcc +lat_1=49 +lat_2=46 +lat_0=47.5 +lon_0=13.33333333333333 +x_0=400000 +y_0=400000 +ellps=bessel +towgs84=577.326,90.129,463.919,5.137,1.474,5.297,2.4232 +no_defs""")
-        NX=701
-        NY=431
-        X=20000.+np.arange(NX)*1000.
-        Y=190000.+np.arange(NY)*1000.
-    else:
-        myproj=pyproj.Proj("""epsg:31287 +units=km +proj=lcc +lat_1=49 +lat_2=46 +lat_0=47.5 +lon_0=13.33333333333333 +x_0=400000 +y_0=400000 +datum=hermannskogel +no_defs +ellps=bessel +towgs84=577.326,90.129,463.919,5.137,1.474,5.297,2.4232""")
-        NX=701
-        NY=401
-        X=20.+np.arange(NX) #*1000.
-        Y=220.+np.arange(NY) #*1000.
-    XX,YY=np.meshgrid(X,Y)
-    lon_INCA,lat_INCA=myproj(XX,YY,inverse=True)
-    logging.debug("############################################################################")
-    logging.debug(lon_INCA)
-    logging.debug(lon_INCA.min())
-    logging.debug(lon_INCA.max())
-    logging.debug(lat_INCA)
-    logging.debug(lat_INCA.min())
-    logging.debug(lat_INCA.max())
-    logging.debug("############################################################################")
-    return lon_INCA,lat_INCA
+def SAF_grid(nc_path):
+    # read the numpy array that stores coordinates of SAF products, as SAF images are stored separately from a deaafult SAF coordinatefile. 
+    # I modified the originally flattened array into a 2D array, the path points to the 2D one. 
+    # where is the right place to add the path? 
+    # if here:
+    nc_path = (r"/home/lovasz_v/Desktop/TesztFileok/HungaroMet/fixed_SAFcoord.nc")
+    with Dataset(nc_path, 'r') as ds:
+        lat_SAF = ds.variables['lat'][:]
+        lon_SAF = ds.variables['lon'][:]
+  
 
 
-def read_INCA(data_list, start_date, end_date, args):
-    first=True
-    if 'precip' in args.parameter:
-        read_dt = dt(hours=1)
+    return lat_SAF,lon_SAF
+
+    # 
+
+def read_SAF_obs(data_list, start_date, end_date, args):# is it the data_list from main? 
+
+    first = True
+    if 'cma' in args.parameter: # command-lineon? 
+        read_dt = dt(hours=1) # good for tim delta, we have SAF cma image in every hour 
         dtype = np.int16
-    elif args.parameter == 'sunshine':
-        read_dt = dt(minutes=15)
-        dtype = np.int32
-    for read_inca_date in loop_datetime(start_date + dt(hours=1), end_date + dt(hours=1), read_dt):
-        datestring=read_inca_date.strftime("%Y%m%d%H")
-        logging.info("reading inca at "+str(read_inca_date))
-        if 'precip' in args.parameter:
-            if first:
-                var_tmp = bO.bring(datestring, inca_file=None)
-                first = False
-            else:
-                var_tmp = var_tmp + bO.bring(datestring, inca_file=None)
-        elif args.parameter == "sunshine":
-            logging.info("reading INCA sunshine")
-            inca_file = inca_ana_paths['sunshine'].format(
-                read_inca_date.strftime("%Y%m%d"),
-                read_inca_date.strftime("%H%M"))
-            logging.debug(inca_file)
-            if first:
-                var_tmp = 1./3600.*bO.bring(datestring, inca_file=inca_file) 
-                first = False
-            else:
-                var_tmp += 1./3600.*bO.bring(datestring, inca_file=inca_file)
-    lon, lat = INCA_grid()
-    data_list.insert(0,{
-        'conf' : 'INCA',
-        'type' : 'obs',
-        'name' : 'INCA',
-        'lat' : np.asarray(lat),
-        'lon' : np.asarray(lon),
-        'precip_data': var_tmp})
-    logger.debug(data_list[0]["precip_data"])
-    logger.debug(data_list[0]["precip_data"].max())
-    logger.debug(data_list[0]["precip_data"].min())
-    return data_list
+
+       # relevant bring and checkpath functions is also  modified in the bring_obs library.
+       # only the check_path branch runs (in bring) because I don't create file names, I already name them that way.
+       
+
+    for read_SAF_date in loop_datetime(start_date + dt(hours=1), end_date + dt(hours=1), read_dt): # itt lesz többidőpont mert ez egy loop
+        datestring = read_SAF_date.strftime("%Y%m%d%H")
+        logging.info("reading inca at " + str(read_SAF_date))
+
+
+
+        # i guess the original code was for accumulating the  precip amount? 
+        '''if first:
+            var_tmp = bO.bringSAF_netcdf(datestring)
+            first = False
+        else:
+            var_tmp = var_tmp + bO.bringSAF_netcdf(datestring)''' # cma will be for a fixed UTC, no accum. But we'll verify multiple UTCs. 
+         
+        cma_data = bO.bringSAF_netcdf(datestring)
+
+    lat, lon = SAF_grid()
+
+    data_list.insert(0, {
+        'conf': 'SAF',
+        'type': 'obs',
+        'name': 'SAF cma {datestring}',
+        'lat': np.asarray(lat),
+        'lon': np.asarray(lon),
+        'cma_data': cma_data
+    })
+    return data_list # at this point, should it return multiple dictionaries or only one? Since  dont accumulate cloud cover....but I want to verify multiple runs
+    #and in list, the time order will be reversed? 
     
 
 def read_inca_fc_accum(sim, args):

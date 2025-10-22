@@ -3,59 +3,58 @@ from shutil import copyfile
 import os
 from model_parameters import inca_ana_paths
 from paths import PAN_DIR_TMP
+import netCDF4
+from netCDF4 import Dataset
 
 import logging
 logger = logging.getLogger(__name__)
 
-#------------------  INCA Variables -------------------------*/
-imin=20    # INCA grid western boundary index */
-imax=720    # INCA grid eastern boundary index */
-jmin=220    # INCA grid southern boundary index */
-jmax=620    # INCA grid northern boundary index */
-NI=(imax-imin+1)
-NJ=(jmax-jmin+1)
+#------------------  SAF CM Variables -------------------------*/
+# these variables apply to the extension of the full imported SAF image 
+# at a further stage I'd delinate it with the shape file of Hungary boundary, same for the forecast data 
+Num_rows = 480
+Num_columns = 640
 
-def read(file):
-    RR=np.zeros([NI*NJ])
-    f=open(file,"r")
-    i=0 
-    for line in f:
-        line = line.strip()
-        columns = line.split()
-        n_elements=np.size(columns)
-        RR[i:i+n_elements]=columns
-        i=i+n_elements
-    f.close()
-    RR=np.reshape(RR, [NJ,NI])
+
+
+# I guess I wont need read(file)in its original form , since the SAF netcdf aleady has the binary image stored in a 2D array (480, 640 extension) 
+def read_SAF (file): 
+    # file shall be the path of the SAF image file, I'll add it somewhere   
+    with Dataset('file', 'r') as nc:
+        RR = nc.variables['cma'][:] 
     return RR
+#  2D cma 
 
-def check_paths(date):
-    DIRS_OBS = ['/mapp_arch/mgruppe/arc/inca_1h/prec/',
-               '/home/kmek/panelification/OBS/inca_1h/prec/']
-    for DIR_OBS in DIRS_OBS:
-        file_OBS_test=DIR_OBS+date[:4]+'/'+date[4:6]+'/'+date[6:8]+'/INCA_RR-'+date[8:10]+'.asc.gz'
-        logger.debug(f"Checking for file {file_OBS_test}")
-        if os.path.isfile(file_OBS_test):
-            return file_OBS_test
+def check_paths(date): # 
+    OBS = (r"/home/lovasz_v/Desktop/Panelification_PScheffknecht/panelification/OBS....") # obs folder became broken?? 
+    # our SAF cma filenames are like: bMma20250907_1755.nc   (ends with UTC) 
+    # checking if there are files with the given day, and we'll use all UTC for verification 
+    yyyymmdd = date[:8]
+    formatum = f"bMma{yyyymmdd}_*.nc"
+    for filename in os.listdir(OBS):
+            if filename.startswith(f"bMma{yyyymmdd}_") and filename.endswith(".nc"):
+                obs_file = os.path.join(OBS, filename)
+                logger.info(f"File found: {obs_file}")
+
+                return obs_file # 
+            
     return False
 
-def bring(date, inca_file=None):
-    if inca_file:
-        file_OBS = inca_file
-    else:
-        file_OBS = check_paths(date)
-        if not file_OBS:
-            return False
-    logger.info("reading: {:s}".format(file_OBS))
-    file_TMP=PAN_DIR_TMP+'INCA_OBS'+'%05d' %((np.random.rand(1)*10000).astype(int))+'.gz'
-
-    copyfile(file_OBS, file_TMP)
-    order_unzip="gzip -df "+file_TMP
-    os.system(order_unzip)
+def bringSAF_netcdf(date):
+    
+    
+    
+    obs_file_path = check_paths(date) # I only need the check branch, because I wont create filenames, our filenames are already containing every bit of time information 
+    
+    if not obs_file_path:
+         return False 
+    logger.info(f"reading: {obs_file_path}")
+    
+    # Ha át kell tennem a SAF adatokat CSD6 mappából a PAnelifikációs  OBS mappába, akkor eleve ideiglenes másolatot olvasok
     try:
-        RR=read(file_TMP[:-3])
-    except:
+        RR = read_SAF(obs_file_path)  #
+    except Exception as e:
+        logger.error(f"Failed to read file {obs_file_path}: {e}")
         return False
-    order_rm="rm "+file_TMP[:-3]
-    os.system(order_rm)
+
     return RR
