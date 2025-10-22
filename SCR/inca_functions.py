@@ -1,5 +1,6 @@
 import pyresample
 import os
+import sys
 import numpy as np
 import pygrib
 from datetime import datetime
@@ -155,6 +156,34 @@ def read_INCA(data_list, start_date, end_date, args):
     logger.debug(data_list[0]["precip_data"].min())
     return data_list
     
+    
+def read_INCAPlus_ANA(data_list, start_date, end_date, args):
+    tt = start_date + dt(hours=1)
+    rr_tmp = None
+    while tt <= end_date:
+        dat_str = tt.strftime("%Y%m%d%H")
+        inca_file_path = f"/incaplus_arch1/iplus/out/INCAPlus_1h/inca/{tt.year}/{tt.month:02d}/{tt.day:02d}/INCAPlus_1h_RR_15m_ANA_{dat_str}00.nc"
+        if os.path.isfile(inca_file_path):
+            logger.info(f"reading INCAPlus from {inca_file_path}")
+            data_tmp = Dataset(inca_file_path, "r")
+            if rr_tmp is None:
+                rr_tmp = rr_tmp = data_tmp.variables['RR'][0, :, :]
+            else:
+                rr_tmp += data_tmp.variables['RR'][0, :, :]
+        else:
+            logger.critical(f"INCAPlus output at {inca_file_path} not found!!")
+            sys.exit(1)
+        tt += dt(hours=1)
+    lon, lat = INCA_grid(INCAplus=True)
+    data_list.insert(0,{
+        'conf' : "INCAPlus",
+        'type' : 'obs',
+        'name' : "IncaPlus",
+        'lat' : lat,
+        'lon' : lon,
+        'precip_data' : rr_tmp})
+    return data_list
+
 
 def read_inca_fc_accum(sim, args):
     inca_file = sim['inca_file']
@@ -358,39 +387,3 @@ def read_inca_netcdf_archive(data_list, start_date, end_date, args):
     logger.debug(data_list[0]["precip_data"].max())
     logger.debug(data_list[0]["precip_data"].min())
     return data_list
-
-
-def read_incaPlus_netcdf_ana(data_list, start_date, end_date, args):
-    """ read INCA data from netcdf hourly archive"""
-    tt = start_date
-    # 1. check if all necessary files exist and are up to date:
-    fetched_current = False # if current month is found, was it updated?
-    rr_tmp = None
-    first = True
-    data_tmp = None
-    while tt < end_date:
-        tt_str = tt.strftime("%Y%m")
-        yyyymmdd = tt.strftime("%Y/%m/%d")
-        yyyymmddhh = tt.strftime("%Y%m%d%H")
-        read_file = f"/hpcperm/kmek/obs/INCAPlus_1h/inca/{yyyymmdd}/INCAPlus_1h_RR_ANA_{yyyymmddhh}00.nc"
-        logger.info(f"Reading {read_file}")
-        data_tmp = Dataset(read_file, "r")
-        if first:
-            rr_tmp = data_tmp.variables['RR'][0, :, :]
-            first = False
-        else:
-            rr_tmp += data_tmp.variables['RR'][0, :, :]
-        tt += dt(hours=1)
-    lon, lat = INCA_grid(INCAplus=True)
-    data_list.insert(0,{
-        'conf' : 'INCA',
-        'type' : 'obs',
-        'name' : 'INCA Plus Hourly',
-        'lat' : np.asarray(lat),
-        'lon' : np.asarray(lon),
-        'precip_data': rr_tmp})
-    logger.debug(data_list[0]["precip_data"])
-    logger.debug(data_list[0]["precip_data"].max())
-    logger.debug(data_list[0]["precip_data"].min())
-    return data_list
-
