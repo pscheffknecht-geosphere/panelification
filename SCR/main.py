@@ -32,7 +32,7 @@ os.environ['OMP_NUM_THREADS'] = '1'
 os.environ['MKL_DYNAMIC'] = 'FALSE'
 
 global args, start_date, end_date
-start_date = datetime(2019,8,12,15,0,0)
+start_date = datetime(2019,8,12,15,0,0) # ? 
 end_date = datetime(2019,8,12,18,0,0)
 
 
@@ -57,7 +57,7 @@ def parse_arguments():
     parser = argparse.ArgumentParser(conflict_handler="resolve")
     parser.add_argument('--parameter', '-p', type=str, default='precip',
         help = 'parameter to verify/plot')
-    parser.add_argument('--precip_verif_dataset', type=str, default = 'INCA',
+    parser.add_argument('--precip_verif_dataset', type=str, default = 'SAF',
         help = """select precip data set:
             INCA ... INCA analysis over Austria
             OPERA .. OPERA analysis over Europ (MUST be in ../OBS!!)""")
@@ -265,6 +265,8 @@ def main():
     # if args.parameter in ['precip', 'precip2', 'precip3', 'sunshine']:
     if args.precip_verif_dataset == "INCA":
         data_list = inca.read_INCA(data_list, start_date, end_date, args)
+    elif args.precip_verif_dataset == "SAF":
+        data_list = inca.read_SAF_obs(data_list, start_date, end_date, args)
     elif args.precip_verif_dataset == "INCAplus":
         data_list = inca.read_incaPlus_netcdf_ana(data_list, start_date, end_date, args)
     elif args.precip_verif_dataset == "INCA_archive":

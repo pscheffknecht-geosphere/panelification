@@ -84,10 +84,10 @@ def resample_data(data_list, verification_subdomain, args):
 
 def SAF_grid(nc_path):
     # read the numpy array that stores coordinates of SAF products, as SAF images are stored separately from a deaafult SAF coordinatefile. 
-    # I modified the originally flattened array into a 2D array, the path points to the 2D one. 
+    # I modified the originally flattened array into a 2D array, the nc_path points to the 2D one. 
     # where is the right place to add the path? 
     # if here:
-    nc_path = (r"/home/lovasz_v/Desktop/TesztFileok/HungaroMet/fixed_SAFcoord.nc")
+    nc_path = (r"/home/lovasz_v/Desktop/Panelification_PScheffknecht/panelification/TEST_DATA/SAFcoord/fixed_SAFcoord.nc")
     with Dataset(nc_path, 'r') as ds:
         lat_SAF = ds.variables['lat'][:]
         lon_SAF = ds.variables['lon'][:]
@@ -134,8 +134,9 @@ def read_SAF_obs(data_list, start_date, end_date, args):# is it the data_list fr
         'lon': np.asarray(lon),
         'cma_data': cma_data
     })
-    return data_list # at this point, should it return multiple dictionaries or only one? Since  dont accumulate cloud cover....but I want to verify multiple runs
-    #and in list, the time order will be reversed? 
+    return data_list # at this point, should it return multiple dictionaries or only one at a time? 
+    # since our variable is not accumulated cloud cover....but I want to verify multiple runs
+    
     
 
 def read_inca_fc_accum(sim, args):

@@ -17,7 +17,7 @@ Num_columns = 640
 
 
 
-# I guess I wont need read(file)in its original form , since the SAF netcdf aleady has the binary image stored in a 2D array (480, 640 extension) 
+# I guess I wont need read(file) function in its original form , since the SAF netcdf aleady has the binary image stored in a 2D array (480, 640 extension) 
 def read_SAF (file): 
     # file shall be the path of the SAF image file, I'll add it somewhere   
     with Dataset('file', 'r') as nc:
@@ -26,7 +26,7 @@ def read_SAF (file):
 #  2D cma 
 
 def check_paths(date): # 
-    OBS = (r"/home/lovasz_v/Desktop/Panelification_PScheffknecht/panelification/OBS....") # obs folder became broken?? 
+    OBS = (r"/home/lovasz_v/Desktop/Panelification_PScheffknecht/panelification/TEST_DATA/SAF") # obs folder became broken?? 
     # our SAF cma filenames are like: bMma20250907_1755.nc   (ends with UTC) 
     # checking if there are files with the given day, and we'll use all UTC for verification 
     yyyymmdd = date[:8]
@@ -44,16 +44,14 @@ def bringSAF_netcdf(date):
     
     
     
-    obs_file_path = check_paths(date) # I only need the check branch, because I wont create filenames, our filenames are already containing every bit of time information 
+    obs_file_path = check_paths(date) 
     
     if not obs_file_path:
          return False 
-    logger.info(f"reading: {obs_file_path}")
     
-    # Ha át kell tennem a SAF adatokat CSD6 mappából a PAnelifikációs  OBS mappába, akkor eleve ideiglenes másolatot olvasok
     try:
         RR = read_SAF(obs_file_path)  #
-    except Exception as e:
+    except:
         logger.error(f"Failed to read file {obs_file_path}: {e}")
         return False
 
