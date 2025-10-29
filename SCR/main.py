@@ -19,7 +19,7 @@ import obs_from_db as obs
 import read_antilope as antilope
 import read_esp as esp
 import panel_plotter
-import data_io
+import io_main as io
 import data_from_dcmdb
 import scan_obs
 import regions
@@ -259,7 +259,7 @@ def main():
     if args.experiments:
         data_from_dcmdb.get_sim_and_file_list(data_list, args)
     if args.custom_experiments:
-        data_io.get_sims_and_file_list(data_list, args)
+        io.get_sims_and_file_list(data_list, args)
     if len(data_list) == 0:
         logging.critical("No valid models found, exiting...")
         exit()
@@ -276,7 +276,7 @@ def main():
             data_list = opera.read_OPERA(data_list, start_date, end_date, args)
     elif args.parameter == 'hail':
         data_list = obs.read_hail(data_list, start_date, end_date)
-        data_list = data_io.scale_hail(data_list) # scale all fields to 0...4
+        data_list = io.scale_hail(data_list) # scale all fields to 0...4
     elif args.precip_verif_dataset == "ANTILOPE":
         data_list = antilope.read_ANTILOPE(data_list, start_date, end_date, args)
     elif args.precip_verif_dataset == "ESP":
@@ -333,9 +333,9 @@ def main():
             logging.info("File saved to: " + os.path.abspath(outfilename))
         if dom['score']:
             if args.save:
-                data_io.save_data(data_list, subdomain_name, start_date, end_date, args)
+                io.save_data(data_list, subdomain_name, start_date, end_date, args)
             if args.save_full_fss:
-                data_io.save_fss(data_list, subdomain_name, start_date, end_date, args)
+                io.save_fss(data_list, subdomain_name, start_date, end_date, args)
 
 
 if __name__ == '__main__':
