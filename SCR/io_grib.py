@@ -92,9 +92,9 @@ def read_data_grib(grib_file_path, parameter, lead, **kwargs): #get_lonlat_data=
     lat .............. 2D numpy.ndarray
     tmp_data_field ... 2D or 3D numpy.ndarray"""
     with pygrib.open(grib_file_path) as f:
-        if "grib_handles" in kwargs.keys():
-            grib_handles = kwargs["grib_handles"]
-        else:
+        grib_handles = kwargs.get("grib_handles", None)
+        if grib_handles is None:
+            logger.warning(f"No grib handles given for file {grib_file_path}, auto-detecting...")
             grib_handles = find_grib_handles(f, parameter, lead)
         logger.debug("Getting {:s} from file {:s}".format(repr(grib_handles), grib_file_path))
         tmp_data_list = read_list_of_fields(f, grib_handles)
@@ -106,10 +106,7 @@ def read_data_grib(grib_file_path, parameter, lead, **kwargs): #get_lonlat_data=
     logger.debug(f"Max: {tmp_data_field.max()}")
     logger.debug(f"Sample:")
     logger.debug(tmp_data_field)
-    if "get_lonlat_data" in kwargs:
-        get_lonlat_data = kwargs["get_lonlat_data"]
-    else:
-        get_lonlat_data = False
+    get_lonlat_data = kwargs.get("get_lonlat_data", False)
     if get_lonlat_data: #TODO: MOVE THIS SOMEWHERE ELSE
         if tmp_data_list[0]['gridType'] == "lambert_lam":
             logger.debug("gridType lambert_lam detected, going to fallback!")
