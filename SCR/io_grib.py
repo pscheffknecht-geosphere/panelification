@@ -2,6 +2,7 @@ import pygrib
 from grib_handle_check import find_grib_handles
 import numpy as np
 import pyresample
+from eccodes import codes_grib_new_from_file, codes_get_array, codes_release, codes_is_defined, codes_get
 
 import logging
 logger = logging.getLogger(__name__)
@@ -149,3 +150,48 @@ def get_inca_rain_accumulated(mod):
             rr_, _, _ = grb[idx].data()
             rr += rr_
     return lon, lat, rr
+
+def get_icon_unstructured_read(file_name, needLonLat=False):
+    values_sum = None
+    short_names = ["lsrr", "crr", "lsfwe", "csfwe"]
+    with open(file_name, "rb") as f:
+        while True:
+            gid = codes_grib_new_from_file(f)
+            if gid is None:
+                break  # End of file
+
+            short_name = codes_get(gid, "shortName")
+
+            if short_name not in short_names:
+                codes_release(gid)
+                continue
+
+            values = codes_get_array(gid, "values")
+    
+            if values_sum is None:
+                values_sum = values
+            else:
+                values_sum += values
+
+            codes_release(gid)
+        lats = np.loadtxt(f"{PAN_DIR_MODEL2}/ICOND2/icond2_lat.txt")
+        lons = np.loadtxt(f"{PAN_DIR_MODEL2}/ICOND2/icond2_lon.txt")
+        la = np.arange(44., 51.001, 0.0125)
+        lo = np.arange( 5., 18.001, 0.0125)
+        llo, lla = np.meshgrid(lo, la)
+        targ_def = pyresample.geometry.SwathDefinition(llo, lla)
+        orig_def = pyresample.geometry.SwathDefinition(lons, lats)
+        data = pyresample.kd_tree.resample_nearest(orig_def, values_sum, targ_def, reduce_data=False, radius_of_influence=25000)
+    if needLonLat:
+        return llo, lla, data
+    else:
+        return data
+            
+
+def get_icon_unstructured(mod):
+    logger.info(f"Reading end file: {mod.end_file}")
+    lon, lat, data = get_icon_unstructured_read(mod.end_file, needLonLat=True)
+    if mod.start_file:
+        logger.info(f"Reading start file: {mod.start_file}")
+        data -= get_icon_unstructured_read(mod.start_file, needLonLat=False)
+    return lon, lat, data

@@ -1,43 +1,23 @@
 import pickle
 import os
 import datetime as dt
-import re
-import netCDF4 as nc
+import numpy as np
+import urllib.request
+from pathlib import Path
 
 from grib_handle_check import find_grib_handles
 from data_from_dcmdb import fill_path_file_template
-from io_grib import read_data_grib, get_inca_rain_accumulated
+from mars_request_templates import mars_request_templates
+
+from io_grib import read_data_grib, get_inca_rain_accumulated, get_icon_unstructured
 from io_gdal import read_data_gdal
+from io_netcdf import read_data_netcdf
 
 from paths import PAN_DIR_TMP, PAN_DIR_MODEL, PAN_DIR_MODEL2, PAN_DIR_DATA
 
 import logging
 logger = logging.getLogger(__name__)
 
-try:
-    from eccodes import codes_grib_new_from_file, codes_get_array, codes_release, codes_is_defined, codes_get
-except ImportError:
-    logger.warning("Error: Required libraries (eccodes) not found. Please install them.")
-
-import numpy as np
-try:
-    import pyresample
-except ImportError:
-    logger.warning("Error: Required libraries (pyresample) not found. Please install them.")
-
-import matplotlib.pyplot as plt
-try:
-    from mars_request_templates import mars_request_templates
-except ImportError:
-    logger.warning("Error: Required libraries (pyresample) not found. Please install them.")
-import urllib.request
-from pathlib import Path
-
-
-try:
-    import xarray as xr
-except ImportError:
-    logger.warning("Error: Required libraries (xarray) not found. Please install them.")
 
 def mars_request(exp_name, init, step,path=None):
     year, month, day, hour = init.year, init.month, init.day, init.hour
@@ -72,56 +52,6 @@ def mars_request(exp_name, init, step,path=None):
         return None
 
 
-
-
-def get_icon_unstructured_read(file_name, needLonLat=False):
-    values_sum = None
-    short_names = ["lsrr", "crr", "lsfwe", "csfwe"]
-    with open(file_name, "rb") as f:
-        while True:
-            gid = codes_grib_new_from_file(f)
-            if gid is None:
-                break  # End of file
-
-            short_name = codes_get(gid, "shortName")
-
-            if short_name not in short_names:
-                codes_release(gid)
-                continue
-
-            values = codes_get_array(gid, "values")
-    
-            if values_sum is None:
-                values_sum = values
-            else:
-                values_sum += values
-
-            codes_release(gid)
-        lats = np.loadtxt(f"{PAN_DIR_MODEL2}/ICOND2/icond2_lat.txt")
-        lons = np.loadtxt(f"{PAN_DIR_MODEL2}/ICOND2/icond2_lon.txt")
-        la = np.arange(44., 51.001, 0.0125)
-        lo = np.arange( 5., 18.001, 0.0125)
-        llo, lla = np.meshgrid(lo, la)
-        targ_def = pyresample.geometry.SwathDefinition(llo, lla)
-        orig_def = pyresample.geometry.SwathDefinition(lons, lats)
-        data = pyresample.kd_tree.resample_nearest(orig_def, values_sum, targ_def, reduce_data=False, radius_of_influence=25000)
-    if needLonLat:
-        return llo, lla, data
-    else:
-        return data
-            
-
-def get_icon_unstructured(mod):
-    logger.info(f"Reading end file: {mod.end_file}")
-    lon, lat, data = get_icon_unstructured_read(mod.end_file, needLonLat=True)
-    if mod.start_file:
-        logger.info(f"Reading start file: {mod.start_file}")
-        data -= get_icon_unstructured_read(mod.start_file, needLonLat=False)
-    return lon, lat, data
-
-
-
-
 def scale_hail(data_list):
     """ scale the hail data, PoH in obs is 0 ... 100, model is different. 
     Scale to low, moderate, high:
@@ -140,151 +70,6 @@ def scale_hail(data_list):
     return data_list
 
 
-def read_data_netcdf(nc_file_path, parameter, valid_time, **kwargs):
-    """
-    Reads data from a NetCDF file, fixed to work with daily timesteps and
-    robustly handle common coordinate variable names.
-    """
-    parameter = "precipitation"
-    get_lonlat_data = kwargs.get("get_lonlat_data", False)
-    with nc.Dataset(nc_file_path, 'r') as ds:
-        if parameter not in ds.variables:
-            logger.error(f"Parameter '{parameter}' not found in file: {nc_file_path}")
-            return None
-        var = ds.variables[parameter]
-        time_dim_name = [d for d in var.dimensions if d.startswith('time')][0]
-        time_var = ds.variables[time_dim_name]
-        file_times = nc.num2date(time_var[:], units=time_var.units)
-        time_idx = (np.abs(file_times - valid_time)).argmin()
-        if np.abs(file_times[time_idx] - valid_time) > dt.timedelta(minutes=30):
-            logger.error(f"Requested valid time {valid_time} not found in file {nc_file_path}")
-            return None
-        data = var[time_idx, ...]
-        logger.info(f"The time index is {time_idx} and valid time is {valid_time}")
-        if get_lonlat_data:
-            lat_names = ['lat', 'latitude', 'lats', 'Latitude']
-            lon_names = ['lon', 'longitude', 'lons', 'Longitude']
-            lat_var_name = None
-            for name in lat_names:
-                if name in ds.variables:
-                    lat_var_name = name
-                    break
-            lon_var_name = None
-            for name in lon_names:
-                if name in ds.variables:
-                    lon_var_name = name
-                    break
-            if not lat_var_name or not lon_var_name:
-                logger.error(f"Could not find latitude or longitude variables in {nc_file_path}")
-                return None, None, None
-            lat = ds.variables[lat_var_name][:]
-            lon = ds.variables[lon_var_name][:]
-            if lat.ndim == 1 and lon.ndim == 1:
-                lon_2d, lat_2d = np.meshgrid(lon, lat)
-            else:
-                lon_2d, lat_2d = lon, lat
-
-    # Extract init_time from the first file path (assuming consistent naming)
-    # FC_samos_prec_YYYYmmddHH_ltHHHh.nc
-    if not sorted_file_paths:
-        logger.warning("No files to read.")
-        return [], []
-
-    first_filename = Path(sorted_file_paths[0]).name
-    try:
-        init_time_str = first_filename.split('_')[3]
-        init_time = dt.datetime.strptime(init_time_str, '%Y%m%d%H')
-    except IndexError:
-        logger.error(f"Could not extract initialization time from filename: {first_filename}")
-        raise ValueError("Invalid filename format for extracting initialization time.")
-    except ValueError:
-        logger.error(f"Could not parse initialization time '{init_time_str}' from filename: {first_filename}")
-        raise ValueError("Invalid initialization time format in filename.")
-
-
-    for i, filepath in enumerate(sorted_file_paths):
-        try:
-            filename_basename = Path(filepath).name
-            logger.info(f"  Reading file ({i+1}/{len(sorted_file_paths)}): {filename_basename}")
-            ds = xr.open_dataset(filepath, decode_cf=False)
-            
-            # Extract lead time from filename for valid_time calculation
-            match = re.search(r"_lt(\d{3})h\.nc$", filename_basename)
-            if match:
-                lead = int(match.group(1))
-                valid_time = init_time + dt.timedelta(hours=lead)
-                NWP_list_dates.append(valid_time)
-            else:
-                logger.warning(f"Could not extract lead time from {filename_basename}. Valid time might be incorrect.")
-                # Fallback: try to get time from dataset or use a dummy.
-                # For this specific case, the watchdog ensures 12 files so we expect a match.
-                NWP_list_dates.append(init_time + dt.timedelta(hours=i+1)) # Best guess
-
-            RR_list.append(ds['prec'].values[0])  # Assuming 'prec' is the variable and needs first slice
-            ds.close()
-        except FileNotFoundError:
-            logger.error(f"File not found: {filepath}.")
-            raise
-        except KeyError:
-            logger.error(f"Variable 'prec' not found in {filepath}. Check NetCDF file structure.")
-            raise
-        except Exception as e:
-            logger.error(f"Error opening or reading {filepath}: {e}", exc_info=True)
-            raise
-    
-    logger.info(f"Successfully read {len(RR_list)} precipitation arrays.")
-    return RR_list, NWP_list_dates
-
-
-def read_data_netcdf(nc_file_path, parameter, valid_time, **kwargs):
-    """
-    Reads data from a NetCDF file, fixed to work with daily timesteps and
-    robustly handle common coordinate variable names.
-    """
-    parameter = "precipitation"
-    get_lonlat_data = kwargs.get("get_lonlat_data", False)
-    with nc.Dataset(nc_file_path, 'r') as ds:
-        if parameter not in ds.variables:
-            logger.error(f"Parameter '{parameter}' not found in file: {nc_file_path}")
-            return None
-        var = ds.variables[parameter]
-        time_dim_name = [d for d in var.dimensions if d.startswith('time')][0]
-        time_var = ds.variables[time_dim_name]
-        file_times = nc.num2date(time_var[:], units=time_var.units)
-        time_idx = (np.abs(file_times - valid_time)).argmin()
-        if np.abs(file_times[time_idx] - valid_time) > dt.timedelta(minutes=30):
-            logger.error(f"Requested valid time {valid_time} not found in file {nc_file_path}")
-            return None
-        data = var[time_idx, ...]
-        logger.info(f"The time index is {time_idx} and valid time is {valid_time}")
-        if get_lonlat_data:
-            lat_names = ['lat', 'latitude', 'lats', 'Latitude']
-            lon_names = ['lon', 'longitude', 'lons', 'Longitude']
-            lat_var_name = None
-            for name in lat_names:
-                if name in ds.variables:
-                    lat_var_name = name
-                    break
-            lon_var_name = None
-            for name in lon_names:
-                if name in ds.variables:
-                    lon_var_name = name
-                    break
-            if not lat_var_name or not lon_var_name:
-                logger.error(f"Could not find latitude or longitude variables in {nc_file_path}")
-                return None, None, None
-            lat = ds.variables[lat_var_name][:]
-            lon = ds.variables[lon_var_name][:]
-            if lat.ndim == 1 and lon.ndim == 1:
-                lon_2d, lat_2d = np.meshgrid(lon, lat)
-            else:
-                lon_2d, lat_2d = lon, lat
-
-            return lon_2d, lat_2d, data
-        else:
-            return data
-
-
 file_type_indicators = {
     "NetCDF": ["nc", "ncf", "ncd"],
     "GRIB": ["grb", "grib", "grb2", "grib2"],
@@ -292,8 +77,8 @@ file_type_indicators = {
 }
 
 read_func_dict = {
-    "GRIB" : read_data_grib,
-    "NetCDF" : read_data_netcdf,
+    "GRIB": read_data_grib,
+    "NetCDF": read_data_netcdf,
     "GDAL": read_data_gdal
 }
 
@@ -680,6 +465,9 @@ def get_sims_and_file_list(data_list, args):
                     "init": exp_init_date,
                     "lead": leadmin,
                     "name": "{:s} {:s}".format(model_name, exp_init_date.strftime("%Y-%m-%d %H")),
+                    # "start_file": mod.file_path(exp_lead),
+                    # "end_file": mod.end_file,
+                    # "grib_handles": mod.grib_handles,
                     "lon": lon,
                     "lat": lat,
                     "precip_data": mod_field_data,
