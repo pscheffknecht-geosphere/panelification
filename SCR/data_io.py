@@ -5,6 +5,8 @@ from data_from_dcmdb import fill_path_file_template
 import datetime as dt
 import re
 import pygrib
+import netCDF4 as nc
+
 
 from paths import PAN_DIR_TMP, PAN_DIR_MODEL, PAN_DIR_MODEL2, PAN_DIR_DATA
 
@@ -247,7 +249,7 @@ def read_samos_files(file_paths_dict):
     # Sort file paths by lead time before processing
     sorted_file_paths = [file_paths_dict[lt] for lt in sorted(file_paths_dict.keys())]
 
-    logger.info(f"💾 Reading {len(sorted_file_paths)} SAMOS forecast files...")
+    logger.info(f"Reading {len(sorted_file_paths)} SAMOS forecast files...")
     RR_list = []
     NWP_list_dates = []
 
@@ -282,7 +284,7 @@ def read_samos_files(file_paths_dict):
                 valid_time = init_time + dt.timedelta(hours=lead)
                 NWP_list_dates.append(valid_time)
             else:
-                logger.warning(f"⚠️ Could not extract lead time from {filename_basename}. Valid time might be incorrect.")
+                logger.warning(f"Could not extract lead time from {filename_basename}. Valid time might be incorrect.")
                 # Fallback: try to get time from dataset or use a dummy.
                 # For this specific case, the watchdog ensures 12 files so we expect a match.
                 NWP_list_dates.append(init_time + dt.timedelta(hours=i+1)) # Best guess
@@ -290,16 +292,16 @@ def read_samos_files(file_paths_dict):
             RR_list.append(ds['prec'].values[0])  # Assuming 'prec' is the variable and needs first slice
             ds.close()
         except FileNotFoundError:
-            logger.error(f"  🛑 File not found: {filepath}.")
+            logger.error(f"File not found: {filepath}.")
             raise
         except KeyError:
-            logger.error(f"  🛑 Variable 'prec' not found in {filepath}. Check NetCDF file structure.")
+            logger.error(f"Variable 'prec' not found in {filepath}. Check NetCDF file structure.")
             raise
         except Exception as e:
-            logger.error(f"  ❌ Error opening or reading {filepath}: {e}", exc_info=True)
+            logger.error(f"Error opening or reading {filepath}: {e}", exc_info=True)
             raise
     
-    logger.info(f"✅ Successfully read {len(RR_list)} precipitation arrays.")
+    logger.info(f"Successfully read {len(RR_list)} precipitation arrays.")
     return RR_list, NWP_list_dates
 
 
@@ -351,11 +353,14 @@ def get_expected_samos_files(init_time_dt, base_dir="/samos_arch/FCruc.EVNO/prec
         expected_files[lt] = str(filepath)
     return expected_files
 
-def read_data_grib(grib_file_path, parameter, lead, get_lonlat_data=False):
+def read_data_grib(grib_file_path, parameter, lead, **kwargs): #get_lonlat_data=False):
     """ calls the grib handle check and returns fields with or without lon and lat data,
     depending on selection"""
     with pygrib.open(grib_file_path) as f:
-        grib_handles = find_grib_handles(f, parameter, lead)
+        if "grib_handles" in kwargs.keys():
+            grib_handles = kwargs["grib_handles"]
+        else:
+            grib_handles = find_grib_handles(f, parameter, lead)
         logger.debug("Getting {:s} from file {:s}".format(repr(grib_handles), grib_file_path))
         tmp_data_list = read_list_of_fields(f, grib_handles)
     tmp_data_field = calc_data(tmp_data_list, parameter)
@@ -366,7 +371,11 @@ def read_data_grib(grib_file_path, parameter, lead, get_lonlat_data=False):
     logger.debug(f"Max: {tmp_data_field.max()}")
     logger.debug(f"Sample:")
     logger.debug(tmp_data_field)
-    if get_lonlat_data:
+    if "get_lonlat_data" in kwargs:
+        get_lonlat_data = kwargs["get_lonlat_data"]
+    else:
+        get_lonlat_data = False
+    if get_lonlat_data: #TODO: MOVE THIS SOMEWHERE ELSE
         if tmp_data_list[0]['gridType'] == "lambert_lam":
             logger.debug("gridType lambert_lam detected, going to fallback!")
             lon, lat = get_lonlat_fallback(tmp_data_list[0])
@@ -388,56 +397,102 @@ def read_data_grib(grib_file_path, parameter, lead, get_lonlat_data=False):
     else:
         return tmp_data_field
 
+def read_data_netcdf(nc_file_path, parameter, valid_time, **kwargs):
+    """
+    Reads data from a NetCDF file, fixed to work with daily timesteps and
+    robustly handle common coordinate variable names.
+    """
+    parameter = "precipitation"
+    get_lonlat_data = kwargs.get("get_lonlat_data", False)
+    with nc.Dataset(nc_file_path, 'r') as ds:
+        if parameter not in ds.variables:
+            logger.error(f"Parameter '{parameter}' not found in file: {nc_file_path}")
+            return None
+        var = ds.variables[parameter]
+        time_dim_name = [d for d in var.dimensions if d.startswith('time')][0]
+        time_var = ds.variables[time_dim_name]
+        file_times = nc.num2date(time_var[:], units=time_var.units)
+        time_idx = (np.abs(file_times - valid_time)).argmin()
+        if np.abs(file_times[time_idx] - valid_time) > dt.timedelta(minutes=30):
+            logger.error(f"Requested valid time {valid_time} not found in file {nc_file_path}")
+            return None
+        data = var[time_idx, ...]
+        logger.info(f"The time index is {time_idx} and valid time is {valid_time}")
+        if get_lonlat_data:
+            lat_names = ['lat', 'latitude', 'lats', 'Latitude']
+            lon_names = ['lon', 'longitude', 'lons', 'Longitude']
+            lat_var_name = None
+            for name in lat_names:
+                if name in ds.variables:
+                    lat_var_name = name
+                    break
+            lon_var_name = None
+            for name in lon_names:
+                if name in ds.variables:
+                    lon_var_name = name
+                    break
+            if not lat_var_name or not lon_var_name:
+                logger.error(f"Could not find latitude or longitude variables in {nc_file_path}")
+                return None, None, None
+            lat = ds.variables[lat_var_name][:]
+            lon = ds.variables[lon_var_name][:]
+            if lat.ndim == 1 and lon.ndim == 1:
+                lon_2d, lat_2d = np.meshgrid(lon, lat)
+            else:
+                lon_2d, lat_2d = lon, lat
+
+            return lon_2d, lat_2d, data
+        else:
+            return data
+
+
+file_type_indicators = {
+    "NetCDF": ["nc", "ncf", "ncd"],
+    "GRIB": ["grb", "grib", "grb2", "grib2"]
+}
+
+read_func_dict = {
+    "GRIB" : read_data_grib,
+    "NetCDF" : read_data_netcdf
+}
 
 class ModelConfiguration:
     def __init__(self, custom_experiment_name, init, lead, args):
-        self.read = 0
-        self.valid=False
+        """THIS CLASS HANDLES ONE RUN OF ONE MODEL
+        
+        Every model and run in the verification is handled here. It contains some
+        basic sanity checks, handles locating the files and reading them etc."""
+        # grab information from custom_experiments file
+        cmc = args.custom_experiment_data[custom_experiment_name]
+        # grab information from base experiment if provided
+        if "base_experiment" in cmc.keys(): 
+            self.__fill_cmc_with_base_values(cmc, args)
+        self.valid = False
         self.init = init #datetime
-        self.lead = lead #int
+        self.lead = lead #int in hours
         self.lead_end = lead + args.duration
         self.experiment_name = custom_experiment_name
         self.parameter = args.parameter
         self.check_ecfs = args.check_ecfs
-        cmc = args.custom_experiment_data[custom_experiment_name]
-        if "base_experiment" in cmc:
-            self.__fill_cmc_with_base_values(cmc, args)
         self.path_template   = self.__pick_value_by_parameter(cmc["path_template"])
-        if not isinstance(self.path_template, list):
+        if not isinstance(self.path_template, list) and isinstance(self.path_template, str):
             self.path_template = [self.path_template]
-        logger.debug(f"Path template for model {self.experiment_name} is:")
+        logger.debug(f"Path template(s) for model {self.experiment_name} is:")
         for tmpl in self.path_template:
             logger.debug(f"   {tmpl}")
-        self.init_interval   = self.__pick_value_by_parameter(cmc["init_interval"])
-        self.max_leadtime    = self.__pick_value_by_parameter(cmc["max_leadtime"])
-        self.output_interval = self.__pick_value_by_parameter(cmc["output_interval"])
-        self.accumulated     = self.__pick_value_by_parameter(cmc["accumulated"])
-        self.unit_factor     = self.__pick_value_by_parameter(cmc["unit_factor"])
-        if "ensemble" in cmc:
-            self.ensemble    = self.__pick_value_by_parameter(cmc["ensemble"])
-        else:
-            self.ensemble    = None
-        if self.ensemble and not args.merge_ens_init_times:
+        for anam in ["init_interval", "max_leadtime", "output_interval", "accumulated", "unit_factor"]:
+            setattr(self, anam, self.__pick_value_by_parameter(cmc[anam]))
+        for anam in ["ensemble", "grib_handle", "lagged_ensemble", "color"]:
+            setattr(self, anam, self.__pick_value_by_parameter(cmc[anam]) if anam in cmc else None)
+        # is the simulation part of an ensemble or lagged ensemble?
+        if self.ensemble and not (args.merge_ens_init_times or self.lagged_ensemble):
             init_str = self.init.strftime("%Y%m%d_%H")
             self.ensemble += f"_{init_str}"
             logger.debug(f"Treating different init times as different ensembles, changed to {self.ensemble}")
-        if "on_mars" in cmc.keys():
-            self.on_mars         = self.__pick_value_by_parameter(cmc["on_mars"])
-        else:
-            self.on_mars = False
-        self.color           = self.__pick_value_by_parameter(cmc["color"])
-        if "ecfs_path_template" in cmc:
-            self.ecfs_path_template = self.__pick_value_by_parameter(cmc["ecfs_path_template"])
-            logger.debug(f"ECFS path template: {self.ecfs_path_template}")
-        # TODO: fix
-        # elif condition??:
-        #     self.ecfs_path_template = [pt.replace("/scratch", "") for pt in self.path_template]
-        else:
-            self.ecfs_path_template = None
-        if "url_template" in cmc.keys():
-            self.url_template = cmc["url_template"]
-        else:
-            self.url_template = None
+        # are we on ATOS and using MARS?
+        self.on_mars = self.__pick_value_by_parameter(cmc["on_mars"]) if "on_mars" in cmc.keys() else False
+        self.ecfs_path_template = self.__pick_value_by_parameter(cmc["ecfs_path_template"]) if "ecfs_path_template" in cmc else None
+        self.url_template = cmc["url_template"] if "url_template" in cmc.keys() else None
         if self.__times_valid():
             if self.accumulated:
                 self.end_file = self.get_file_path(self.lead_end)
@@ -445,8 +500,6 @@ class ModelConfiguration:
             else:
                 self.file_list = self.get_file_list()
             self.valid = self.__files_valid()
-            if self.experiment_name == "inca-opt" and self.lead_end > 48:
-                self.valid = False
             self.print()
         else:
             logger.debug("Model {:s} with init {:s} has no output for the requested time window.".format(
@@ -526,6 +579,18 @@ class ModelConfiguration:
         return True if all(time_checks) else False
 
 
+    def __get_file_type(self, file_list):
+        file_type_list = []
+        for ii, fil in enumerate(file_list):
+            file_type_list.append(fil.split(".")[-1]) #get file ending
+            logger.debug(f"file {ii} has ending {file_type_list[-1]}")
+        first = file_type_list[0]
+        if all(first == ft for ft in file_type_list):
+            for ftype, suffixList in file_type_indicators.items():
+                if first in suffixList:
+                    return ftype
+        return None
+
     def __files_valid(self):        
         files_to_check = [self.start_file, self.end_file] if self.accumulated else self.file_list
         if self.accumulated and not self.end_file:
@@ -543,15 +608,18 @@ class ModelConfiguration:
                 elif os.path.getsize(fil) == 0:
                     logger.info(f"File {fil} was found but has size 0, discarding experiment {self.experiment_name}")
                     return False
-        return True
+        self.file_type = self.__get_file_type(files_to_check)
+        return False if self.file_type is None else True
 
 
     def get_data(self, param):
         if param == 'gusts' or param == 'hail':
             return self.__get_data_max()
         else:
-            if self.experiment_name == "inca-opt":
-                return get_inca_rain_accumulated(self)
+            # 1. check if experiment is an INCA forecast of any kind
+            if any([s in self.experiment_name for s in ["INCA", "inca", "Inca"]]):
+                return get_inca_rain_accumulated(self) # TODO: create common INCA read function
+            # catch raw icon ensemble members
             if "ICOND2_m" in self.experiment_name:
                 return get_icon_unstructured(self)
             if self.accumulated:
@@ -590,12 +658,11 @@ class ModelConfiguration:
 
 
     def __get_data_accumulated(self):
-        self.read += 1
         logger.info("Reading end file: {:s}".format(self.end_file))
         lon, lat, tmp_data = read_data_grib(self.end_file, self.parameter, self.lead_end, get_lonlat_data=True)
         if self.start_file:
             logger.info("Reading start file: {:s}".format(self.start_file))
-            start_tmp_data = read_data_grib(self.start_file, self.parameter, self.lead, 0)
+            start_tmp_data = read_data_grib(self.start_file, self.parameter, self.lead)
             tmp_data -= start_tmp_data
         # clamp to 0 because apparently this difference can be negative???
         # this is NOT a pygrib or panelification problem, also happens when
@@ -673,38 +740,58 @@ class ModelConfiguration:
             os.system(f"mkdir -p {PAN_DIR_MODEL}/{self.experiment_name}")
         return 0
 
-    def get_file_path(self, l):
+    def get_file_path(self, lead):
+        """CHECK FOR INPUT FILES
+        1. check path template given in custom_experiments
+           This can be a list of multiple locations, they will all be checked in order
+        2. check panelification path
+           this will only exist if the file was previously obtained for one of these 3 locations:
+           a) file was copied from MARS on ATOS
+           b) file was copied from ECFS on ATOS
+           c) file was downloaded using the url_template
+        3. Check other sources in this order:
+           a) check whether files are on MARS
+              This only happens if
+              - on_mars is set to True
+              - mars_request_templates.py has an entry for the current experiment_name
+           b) check whether files are on ECFS
+              This only happens if
+              - ecfs_file_template exists
+           c) check whether files can be downloaded
+              This only happens if
+              - url_template has a value"""
         logger.debug(f"Getting file path for model {self.experiment_name}")
         path = None
-        if l == 0:
+        if lead == 0:
             return None
-        # path from given template
+        # 1. path from given template
         for path_template in self.path_template:
-            template_path = fill_path_file_template(path_template, self.init, l)
+            template_path = fill_path_file_template(path_template, self.init, lead)
             logger.debug(f"Checking use of path template: {template_path}")
             if os.path.isfile(template_path):
                 return template_path
-        panelification_path = self.gen_panelification_path(l)
+        # 2. panelification path
+        panelification_path = self.gen_panelification_path(lead)
         logger.debug(f"Checking panelficiation path: {panelification_path}")
         if os.path.isfile(panelification_path):
             return panelification_path
-        # if on mars, try that
+        # 3.a if on mars, try that
         if self.on_mars:
             logger.debug(f"Checking MARS archive")
             self.check_pan_path_existence()
-            path = mars_request(self.experiment_name, self.init, l, path=panelification_path)
+            path = mars_request(self.experiment_name, self.init, lead, path=panelification_path)
             if path:
                 return path
-        # try ecfs
+        # 3.b try ecfs
         if self.ecfs_path_template:
             logger.debug(f"Trying ECFS: {self.ecfs_path_template}")
             self.check_pan_path_existence()
-            path = self.get_file_from_ecfs(l)
-        # try online
+            path = self.get_file_from_ecfs(lead)
+        # 3.c try online
         if self.url_template:
             logger.info(f"Attempting to download...")
             self.check_pan_path_existence()
-            path = self.download_file(panelification_path, l)
+            path = self.download_file(panelification_path, lead)
         return None
             
     
@@ -740,7 +827,7 @@ def get_minmax_lead(args, ce):
 
 def get_sims_and_file_list(data_list, args):
     for ce, model_name in enumerate(args.custom_experiments):
-        leadmin, leadmax = get_minmax_lead(args, ce)
+        leadmin, leadmax = get_minmax_lead(args, ce) #TODO: add check for correct length of args.lead
         for exp_lead in reversed(range(leadmin, leadmax + 1)):
             max_lead = exp_lead + args.duration
             exp_init_date = dt.datetime.strptime(args.start, "%Y%m%d%H") - dt.timedelta(hours=exp_lead)
@@ -748,7 +835,7 @@ def get_sims_and_file_list(data_list, args):
                 model_name, exp_init_date.strftime("%Y-%m-%d %H")))
             mod = ModelConfiguration(model_name, exp_init_date, exp_lead, args)
             if mod.valid:
-                lon, lat, precip = mod.get_data(args.parameter)
+                lon, lat, mod_field_data = mod.get_data(args.parameter)
                 sim = {
                     "case": args.case[0],
                     "exp": model_name,
@@ -762,7 +849,7 @@ def get_sims_and_file_list(data_list, args):
                     # "grib_handles": mod.grib_handles,
                     "lon": lon,
                     "lat": lat,
-                    "precip_data": precip,
+                    "precip_data": mod_field_data,
                     "color" : mod.color,
                     "ensemble" : mod.ensemble}
                 data_list.append(sim)
