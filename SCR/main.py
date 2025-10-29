@@ -214,6 +214,10 @@ def parse_arguments():
                 for jj in range(15, 0, -1):
                     args.custom_experiments.insert(ii, f"claef1k-m{jj:02d}")
                 args.custom_experiments.insert(ii, f"claef1k-control")
+        # if the robust score is requested, make sure to also calculate it
+        if "cwfss_robust" in args.rank_score_time_series:
+            logging.info("Turning on the ranking check, because cwfss_robust time series was requested!")
+            args.check_ranking = True
 
 def get_lead_limits(args):
     lead_limits = args.lead
