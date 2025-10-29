@@ -1,6 +1,8 @@
 import numpy as np
 from osgeo import gdal
 
+import logging
+logger = logging.getLogger(__name__)
 
 def read_data_gdal(file_path, parameter, lead, get_lonlat_data=False):
     """ calls the grib handle check and returns fields with or without lon and lat data,

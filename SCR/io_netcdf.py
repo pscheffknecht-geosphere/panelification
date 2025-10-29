@@ -1,6 +1,8 @@
 import numpy as np
 import netCDF4 as nc
 
+import logging
+logger = logging.getLogger(__name__)
 
 def read_data_netcdf(nc_file_path, parameter, valid_time, **kwargs):
     """
