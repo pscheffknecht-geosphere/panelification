@@ -4,6 +4,8 @@ import numpy as np
 import pyresample
 from eccodes import codes_grib_new_from_file, codes_get_array, codes_release, codes_is_defined, codes_get
 
+from paths import PAN_DIR_TMP, PAN_DIR_MODEL, PAN_DIR_MODEL2, PAN_DIR_DATA
+
 import logging
 logger = logging.getLogger(__name__)
 

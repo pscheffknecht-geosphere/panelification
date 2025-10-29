@@ -108,7 +108,7 @@ class ModelConfiguration:
             logger.debug(f"   {tmpl}")
         for anam in ["init_interval", "max_leadtime", "output_interval", "accumulated", "unit_factor"]:
             setattr(self, anam, self.__pick_value_by_parameter(cmc[anam]))
-        for anam in ["ensemble", "grib_handle", "lagged_ensemble", "color"]:
+        for anam in ["ensemble", "grib_handles", "lagged_ensemble", "color"]:
             setattr(self, anam, self.__pick_value_by_parameter(cmc[anam]) if anam in cmc else None)
         # is the simulation part of an ensemble or lagged ensemble?
         if self.ensemble and not (args.merge_ens_init_times or self.lagged_ensemble):
@@ -280,10 +280,12 @@ class ModelConfiguration:
 
     def __get_data_accumulated(self):
         logger.info("Reading end file: {:s}".format(self.end_file))
-        lon, lat, tmp_data = read_data_grib(self.end_file, self.parameter, self.lead_end, get_lonlat_data=True)
+        lon, lat, tmp_data = read_data_grib(self.end_file, self.parameter, self.lead_end, get_lonlat_data=True,
+            grib_handles = self.grib_handles)
         if self.start_file:
             logger.info("Reading start file: {:s}".format(self.start_file))
-            start_tmp_data = read_data_grib(self.start_file, self.parameter, self.lead)
+            start_tmp_data = read_data_grib(self.start_file, self.parameter, self.lead,
+                grib_handles = self.grib_handles)
             tmp_data -= start_tmp_data
         # clamp to 0 because apparently this difference can be negative???
         # this is NOT a pygrib or panelification problem, also happens when

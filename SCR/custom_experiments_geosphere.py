@@ -25,7 +25,8 @@ experiment_configurations = {
         "unit_factor"      : {'sunshine': 1./3600.,
                               'hail': 1000.,
                               'else': 1.},
-        "color"            : 'blue'
+        "color"            : 'blue',
+        "grib_handles"     : [{"indicatorOfParameter": 197}, {"indicatorOfParameter": 198}, {"indicatorOfParameter": 199}]
         },
     "aromeruc": {
         "base_experiment"  : "arome",
