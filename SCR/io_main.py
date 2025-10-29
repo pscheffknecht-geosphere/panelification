@@ -91,8 +91,6 @@ class ModelConfiguration:
         # grab information from custom_experiments file
         cmc = args.custom_experiment_data[custom_experiment_name]
         # grab information from base experiment if provided
-        if "base_experiment" in cmc.keys(): 
-            self.__fill_cmc_with_base_values(cmc, args)
         self.valid = False
         self.init = init #datetime
         self.lead = lead #int in hours
@@ -101,6 +99,8 @@ class ModelConfiguration:
         self.parameter = args.parameter
         self.check_ecfs = args.check_ecfs
         self.path_template   = self.__pick_value_by_parameter(cmc["path_template"])
+        if "base_experiment" in cmc.keys(): 
+            self.__fill_cmc_with_base_values(cmc, args)
         if not isinstance(self.path_template, list) and isinstance(self.path_template, str):
             self.path_template = [self.path_template]
         logger.debug(f"Path template(s) for model {self.experiment_name} is:")
