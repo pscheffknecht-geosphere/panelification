@@ -26,6 +26,7 @@ import regions
 import prepare_for_web
 import parameter_settings
 import ensembles
+import ranking_check
 
 # try avoiding hanging during parallelized portions of the program
 os.environ['MKL_NUM_THREADS'] = '1'
@@ -144,6 +145,8 @@ def parse_arguments():
           debug, info, warning, error""")
     parser.add_argument('--rank_score_time_series', nargs='*', default=None, type=str,
         help = """Draw line plots of model performance, init on x axis, score on y axis""")
+    parser.add_argument('--check_ranking', nargs='?', default=False, const=True, type=str2bool,
+        help = 'Use random sampling and bootstrapping to test the robustness of the suggested ranking')
     parser.add_argument('--highlight_threshold', '-u', type=int, default=[], nargs='+',
         help = """Highlight specific precipitation contour line""")
     parser.add_argument('--time_series_panel_width', default=0.66, type=float,
@@ -312,6 +315,9 @@ def main():
                 sim["precip_data_resampled"] = _data
             Parallel(n_jobs=16,backend='threading')(delayed(scoring.calc_scores)(sim, data_list[0], args) for ii, sim in enumerate(data_list))
             scoring.rank_scores(data_list)
+            if args.check_ranking:
+                ranking_check.add_rank_robustness_info(data_list, args)
+                ranking_check.draw_ranking_confidence_plot(data_list, args)
             # scoring.total_fss_rankings(data_list, windows, thresholds)
             if args.ensemble_scores:
                 ens_data = ensembles.detect_ensembles(data_list)
