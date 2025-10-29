@@ -1,12 +1,13 @@
 import pickle
 import os
-from grib_handle_check import find_grib_handles
-from data_from_dcmdb import fill_path_file_template
 import datetime as dt
 import re
-import pygrib
 import netCDF4 as nc
 
+from grib_handle_check import find_grib_handles
+from data_from_dcmdb import fill_path_file_template
+from io_grib import read_data_grib, get_inca_rain_accumulated
+from io_gdal import read_data_gdal
 
 from paths import PAN_DIR_TMP, PAN_DIR_MODEL, PAN_DIR_MODEL2, PAN_DIR_DATA
 
@@ -32,10 +33,6 @@ except ImportError:
 import urllib.request
 from pathlib import Path
 
-try:
-    from osgeo import gdal
-except ImportError:
-    logger.warning("Error: GDAL library not found. Please install it using 'pip install gdal'")
 
 try:
     import xarray as xr
@@ -75,20 +72,6 @@ def mars_request(exp_name, init, step,path=None):
         return None
 
 
-# def get_inca_rain_accumulated(fil, t_start, t_end):
-def get_inca_rain_accumulated(mod):
-    grb = pygrib.open(mod.end_file)
-    idx_start = 4 * mod.lead + 1
-    idx_end = 4 * mod.lead_end + 1
-    first = True
-    for idx in range(idx_start, idx_end + 1):
-        if first:
-            rr, lat, lon = grb[idx].data()
-            first = False
-        else:
-            rr_, _, _ = grb[idx].data()
-            rr += rr_
-    return lon, lat, rr
 
 
 def get_icon_unstructured_read(file_name, needLonLat=False):
@@ -136,64 +119,7 @@ def get_icon_unstructured(mod):
         data -= get_icon_unstructured_read(mod.start_file, needLonLat=False)
     return lon, lat, data
 
-def get_lonlat_fallback(grb):
-    Nx = None
-    Ny = None
-    lll = None
-    try:
-        Nx, Ny = grb['Nx'], grb['Ny']
-        lon = grb.longitudes.reshape((Ny, Nx))
-        lat = grb.latitudes.reshape((Ny, Nx))
-        logger.debug(f"Nx: {Nx}, Ny: {Ny}")
-        logger.debug(f"lat: {lat}\nlon: {lon}")
-        logger.debug(f"lat.shape: {lat.shape}")
-    except:
-        logger.critical("Fallback failed on unknown grid type, exiting!!!")
-        raise
-    return lon, lat
 
-
-def read_values_from_grib_field(grb):
-    if grb['gridType'] == "lambert_lam": # new deode experiments
-        return grb.values
-    elif grb['gridType'] == "reduced_gg":
-        # TODO: workaround for Austria, make this take values from the region!!!
-        grb.expand_grid(False)
-        data1d, lat1d, lon1d = grb.data()
-        if lon1d.max() > 180.:
-            lon1d -= 360.
-        logger.debug(f"Nx: {lon1d.shape}, Ny: {lat1d.shape}")
-        logger.debug(f"lat: {lat1d}\nlon: {lon1d}")
-        lo = np.arange(-10., 35.001, 0.025)
-        la = np.arange(30., 75.001, 0.025)
-        llo, lla = np.meshgrid(lo, la)
-        targ_def = pyresample.geometry.SwathDefinition(llo, lla)
-        orig_def = pyresample.geometry.SwathDefinition(lon1d, lat1d)
-        data = pyresample.kd_tree.resample_nearest(orig_def, data1d, targ_def, reduce_data=False, radius_of_influence=25000)
-        return data
-    else:
-        return grb.data()[0]
-
-def read_list_of_fields(f, handles):
-    """ takes and unpacks a dictionary of grib handles, then reads all
-    field and returns the sum"""
-    ret_data = []
-    for handle in handles:
-        ret_data.append(f.select(**handle)[0])
-    return ret_data
-
-
-def data_sum(tmp_data_list):
-    if len(tmp_data_list) > 1:
-        return np.sum(np.array([read_values_from_grib_field(x) for x in tmp_data_list]), axis=0)
-    else:
-        return read_values_from_grib_field(tmp_data_list[0])
-
-def data_norm(tmp_data_list):
-    if not len(tmp_data_list) == 2:
-        raise ValueError("tmp_data_list has wrong lenght, must be 2 but is "+str(len(tmp_data_list)))
-    else:
-        return np.sqrt(read_values_from_grib_field(tmp_data_list[0]) ** 2 + read_values_from_grib_field(tmp_data_list[1]) ** 2)
 
 
 def scale_hail(data_list):
@@ -214,44 +140,49 @@ def scale_hail(data_list):
     return data_list
 
 
-def calc_data(tmp_data_list, parameter):
-    calc_funcs = {
-       "precip" : data_sum,
-       "precip2" : data_sum,
-       "precip3" : data_sum,
-       "sunshine": data_sum,
-       "lightning": data_sum,
-       "hail": data_sum,
-       "gusts" : data_norm
-       }
-    return calc_funcs[parameter](tmp_data_list)
-
-def read_samos_files(file_paths_dict):
+def read_data_netcdf(nc_file_path, parameter, valid_time, **kwargs):
     """
-    Reads SAMOS precipitation data from a dictionary of NetCDF file paths.
-    Each file is expected to contain a 'prec' variable.
-
-    Args:
-        file_paths_dict (dict): A dictionary where keys are lead-times (int)
-                                and values are full paths to the NetCDF files (str).
-
-    Returns:
-        tuple:
-            - RR_list (list of np.ndarray): List of 3D (bands, height, width)
-                                            precipitation arrays, sorted by lead-time.
-            - NWP_list_dates (list of datetime): List of valid times for each file,
-                                                  sorted by lead-time.
-
-    Raises:
-        FileNotFoundError: If a specified file does not exist.
-        Exception: For other errors during file opening or data reading.
+    Reads data from a NetCDF file, fixed to work with daily timesteps and
+    robustly handle common coordinate variable names.
     """
-    # Sort file paths by lead time before processing
-    sorted_file_paths = [file_paths_dict[lt] for lt in sorted(file_paths_dict.keys())]
-
-    logger.info(f"Reading {len(sorted_file_paths)} SAMOS forecast files...")
-    RR_list = []
-    NWP_list_dates = []
+    parameter = "precipitation"
+    get_lonlat_data = kwargs.get("get_lonlat_data", False)
+    with nc.Dataset(nc_file_path, 'r') as ds:
+        if parameter not in ds.variables:
+            logger.error(f"Parameter '{parameter}' not found in file: {nc_file_path}")
+            return None
+        var = ds.variables[parameter]
+        time_dim_name = [d for d in var.dimensions if d.startswith('time')][0]
+        time_var = ds.variables[time_dim_name]
+        file_times = nc.num2date(time_var[:], units=time_var.units)
+        time_idx = (np.abs(file_times - valid_time)).argmin()
+        if np.abs(file_times[time_idx] - valid_time) > dt.timedelta(minutes=30):
+            logger.error(f"Requested valid time {valid_time} not found in file {nc_file_path}")
+            return None
+        data = var[time_idx, ...]
+        logger.info(f"The time index is {time_idx} and valid time is {valid_time}")
+        if get_lonlat_data:
+            lat_names = ['lat', 'latitude', 'lats', 'Latitude']
+            lon_names = ['lon', 'longitude', 'lons', 'Longitude']
+            lat_var_name = None
+            for name in lat_names:
+                if name in ds.variables:
+                    lat_var_name = name
+                    break
+            lon_var_name = None
+            for name in lon_names:
+                if name in ds.variables:
+                    lon_var_name = name
+                    break
+            if not lat_var_name or not lon_var_name:
+                logger.error(f"Could not find latitude or longitude variables in {nc_file_path}")
+                return None, None, None
+            lat = ds.variables[lat_var_name][:]
+            lon = ds.variables[lon_var_name][:]
+            if lat.ndim == 1 and lon.ndim == 1:
+                lon_2d, lat_2d = np.meshgrid(lon, lat)
+            else:
+                lon_2d, lat_2d = lon, lat
 
     # Extract init_time from the first file path (assuming consistent naming)
     # FC_samos_prec_YYYYmmddHH_ltHHHh.nc
@@ -305,98 +236,6 @@ def read_samos_files(file_paths_dict):
     return RR_list, NWP_list_dates
 
 
-def read_data_samos(file_path, parameter, lead, get_lonlat_data=False):
-    """ calls the grib handle check and returns fields with or without lon and lat data,
-    depending on selection"""
-    dataset = gdal.Open(file_path)
-    band = dataset.GetRasterBand(1)
-    data = band.ReadAsArray()
-    data = np.flipud(data)  # Flip the data to match the new latitude order
-    if get_lonlat_data:
-        ulx, xres, xskew, uly, yskew, yres = dataset.GetGeoTransform()
-        nrows, ncols = data.shape
-        lons = np.linspace(ulx, ulx + ncols * xres, ncols)
-        lats = np.linspace(uly, uly + nrows * yres, nrows)  # yres is negative
-        lats = lats[::-1]
-        lon, lat = np.meshgrid(lons, lats)
-        return lon, lat, data
-    else:
-        return data
-
-# --- Helper Function for expected file paths ---
-def get_expected_samos_files(init_time_dt, base_dir="/samos_arch/FCruc.EVNO/prec/",REQUIRED_LEAD_TIMES = 12 ):
-    """
-    Generates a list of expected file paths for all 12 lead times
-    for a given SAMOS initialization timestamp.
-
-    Args:
-        init_time_dt (datetime.datetime): The datetime object representing
-                                          the initialization time (YYYYmmddHH).
-        base_dir (str): The base directory where SAMOS files are stored.
-        REQUIRED_LEAD_TIMES (int): The number of expected lead-times
-
-    Returns:
-        dict: A dictionary mapping lead-time (int 1-12) to full file path (str).
-    """
-    init_time_str = init_time_dt.strftime("%Y%m%d%H")
-    year_str = init_time_dt.strftime("%Y")
-    month_str = init_time_dt.strftime("%m")
-    day_str = init_time_dt.strftime("%d")
-
-    base_folder = Path(base_dir) / year_str / month_str / day_str
-    
-    expected_files = {} # Dict to store lead_time -> path
-    for lt in range(1, REQUIRED_LEAD_TIMES + 1): # Lead times 001h to 012h
-        lt_str = f"{lt:03d}"
-        filename = f"FC_samos_prec_{init_time_str}_lt{lt_str}h.nc"
-        filepath = base_folder / filename
-        expected_files[lt] = str(filepath)
-    return expected_files
-
-def read_data_grib(grib_file_path, parameter, lead, **kwargs): #get_lonlat_data=False):
-    """ calls the grib handle check and returns fields with or without lon and lat data,
-    depending on selection"""
-    with pygrib.open(grib_file_path) as f:
-        if "grib_handles" in kwargs.keys():
-            grib_handles = kwargs["grib_handles"]
-        else:
-            grib_handles = find_grib_handles(f, parameter, lead)
-        logger.debug("Getting {:s} from file {:s}".format(repr(grib_handles), grib_file_path))
-        tmp_data_list = read_list_of_fields(f, grib_handles)
-    tmp_data_field = calc_data(tmp_data_list, parameter)
-    tmp_data_field = np.where(tmp_data_field>=9000., np.nan, tmp_data_field)
-    logger.debug(f"DATA FROM {grib_file_path} parameter {parameter}:")
-    logger.debug(f"Type: {type(tmp_data_field)}")
-    logger.debug(f"Min: {tmp_data_field.min()}")
-    logger.debug(f"Max: {tmp_data_field.max()}")
-    logger.debug(f"Sample:")
-    logger.debug(tmp_data_field)
-    if "get_lonlat_data" in kwargs:
-        get_lonlat_data = kwargs["get_lonlat_data"]
-    else:
-        get_lonlat_data = False
-    if get_lonlat_data: #TODO: MOVE THIS SOMEWHERE ELSE
-        if tmp_data_list[0]['gridType'] == "lambert_lam":
-            logger.debug("gridType lambert_lam detected, going to fallback!")
-            lon, lat = get_lonlat_fallback(tmp_data_list[0])
-        elif tmp_data_list[0]['gridType'] == "reduced_gg":
-            logger.debug("gridType reduced_gg detected, making own!")
-            lo = np.arange(-10., 35.001, 0.025)
-            la = np.arange(30., 75.001, 0.025)
-            lon, lat = np.meshgrid(lo, la)   
-        elif tmp_data_list[0]['gridType'] == "unstructured_grid":
-            logger.debug("gridType unstructured_grid detected, making own!")
-            lo = np.arange(-5., 20.001, 0.0125)
-            la = np.arange(44., 51.001, 0.0125)
-            lon, lat = np.meshgrid(lo, la)   
-        else:
-            lat, lon = tmp_data_list[0].latlons()
-        if lon.max() > 180.:
-            lon = np.where(lon > 180., lon - 360., lon)
-        return lon, lat, tmp_data_field
-    else:
-        return tmp_data_field
-
 def read_data_netcdf(nc_file_path, parameter, valid_time, **kwargs):
     """
     Reads data from a NetCDF file, fixed to work with daily timesteps and
@@ -448,12 +287,14 @@ def read_data_netcdf(nc_file_path, parameter, valid_time, **kwargs):
 
 file_type_indicators = {
     "NetCDF": ["nc", "ncf", "ncd"],
-    "GRIB": ["grb", "grib", "grb2", "grib2"]
+    "GRIB": ["grb", "grib", "grb2", "grib2"],
+    "GDAL": ["grd"]
 }
 
 read_func_dict = {
     "GRIB" : read_data_grib,
-    "NetCDF" : read_data_netcdf
+    "NetCDF" : read_data_netcdf,
+    "GDAL": read_data_gdal
 }
 
 class ModelConfiguration:
@@ -547,13 +388,6 @@ class ModelConfiguration:
                     cmc[key] = None
                     logger.debug("Not in base experiment, setting {:s} in {:s} to None:".format(
                         key, self.experiment_name))
-        # if not "on_mars" in cmc.keys():
-        #     if "on_mars" in args.custom_experiment_data[cmc["base_experiment"]].keys():
-        #         cmc["on_mars"] = args.custom_experiment_data[cmc["base_experiment"]]["on_mars"]
-        #     else:
-        #         cmc["on_mars"] = False
-        # if not "url_template" in cmc.keys():
-        #     cmc["url_template"] = None
               
 
     def print(self):
@@ -581,13 +415,15 @@ class ModelConfiguration:
 
     def __get_file_type(self, file_list):
         file_type_list = []
-        for ii, fil in enumerate(file_list):
+        for ii, fil in enumerate([f for f in file_list if f is not None]):
             file_type_list.append(fil.split(".")[-1]) #get file ending
             logger.debug(f"file {ii} has ending {file_type_list[-1]}")
         first = file_type_list[0]
         if all(first == ft for ft in file_type_list):
+            logger.debug(f"all files are of type {first}")
             for ftype, suffixList in file_type_indicators.items():
                 if first in suffixList:
+                    logger.info(f" model uses {ftype} files")
                     return ftype
         return None
 
@@ -630,7 +466,7 @@ class ModelConfiguration:
 
     def __get_data_not_accumulated(self):
         first = True
-        read_data = read_data_samos if "samos" in self.experiment_name else read_data_grib
+        read_data = read_data_gdal if "samos" in self.experiment_name else read_data_grib
         for i, fil in enumerate(self.file_list):
             logger.info("Reading file ({:d}): {:s}".format(i, fil))
             if first:
@@ -844,9 +680,6 @@ def get_sims_and_file_list(data_list, args):
                     "init": exp_init_date,
                     "lead": leadmin,
                     "name": "{:s} {:s}".format(model_name, exp_init_date.strftime("%Y-%m-%d %H")),
-                    # "start_file": mod.file_path(exp_lead),
-                    # "end_file": mod.end_file,
-                    # "grib_handles": mod.grib_handles,
                     "lon": lon,
                     "lat": lat,
                     "precip_data": mod_field_data,
