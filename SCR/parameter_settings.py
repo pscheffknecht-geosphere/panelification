@@ -47,7 +47,8 @@ def get_fss_thresholds(args):
         'sunshine' : list(np.arange(0., 1., 1/6.)) + [999999],
         'hail' : [1, 2, 5, 10, 25, 35, 50, 75, 100, 99999],
         'gusts' : [5, 10, 15, 20, 25, 30, 40, 50, 70, 99999],
-        'lightning' : [0.1*x for x in [1, 2, 5, 10, 25, 35, 50, 75, 100]] + [99999]
+        'lightning' : [0.1*x for x in [1, 2, 5, 10, 25, 35, 50, 75, 100]] + [99999],
+        'cma': [0,1]
     }
     return thresholds_for_fss[args.parameter]
 

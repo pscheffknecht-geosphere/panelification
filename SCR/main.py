@@ -55,7 +55,7 @@ def translate_logging_levels(lvlstr):
 def parse_arguments():
     global args
     parser = argparse.ArgumentParser(conflict_handler="resolve")
-    parser.add_argument('--parameter', '-p', type=str, default='precip',
+    parser.add_argument('--parameter', '-p', type=str, default='cma',
         help = 'parameter to verify/plot')
     parser.add_argument('--precip_verif_dataset', type=str, default = 'SAF',
         help = """select precip data set:
@@ -122,7 +122,7 @@ def parse_arguments():
         help = 'save full fields to pickle files')
     parser.add_argument('--fss_mode', type=str, default='ranks')
     parser.add_argument('--fss_calc_mode', type=str, default='same')
-    parser.add_argument('--rank_by_fss_metric',type=str, default='fss_condensed_weighted',
+    parser.add_argument('--rank_by_fss_metric',type=str, default='fss_condensed_weighted', # ?? 
         help = """Select score used when ranking simulation by their FSS performance:
         fss_total_abs_score .................. use the old FSS Rank Score
         fss_condensed ........................ condensed FSS value, uniform weight
@@ -209,8 +209,9 @@ def parse_arguments():
                     args.custom_experiments.insert(ii, f"claef1k-m{jj:02d}")
                 args.custom_experiments.insert(ii, f"claef1k-control")
 
-def get_lead_limits(args):
-    lead_limits = args.lead
+def get_lead_limits(args): # ennek az akkumulacion tul is van haszna? 
+    lead_limits = args.lead # ez a parancssoron megadott lead . A lényeg röviden az időlépésközök definiálása. A csapadék aggregáláson kívül is? 
+    # nekünk órás felhőzet verifikáció kell. A lépésköz mindig egy óra lesz 
     if len(lead_limits) == 2:
         min_lead = lead_limits[0]
         max_lead = lead_limits[1]

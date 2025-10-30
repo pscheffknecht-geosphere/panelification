@@ -14,13 +14,14 @@ logger = logging.getLogger(__name__)
 # one parameter and another path for all other parameters.
 experiment_configurations = {
     "arome_test": {
-        "init_interval"    : 3,
-        "output_interval"  : 1,
+        "init_interval"    : 24, # ez az hogy milyen gyakori a frissítés? Phillip szerint 24re kell ahhoz hogy nullas futas legyen d nem ertem miert 
+        "output_interval"  : 1, # ez az hogy hány óránként van időlépcső? 
         "max_leadtime"     : 60, 
         "accumulated"      : {'gusts': False,
                               'hail': False,
+                              'cma' : False,
                               'else': True},
-        "path_template"    : {'precip': "../TEST_DATA/arome/%Y%m%d/arome_%H+%LLLL.grb",
+        "path_template"    : {'cma': "../TEST_DATA/arome/%Y%m%d/chra%Y%m%d_%H%S+%LLLLL.nc", #20250907 map is HungaroMet 
                               'else': None},
         "unit_factor"      : {'sunshine': 1./3600.,
                               'hail': 1000.,
@@ -28,11 +29,11 @@ experiment_configurations = {
         "color"            : 'blue'
         },
     "ecmwf_test": {
-        "init_interval"    : 6,
+        "init_interval"    : 24,
         "output_interval"  : 1, # 3 for some lead times, but panelification can sort that out
         "max_leadtime"     : 120,
-        "path_template"    : "../TEST_DATA/ecmwf/%Y%m%d/ecmwf_%H+%LLLL.grb",
-        "accumulated"      : True,
+        "path_template"    : "../TEST_DATA/ecmwf/%Y%m%d/cedh%Y%m%d_%H%S+%LLLLL.nc",
+        "accumulated"      : False,
         "unit_factor"      : 1000.,
         "color"            : "black"
     },
