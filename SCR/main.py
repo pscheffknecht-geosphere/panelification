@@ -321,7 +321,7 @@ def main():
             scoring.rank_scores(data_list)
             if args.check_ranking:
                 ranking_check.add_rank_robustness_info(data_list, args)
-                ranking_check.draw_ranking_confidence_plot(data_list, args)
+                ranking_check.draw_ranking_confidence_plot(data_list, start_date, end_date, subdomain_name, args)
             # scoring.total_fss_rankings(data_list, windows, thresholds)
             if args.ensemble_scores:
                 ens_data = ensembles.detect_ensembles(data_list)
