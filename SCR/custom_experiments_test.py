@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 # one parameter and another path for all other parameters.
 experiment_configurations = {
     "arome_test": {
-        "init_interval"    : 24, # ez az hogy milyen gyakori a frissítés? Phillip szerint 24re kell ahhoz hogy nullas futas legyen d nem ertem miert 
-        "output_interval"  : 1, # ez az hogy hány óránként van időlépcső? 
+        "init_interval"    : 24, # to get only 00 UTC init
+        "output_interval"  : 1, # 
         "max_leadtime"     : 60, 
         "accumulated"      : {'gusts': False,
                               'hail': False,
