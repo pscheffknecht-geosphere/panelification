@@ -37,7 +37,7 @@ experiment_configurations = {
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/aromeruc_%H+%LLLL.00.grb",
         "color"            : "navy"
         },
-    "inca-opt": {
+    "inca-opt-grib": {
         "init_interval"    : 1,
         "output_interval"  : 1,
         "max_leadtime"     : 48,
@@ -46,6 +46,18 @@ experiment_configurations = {
         # "path_template"    : "/incaplus_arch1/iplus/out/INCA_15m/2024/09/13/INCA_15m_RR_FC_202409130000.grb2"
         "path_template"    : "/mapp_arch3/jhadzi/DATA_FOR_VERIFICATION/INCA_15m/%Y/%m/%d/INCA_15m_RR_FC_%Y%m%d%H00.grb2",
         "color"            : "red"
+    },
+    "inca-opt": {
+        "init_interval"    : 1,
+        "output_interval"  : 1,
+        "max_leadtime"     : 48,
+        "accumulated"      : False, # technically not, but does not matter
+        "unit_factor"      : 1.,
+        # "path_template"    : "/incaplus_arch1/iplus/out/INCA_15m/2024/09/13/INCA_15m_RR_FC_202409130000.grb2"
+        "path_template"    : "/incaplus_arch1/iplus/out/INCAPlus_1h/inca/%Y/%m/%d/INCAPlus_1h_RR_15m_FC_%Y%m%d%H00.nc",
+        "netcdf_variable"  : "RR",
+        "netcdf_one_file"  : "True",
+        "color"            : "firebrick"
     },
     "samos": {
         "init_interval"    : 3,
