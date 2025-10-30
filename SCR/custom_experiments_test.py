@@ -21,7 +21,7 @@ experiment_configurations = {
                               'hail': False,
                               'cma' : False,
                               'else': True},
-        "path_template"    : {'cma': "../TEST_DATA/arome/%Y%m%d/chra%Y%m%d_%H%S+%LLLLL.nc", #20250907 map is HungaroMet 
+        "path_template"    : {'cma': "../TEST_DATA/arome/%Y%m%d/chra%Y%m%d_%H%S+%LLLLL.nc", #20250907 folder is HungaroMet 
                               'else': None},
         "unit_factor"      : {'sunshine': 1./3600.,
                               'hail': 1000.,
