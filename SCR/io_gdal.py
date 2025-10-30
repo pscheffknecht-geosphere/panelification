@@ -4,13 +4,14 @@ from osgeo import gdal
 import logging
 logger = logging.getLogger(__name__)
 
-def read_data_gdal(file_path, parameter, lead, get_lonlat_data=False):
+def read_data_gdal(file_path, parameter, lead, **kwargs): #get_lonlat_data=False):
     """ calls the grib handle check and returns fields with or without lon and lat data,
     depending on selection"""
     dataset = gdal.Open(file_path)
     band = dataset.GetRasterBand(1)
     data = band.ReadAsArray()
     data = np.flipud(data)  # Flip the data to match the new latitude order
+    get_lonlat_data = kwargs.get("get_lonlat_data", False)
     if get_lonlat_data:
         ulx, xres, xskew, uly, yskew, yres = dataset.GetGeoTransform()
         nrows, ncols = data.shape
