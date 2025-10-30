@@ -4,13 +4,17 @@ import netCDF4 as nc
 import logging
 logger = logging.getLogger(__name__)
 
+
 def read_data_netcdf(nc_file_path, parameter, valid_time, **kwargs):
     """
     Reads data from a NetCDF file, fixed to work with daily timesteps and
     robustly handle common coordinate variable names.
     """
-    parameter = "precipitation"
+    parameter = kwargs.get("netcdf_parameter", "precipitation")
     get_lonlat_data = kwargs.get("get_lonlat_data", False)
+    lead_start = kwargs.get("lead_start", 0)
+    lead_end = kwargs.get("lead_end")
+    accumulated = kwargs.get("accumulated", False)
     with nc.Dataset(nc_file_path, 'r') as ds:
         if parameter not in ds.variables:
             logger.error(f"Parameter '{parameter}' not found in file: {nc_file_path}")
@@ -51,3 +55,12 @@ def read_data_netcdf(nc_file_path, parameter, valid_time, **kwargs):
             return lon_2d, lat_2d, data
         else:
             return data
+
+
+def read_inca_plus_netcdf(nc_file_path, lead_start, lead_end):
+    logger.debug(f"Reading time steps {lead_start} to {lead_end} from file {nc_file_path}")
+    with nc.Dataset(nc_file_path, 'r') as ds:
+        tmp_rr = ds.variables["RR"][lead_start:lead_end, :, :].sum(axis=0)
+        lon = ds.variables['lon'][:]
+        lat = ds.variables['lat'][:]
+    return lon, lat, tmp_rr

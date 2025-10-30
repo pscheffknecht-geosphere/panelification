@@ -11,7 +11,7 @@ from mars_request_templates import mars_request_templates
 
 from io_grib import read_data_grib, get_inca_rain_accumulated, get_icon_unstructured
 from io_gdal import read_data_gdal
-from io_netcdf import read_data_netcdf
+from io_netcdf import read_data_netcdf, read_inca_plus_netcdf
 
 from paths import PAN_DIR_TMP, PAN_DIR_MODEL, PAN_DIR_MODEL2, PAN_DIR_DATA
 
@@ -82,6 +82,15 @@ read_func_dict = {
     "GDAL": read_data_gdal
 }
 
+DEFAULTS = {
+    "ensemble": None,
+    "grib_handles": None,
+    "lagged_ensemble": False,
+    "color": None,
+    "netcdf_variable": None,
+    "netcdf_one_file": False
+}
+
 class ModelConfiguration:
     def __init__(self, custom_experiment_name, init, lead, args):
         """THIS CLASS HANDLES ONE RUN OF ONE MODEL
@@ -110,6 +119,9 @@ class ModelConfiguration:
             setattr(self, anam, self.__pick_value_by_parameter(cmc[anam]))
         for anam in ["ensemble", "grib_handles", "lagged_ensemble", "color"]:
             setattr(self, anam, self.__pick_value_by_parameter(cmc[anam]) if anam in cmc else None)
+        for anam, default_value in DEFAULTS.items():
+            setattr(self, anam, cmc.get(anam, default_value))
+            logger.debug(f"{self.experiment_name}: Setting {anam} to {getattr(self, anam)}")
         # is the simulation part of an ensemble or lagged ensemble?
         if self.ensemble and not (args.merge_ens_init_times or self.lagged_ensemble):
             init_str = self.init.strftime("%Y%m%d_%H")
@@ -120,16 +132,34 @@ class ModelConfiguration:
         self.ecfs_path_template = self.__pick_value_by_parameter(cmc["ecfs_path_template"]) if "ecfs_path_template" in cmc else None
         self.url_template = cmc["url_template"] if "url_template" in cmc.keys() else None
         if self.__times_valid():
-            if self.accumulated:
+            if self.netcdf_one_file:
+                self.one_file = self.get_file_path(self.lead_end)
+            elif self.accumulated:
                 self.end_file = self.get_file_path(self.lead_end)
                 self.start_file = self.get_file_path(self.lead)
             else:
                 self.file_list = self.get_file_list()
             self.valid = self.__files_valid()
             self.print()
+        if self.valid:
+            self.read_data = read_func_dict[self.file_type]
+            self.__prep_read_kwargs()
         else:
             logger.debug("Model {:s} with init {:s} has no output for the requested time window.".format(
                 self.experiment_name, self.init.strftime("%Y-%m-%d %H")))
+
+
+    def __prep_read_kwargs(self):
+        """ Prepares a dictionary with some entries used by the reading functions. This can be passed
+        to any of the functions, keeping the calls identical, while varying the arguments """
+        self.read_kwargs = {
+            "get_lonlat_data": True,
+            "lead_start": self.lead,
+            "lead_end": self.lead_end
+        }
+        if self.file_type == "NetCDF":
+            self.read_kwargs["netcdf_variable"] = self.netcdf_variable,
+            self.read_kwargs["netcdf_one_file"] = self.netcdf_one_file
 
 
     def __pick_value_by_parameter(self, custom_experiment_item):
@@ -179,7 +209,9 @@ class ModelConfiguration:
         logger.debug("init: {:s}".format(self.init.strftime("%Y-%m-%d %H")))
         logger.debug("lead: {:d}".format(self.lead))
         logger.debug("model is valid: {:s}".format(str(self.valid)))
-        if self.accumulated:
+        if self.netcdf_one_file:
+            logger.debug(f"netcdf file: {self.one_file}")
+        elif self.accumulated:
             logger.debug("start file: {:s}".format(str(self.start_file)))
             logger.debug("end file: {:s}".format(str(self.end_file)))
         else:
@@ -212,53 +244,72 @@ class ModelConfiguration:
                     return ftype
         return None
 
-    def __files_valid(self):        
-        files_to_check = [self.start_file, self.end_file] if self.accumulated else self.file_list
-        if self.accumulated and not self.end_file:
-            return False
-        if not self.accumulated and not any(self.file_list):
-            logger.debug(f"Model {self.experiment_name} has no accumulated values, but the file list is")
-            for fil in self.file_list:
-                logger.debug(f"  fil")
-            return False
+
+    def __file_check(self, files_to_check):
+        ret_OK = True
         for fil in files_to_check:
-            if fil:
-                if not os.path.isfile(str(fil)): 
-                    logger.info(f"File {fil} not found, discarding experiment {self.experiment_name} {self.init}")
-                    return False
-                elif os.path.getsize(fil) == 0:
-                    logger.info(f"File {fil} was found but has size 0, discarding experiment {self.experiment_name}")
-                    return False
+            if os.path.isfile(fil):
+                if os.path.getsize(fil) == 0:
+                    ret_OK = False
+            else:
+                ret_OK = False
         self.file_type = self.__get_file_type(files_to_check)
-        return False if self.file_type is None else True
+        return ret_OK
+
+    def __files_valid(self):        
+        if self.netcdf_one_file:
+            ret_OK = self.__file_check([self.one_file])
+        elif self.accumulated and self.lead > 0:
+            ret_OK = self.__file_check([self.start_file, self.end_file])
+        elif self.accumulated and self.lead == 0:
+            ret_OK = self.__file_check([self.end_file])
+        elif not self.accumulated:
+            ret_OK = self.__file_check(self.file_list)
+        else: # this should never happen
+            logger.error(f"{self.experiment_name} with init {self.init} has no valid files to check!")
+        if ret_OK and self.file_type is not None:
+            self.read_data = read_func_dict[self.file_type]
+            return True
+        return False
 
 
     def get_data(self, param):
         if param == 'gusts' or param == 'hail':
             return self.__get_data_max()
         else:
+
             # 1. check if experiment is an INCA forecast of any kind
             if any([s in self.experiment_name for s in ["INCA", "inca", "Inca"]]):
-                return get_inca_rain_accumulated(self) # TODO: create common INCA read function
+                if self.file_type == "GRIB":
+                    return get_inca_rain_accumulated(self) # TODO: create common INCA read function
+                elif self.file_type == "NetCDF":
+                    return read_inca_plus_netcdf(self.one_file, self.lead, self.lead_end)
             # catch raw icon ensemble members
             if "ICOND2_m" in self.experiment_name:
                 return get_icon_unstructured(self)
+            if self.netcdf_one_file:
+                return self.__get_data_onefile()
             if self.accumulated:
                 return self.__get_data_accumulated()
             else:
                 return self.__get_data_not_accumulated()
 
 
+    def __get_data_onefile(self):
+        lon, lat, tmp_data = self.read_data(self.one_file, self.parameter, 0, **self.read_kwargs)
+        tmp_data = np.where(tmp_data < 0., 0., tmp_data)
+        return lon, lat, self.unit_factor * tmp_data
+
     def __get_data_not_accumulated(self):
         first = True
-        read_data = read_data_gdal if "samos" in self.experiment_name else read_data_grib
         for i, fil in enumerate(self.file_list):
             logger.info("Reading file ({:d}): {:s}".format(i, fil))
             if first:
-                lon, lat, tmp_data = read_data(fil, self.parameter, 0, get_lonlat_data=True) # 0 for lead time, unused for unaccmulated models
+                lon, lat, tmp_data = self.read_data(fil, self.parameter, 0, **self.read_kwargs)
+                self.read_kwargs["get_lonlat_data"] = False
                 first = False
             else:
-                tmp_data += read_data(fil, self.parameter, 0)
+                tmp_data += self.read_data(fil, self.parameter, 0, **self.read_kwargs)
         tmp_data = np.where(tmp_data < 0., 0., tmp_data)
         return lon, lat, self.unit_factor * tmp_data
 
