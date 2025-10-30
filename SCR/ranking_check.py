@@ -137,7 +137,6 @@ def draw_ranking_confidence_plot(data_list, start_date, end_date, verification_s
     plt.colorbar(c1, cax=cax1, orientation="horizontal", label="cwFSS sample values")
     cax2 = fig.add_axes([0.55, 0.04, 0.35, 0.015])
     plt.colorbar(c2, cax=cax2, orientation="horizontal", label="rank")
-    img_file_name = f"{args.name}_rank_robustness_chart.png"
     start_date_str = start_date.strftime("%Y%m%d_%H")
     img_file_name = f"{PAN_DIR_PLOTS}/{args.name}_{args.parameter}_ranking_{start_date_str}UTC_{args.duration:02d}h_acc_{verification_subdomain}.png"
     plt.savefig(img_file_name)
