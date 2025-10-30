@@ -6,6 +6,8 @@ import matplotlib.colors as colors
 from joblib import Parallel, delayed
 import fss_cumsum as fss
 
+from paths import PAN_DIR_PLOTS
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -36,7 +38,7 @@ def extract_cwfss_array(data_list):
     return fss_scores
 
 
-def draw_ranking_confidence_plot(data_list, args):
+def draw_ranking_confidence_plot(data_list, start_date, end_date, verification_subdomain, args):
     logger.info("Drawing ranking robustness chart...")
     fss_scores = extract_cwfss_array(data_list)
     n_models, n_samples = fss_scores.shape
@@ -136,5 +138,7 @@ def draw_ranking_confidence_plot(data_list, args):
     cax2 = fig.add_axes([0.55, 0.04, 0.35, 0.015])
     plt.colorbar(c2, cax=cax2, orientation="horizontal", label="rank")
     img_file_name = f"{args.name}_rank_robustness_chart.png"
+    start_date_str = start_date.strftime("%Y%m%d_%H")
+    img_file_name = f"{PAN_DIR_PLOTS}/{args.name}_{args.parameter}_ranking_{start_date_str}UTC_{args.duration:02d}h_acc_{verification_subdomain}.png"
     plt.savefig(img_file_name)
     logger.info(f"Saved chart to {img_file_name}")
