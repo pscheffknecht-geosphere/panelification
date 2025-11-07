@@ -20,7 +20,7 @@ Num_columns = 640
 # I guess I wont need read(file) function in its original form , since the SAF netcdf aleady has the binary image stored in a 2D array (480, 640 extension) 
 def read_SAF (file): 
     # file shall be the path of the SAF image file, I'll add it somewhere   
-    with Dataset('file', 'r') as nc:
+    with Dataset(file, 'r') as nc:
         RR = nc.variables['cma'][:] 
     return RR
 #  2D cma 
@@ -28,7 +28,7 @@ def read_SAF (file):
 def check_paths(date): # 
     OBS = (r"/home/lovasz_v/Desktop/Panelification_PScheffknecht/panelification/TEST_DATA/SAF") # obs folder became broken?? 
     # our SAF cma filenames are like: bMma20250907_1755.nc   (ends with UTC) 
-    # checking if there are files with the given day, and we'll use all UTC for verification 
+    
     yyyymmdd = date[:8]
     formatum = f"bMma{yyyymmdd}_*.nc"
     for filename in os.listdir(OBS):
@@ -52,7 +52,8 @@ def bringSAF_netcdf(date):
     try:
         RR = read_SAF(obs_file_path)  #
     except:
-        logger.error(f"Failed to read file {obs_file_path}: {e}")
+        logging.error(f"Failed to read file {obs_file_path}")
+        raise
         return False
 
     return RR

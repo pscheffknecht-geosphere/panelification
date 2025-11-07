@@ -82,7 +82,39 @@ def resample_data(data_list, verification_subdomain, args):
         sim['p90_color'] = 'black' if p90 <= 10. else 'white'
     return data_list
 
-def SAF_grid(nc_path):
+
+def INCA_grid(INCAplus=False):
+    """
+    function that returns a meshgrid of latitudes and longitudes
+    for plotting INCA data
+
+    usage: lon, lat = INCA_grid()
+    """
+    if INCAplus:
+        myproj=pyproj.Proj("""epsg:31287 +units=m +proj=lcc +lat_1=49 +lat_2=46 +lat_0=47.5 +lon_0=13.33333333333333 +x_0=400000 +y_0=400000 +ellps=bessel +towgs84=577.326,90.129,463.919,5.137,1.474,5.297,2.4232 +no_defs""")
+        NX=701
+        NY=431
+        X=20000.+np.arange(NX)*1000.
+        Y=190000.+np.arange(NY)*1000.
+    else:
+        myproj=pyproj.Proj("""epsg:31287 +units=km +proj=lcc +lat_1=49 +lat_2=46 +lat_0=47.5 +lon_0=13.33333333333333 +x_0=400000 +y_0=400000 +datum=hermannskogel +no_defs +ellps=bessel +towgs84=577.326,90.129,463.919,5.137,1.474,5.297,2.4232""")
+        NX=701
+        NY=401
+        X=20.+np.arange(NX) #*1000.
+        Y=220.+np.arange(NY) #*1000.
+    XX,YY=np.meshgrid(X,Y)
+    lon_INCA,lat_INCA=myproj(XX,YY,inverse=True)
+    logging.debug("############################################################################")
+    logging.debug(lon_INCA)
+    logging.debug(lon_INCA.min())
+    logging.debug(lon_INCA.max())
+    logging.debug(lat_INCA)
+    logging.debug(lat_INCA.min())
+    logging.debug(lat_INCA.max())
+    logging.debug("############################################################################")
+    return lon_INCA,lat_INCA
+
+def SAF_grid():
     # read the numpy array that stores coordinates of SAF products, as SAF images are stored separately from a deaafult SAF coordinatefile. 
     # I modified the originally flattened array into a 2D array, the nc_path points to the 2D one. 
     # where is the right place to add the path? 
@@ -101,12 +133,12 @@ def SAF_grid(nc_path):
 def read_SAF_obs(data_list, start_date, end_date, args):# is it the data_list from main? 
 
     first = True
-    if 'cma' in args.parameter: # command-lineon? 
-        read_dt = dt(hours=1) # good for tim delta, we have SAF cma image in every hour 
+    if 'cma' in args.parameter: #  
+        read_dt = dt(hours=1) #we have SAF cma image in every hour 
         dtype = np.int16
 
        # relevant bring and checkpath functions is also  modified in the bring_obs library.
-       # only the check_path branch runs (in bring) because I don't create file names, I already name them that way.
+    
        
 
     for read_SAF_date in loop_datetime(start_date + dt(hours=1), end_date + dt(hours=1), read_dt): # itt lesz többidőpont mert ez egy loop
@@ -120,7 +152,7 @@ def read_SAF_obs(data_list, start_date, end_date, args):# is it the data_list fr
             var_tmp = bO.bringSAF_netcdf(datestring)
             first = False
         else:
-            var_tmp = var_tmp + bO.bringSAF_netcdf(datestring)''' # cma will be for a fixed UTC, no accum. But we'll verify multiple UTCs. 
+            var_tmp = var_tmp + bO.bringSAF_netcdf(datestring)''' # cma will be for a fixed UTC, no accumulation. But we'll verify multiple UTCs. 
          
         cma_data = bO.bringSAF_netcdf(datestring)
 
@@ -132,10 +164,10 @@ def read_SAF_obs(data_list, start_date, end_date, args):# is it the data_list fr
         'name': 'SAF cma {datestring}',
         'lat': np.asarray(lat),
         'lon': np.asarray(lon),
-        'cma_data': cma_data
+        'precip_data': cma_data
     })
-    return data_list # at this point, should it return multiple dictionaries or only one at a time? 
-    # since our variable is not accumulated cloud cover....but I want to verify multiple runs
+    return data_list # 
+    # 
     
     
 

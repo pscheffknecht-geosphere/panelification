@@ -9,6 +9,7 @@ import logging
 from joblib import Parallel, delayed
 import numpy as np
 import os
+import sys
 
 from model_parameters import *
 import scoring
@@ -18,13 +19,14 @@ import obs_from_db as obs
 import read_antilope as antilope
 import read_esp as esp
 import panel_plotter
-import data_io
+import io_main as io
 import data_from_dcmdb
 import scan_obs
 import regions
 import prepare_for_web
 import parameter_settings
 import ensembles
+import ranking_check
 
 # try avoiding hanging during parallelized portions of the program
 os.environ['MKL_NUM_THREADS'] = '1'
@@ -32,7 +34,7 @@ os.environ['OMP_NUM_THREADS'] = '1'
 os.environ['MKL_DYNAMIC'] = 'FALSE'
 
 global args, start_date, end_date
-start_date = datetime(2019,8,12,15,0,0) # ? 
+start_date = datetime(2019,8,12,15,0,0)
 end_date = datetime(2019,8,12,18,0,0)
 
 
@@ -55,9 +57,9 @@ def translate_logging_levels(lvlstr):
 def parse_arguments():
     global args
     parser = argparse.ArgumentParser(conflict_handler="resolve")
-    parser.add_argument('--parameter', '-p', type=str, default='cma',
+    parser.add_argument('--parameter', '-p', type=str, default='precip',
         help = 'parameter to verify/plot')
-    parser.add_argument('--precip_verif_dataset', type=str, default = 'SAF',
+    parser.add_argument('--verif_dataset', type=str, default = 'SAF_cma',
         help = """select precip data set:
             INCA ... INCA analysis over Austria
             OPERA .. OPERA analysis over Europ (MUST be in ../OBS!!)""")
@@ -122,7 +124,7 @@ def parse_arguments():
         help = 'save full fields to pickle files')
     parser.add_argument('--fss_mode', type=str, default='ranks')
     parser.add_argument('--fss_calc_mode', type=str, default='same')
-    parser.add_argument('--rank_by_fss_metric',type=str, default='fss_condensed_weighted', # ?? 
+    parser.add_argument('--rank_by_fss_metric',type=str, default='fss_condensed_weighted',
         help = """Select score used when ranking simulation by their FSS performance:
         fss_total_abs_score .................. use the old FSS Rank Score
         fss_condensed ........................ condensed FSS value, uniform weight
@@ -141,8 +143,10 @@ def parse_arguments():
     parser.add_argument('--loglevel', type=str, default='info',
         help = """Logging level:
           debug, info, warning, error""")
-    parser.add_argument('--rank_score_time_series', nargs='*', default=None, type=str,
+    parser.add_argument('--rank_score_time_series', nargs='*', default= [], type=str,
         help = """Draw line plots of model performance, init on x axis, score on y axis""")
+    parser.add_argument('--check_ranking', nargs='?', default=False, const=True, type=str2bool,
+        help = 'Use random sampling and bootstrapping to test the robustness of the suggested ranking')
     parser.add_argument('--highlight_threshold', '-u', type=int, default=[], nargs='+',
         help = """Highlight specific precipitation contour line""")
     parser.add_argument('--time_series_panel_width', default=0.66, type=float,
@@ -166,6 +170,8 @@ def parse_arguments():
         help = 'Treat multiple init times of the same ensemble as one ensemble')
     parser.add_argument('--print_colors', nargs='?', default=False, const=True, type=str2bool,
         help = 'Adapt color map for printing')
+    parser.add_argument('--save_percentiles', nargs='?', default=False, const=True, type=str2bool,
+        help = 'Save all percentiles to CSV')
 
     args = parser.parse_args()
     init_logging(args)
@@ -208,10 +214,13 @@ def parse_arguments():
                 for jj in range(15, 0, -1):
                     args.custom_experiments.insert(ii, f"claef1k-m{jj:02d}")
                 args.custom_experiments.insert(ii, f"claef1k-control")
+        # if the robust score is requested, make sure to also calculate it
+        if "cwfss_robust" in args.rank_score_time_series:
+            logging.info("Turning on the ranking check, because cwfss_robust time series was requested!")
+            args.check_ranking = True
 
-def get_lead_limits(args): # ennek az akkumulacion tul is van haszna? 
-    lead_limits = args.lead # ez a parancssoron megadott lead . A lényeg röviden az időlépésközök definiálása. A csapadék aggregáláson kívül is? 
-    # nekünk órás felhőzet verifikáció kell. A lépésköz mindig egy óra lesz 
+def get_lead_limits(args):
+    lead_limits = args.lead
     if len(lead_limits) == 2:
         min_lead = lead_limits[0]
         max_lead = lead_limits[1]
@@ -246,7 +255,7 @@ def main():
         prepare_for_web.send_panels_to_mgruppe()
         prepare_for_web.send_html_to_mgruppe()
         prepare_for_web.clean_old_panels
-        exit()
+        sys.exit(0)
     region = args.region
     min_lead, max_lead = get_lead_limits(args)
     start_date = datetime.strptime(args.start, "%Y%m%d%H")
@@ -257,29 +266,33 @@ def main():
     if args.experiments:
         data_from_dcmdb.get_sim_and_file_list(data_list, args)
     if args.custom_experiments:
-        data_io.get_sims_and_file_list(data_list, args)
+        io.get_sims_and_file_list(data_list, args)
     if len(data_list) == 0:
         logging.critical("No valid models found, exiting...")
         exit()
     #data_list = data_from_dcmdb.read_data(data_list, args)
     # if args.parameter in ['precip', 'sunshine']:
     # if args.parameter in ['precip', 'precip2', 'precip3', 'sunshine']:
-    if args.precip_verif_dataset == "INCA":
+
+    if args.verif_dataset == "INCA":
         data_list = inca.read_INCA(data_list, start_date, end_date, args)
-    elif args.precip_verif_dataset == "SAF":
+    elif args.verif_dataset == "SAF_cma":
+        print("Hello")
         data_list = inca.read_SAF_obs(data_list, start_date, end_date, args)
-    elif args.precip_verif_dataset == "INCAplus":
-        data_list = inca.read_incaPlus_netcdf_ana(data_list, start_date, end_date, args)
-    elif args.precip_verif_dataset == "INCA_archive":
+    elif args.verif_dataset == "INCAPlus":
+        data_list = inca.read_INCAPlus_ANA(data_list, start_date, end_date, args)
+    elif args.verif_dataset == "INCA_archive":
         data_list = inca.read_inca_netcdf_archive(data_list, start_date, end_date, args)
-    elif args.precip_verif_dataset == "OPERA":
+    elif args.verif_dataset == "OPERA":
             data_list = opera.read_OPERA(data_list, start_date, end_date, args)
     elif args.parameter == 'hail':
         data_list = obs.read_hail(data_list, start_date, end_date)
-        data_list = data_io.scale_hail(data_list) # scale all fields to 0...4
-    elif args.precip_verif_dataset == "ANTILOPE":
+        data_list = io.scale_hail(data_list) # scale all fields to 0...4
+    elif args.parameter == 'cma':
+        data_list =io.cloud_fraction_to_cma(data_list) # new function is written in io_main to have preprocessing steps to forecast data 
+    elif args.verif_dataset == "ANTILOPE":
         data_list = antilope.read_ANTILOPE(data_list, start_date, end_date, args)
-    elif args.precip_verif_dataset == "ESP":
+    elif args.verif_dataset == "ESP":
         data_list = esp.read_esp(data_list, start_date, end_date, args)
     else:
         logging.critical("Unknown verification data set: {:s}, exiting...".format(
@@ -312,6 +325,9 @@ def main():
                 sim["precip_data_resampled"] = _data
             Parallel(n_jobs=16,backend='threading')(delayed(scoring.calc_scores)(sim, data_list[0], args) for ii, sim in enumerate(data_list))
             scoring.rank_scores(data_list)
+            if args.check_ranking:
+                ranking_check.add_rank_robustness_info(data_list, args)
+                ranking_check.draw_ranking_confidence_plot(data_list, start_date, end_date, subdomain_name, args)
             # scoring.total_fss_rankings(data_list, windows, thresholds)
             if args.ensemble_scores:
                 ens_data = ensembles.detect_ensembles(data_list)
@@ -333,9 +349,9 @@ def main():
             logging.info("File saved to: " + os.path.abspath(outfilename))
         if dom['score']:
             if args.save:
-                data_io.save_data(data_list, subdomain_name, start_date, end_date, args)
+                io.save_data(data_list, subdomain_name, start_date, end_date, args)
             if args.save_full_fss:
-                data_io.save_fss(data_list, subdomain_name, start_date, end_date, args)
+                io.save_fss(data_list, subdomain_name, start_date, end_date, args)
 
 
 if __name__ == '__main__':

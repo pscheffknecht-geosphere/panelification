@@ -25,7 +25,8 @@ title_part = {
     'sunshine': 'Acc. Sunshine Duration [h]',
     'lightning': 'lightning strikes [km$^{-2}$]',
     'gusts': 'wind gusts [m s$^{-1}$]',
-    'hail': 'Hail [??]'
+    'hail': 'Hail [??]',
+    'cma': 'Cloud Cover'
 }
 # label for the color bar
 colorbar_label = {
@@ -35,7 +36,8 @@ colorbar_label = {
     'sunshine': 'sunshine duration [h]',
     'lightning': 'lightning strikes [km$^{-2}$]',
     'gusts': 'gust speed [m s$^{-1}$]',
-    'hail': 'hail [??]'
+    'hail': 'hail [??]',
+    'cma' : 'Cloud cover'
 }
 
 # thresholds for the calculation of the FSS depending on the parameter
@@ -67,6 +69,16 @@ def make_fss_axis_sunshine(args):
 def get_axes_for_fss_rank_plot(args):
     ax_ticks = {
     'precip' : {
+        'xticks' : range(12),
+        'yticks' : range(15),
+        'ydict': {
+            0 : '0.1', 1 : '1', 2 : '5', 3 : '10', 4 : '25', 5 : '35', 6 : '50', 7 : '75', 
+            8 : '100', 9 : '', 10 : '25%', 11 : '50%', 12 : '75%', 13 : '90%', 14 : '95%'},
+        'xdict' : {
+            0 : '10', 1 : '20', 2 : '30', 3 : '40', 4 : '60', 5 : '80', 6 : '100', 7 : '120', 
+            8 : '140', 9 : '160', 10 : '180', 11 : '200'}
+        },
+    'cma' : {
         'xticks' : range(12),
         'yticks' : range(15),
         'ydict': {
@@ -207,6 +219,11 @@ def gusts_cmap_and_levels(args):
     norm = nnorm(vmin=0., vmax=100.)
     return levels, cmap, norm
 
+def cma_cmap_and_levels(args):
+    levels = [0., 0.5, 1.]
+    cmap = nclcmaps.cmap("WhiteBlueGreenYellowRed")
+    norm = nnorm(vmin=0., vmax=1.)
+    return levels, cmap, norm
 
 def sunshine_cmap_and_levels(args):
     levels = [x/3.*float(args.duration) for x in [0., 0.4, 0.8, 1.2, 1.6, 2., 2.4, 2.8, 3.]]
@@ -281,6 +298,7 @@ def get_cmap_and_levels(args):
         return sunshine_cmap_and_levels(args)
     elif args.parameter == 'gusts':
         return gusts_cmap_and_levels(args)
-
+    elif args.parameter == 'cma':
+        return cma_cmap_and_levels(args)
 
 
