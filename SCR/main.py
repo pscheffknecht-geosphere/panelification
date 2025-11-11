@@ -143,7 +143,7 @@ def parse_arguments():
     parser.add_argument('--loglevel', type=str, default='info',
         help = """Logging level:
           debug, info, warning, error""")
-    parser.add_argument('--rank_score_time_series', nargs='*', default=None, type=str,
+    parser.add_argument('--rank_score_time_series', nargs='+', default=[], type=str,
         help = """Draw line plots of model performance, init on x axis, score on y axis""")
     parser.add_argument('--check_ranking', nargs='?', default=False, const=True, type=str2bool,
         help = 'Use random sampling and bootstrapping to test the robustness of the suggested ranking')
@@ -317,7 +317,7 @@ def main():
                 sim["lon_resampled"] = _lon
                 sim["lat_resampled"] = _lat
                 sim["precip_data_resampled"] = _data
-            Parallel(n_jobs=16,backend='threading')(delayed(scoring.calc_scores)(sim, data_list[0], args) for ii, sim in enumerate(data_list))
+            Parallel(n_jobs=2,backend='threading')(delayed(scoring.calc_scores)(sim, data_list[0], args) for ii, sim in enumerate(data_list))
             scoring.rank_scores(data_list)
             if args.check_ranking:
                 ranking_check.add_rank_robustness_info(data_list, args)
