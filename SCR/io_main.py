@@ -248,13 +248,16 @@ class ModelConfiguration:
     def __file_check(self, files_to_check):
         ret_OK = True
         for fil in files_to_check:
-            if os.path.isfile(fil):
-                if os.path.getsize(fil) == 0:
-                    ret_OK = False
+            if fil is not None:
+                if os.path.isfile(fil):
+                    if os.path.getsize(fil) == 0:
+                        return False
+                else:
+                    return False
             else:
-                ret_OK = False
+                return False
         self.file_type = self.__get_file_type(files_to_check)
-        return ret_OK
+        return True
 
     def __files_valid(self):        
         if self.netcdf_one_file:
@@ -516,7 +519,7 @@ def get_sims_and_file_list(data_list, args):
                     "conf": model_name,
                     "type": "model",
                     "init": exp_init_date,
-                    "lead": leadmin,
+                    "lead": exp_lead,
                     "name": "{:s} {:s}".format(model_name, exp_init_date.strftime("%Y-%m-%d %H")),
                     "lon": lon,
                     "lat": lat,
