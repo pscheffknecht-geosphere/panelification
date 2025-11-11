@@ -1,5 +1,6 @@
 import numpy as np
 import netCDF4 as nc
+import datetime as dt
 
 import logging
 logger = logging.getLogger(__name__)
@@ -59,8 +60,24 @@ def read_data_netcdf(nc_file_path, parameter, valid_time, **kwargs):
 
 def read_inca_plus_netcdf(nc_file_path, lead_start, lead_end):
     logger.debug(f"Reading time steps {lead_start} to {lead_end} from file {nc_file_path}")
+    read_fac = 1
     with nc.Dataset(nc_file_path, 'r') as ds:
-        tmp_rr = ds.variables["RR"][lead_start:lead_end, :, :].sum(axis=0)
+        time = ds.variables["time"][:]
+        if time.size == 193:
+            read_fac = 4
+            logger.debug(f"Time has size {time.size}, 15 minute file.")
+        elif time.size == 49:
+            read_fac = 1
+            logger.debug(f"Time has size {time.size}, hourly file.")
+        else:
+            logger.error(f"Unknown time coordinate length ({time.size}), expected 49 (hourly) or 193 (15 minutes)...")
+            return None
+        idx_start = 1 + read_fac * lead_start
+        idx_end = 1 + read_fac * lead_end
+        t1 = dt.datetime(1961, 1, 1) + dt.timedelta(seconds=time[idx_start])
+        t2 = dt.datetime(1961, 1, 1) + dt.timedelta(seconds=time[idx_end-1]) # prevent off-by-one error, because indexing start:end will give start, ..., end-1
+        logger.info(f"Reading {nc_file_path}, indices [{idx_start}:{idx_end}, :, :], corresponding to {t1} and {t2}")
+        tmp_rr = ds.variables["RR"][idx_start:idx_end, :, :].sum(axis=0)
         lon = ds.variables['lon'][:]
         lat = ds.variables['lat'][:]
     return lon, lat, tmp_rr
