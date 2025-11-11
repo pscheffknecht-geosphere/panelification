@@ -54,7 +54,8 @@ experiment_configurations = {
         "accumulated"      : False, # technically not, but does not matter
         "unit_factor"      : 1.,
         # "path_template"    : "/incaplus_arch1/iplus/out/INCA_15m/2024/09/13/INCA_15m_RR_FC_202409130000.grb2"
-        "path_template"    : "/incaplus_arch1/iplus/out/INCAPlus_1h/inca/%Y/%m/%d/INCAPlus_1h_RR_15m_FC_%Y%m%d%H00.nc",
+        "path_template"    : ["/incaplus_arch1/iplus/out/INCAPlus_1h/inca/%Y/%m/%d/INCAPlus_1h_RR_15m_FC_%Y%m%d%H00.nc",
+                              "/incaplus_arch1/iplus/out/INCAPlus_15m/inca/%Y/%m/%d/INCAPlus_15m_RR_FC_%Y%m%d%H00.nc"],
         "netcdf_variable"  : "RR",
         "netcdf_one_file"  : "True",
         "color"            : "firebrick"
