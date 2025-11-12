@@ -12,7 +12,7 @@ def fourier_filter_eps(field, window, mode):
     return signal.fftconvolve(field, np.ones(window), mode=mode)
         
 
-def fourier_fss(fcst, obs, threshold, window, percentiles, mode): # csak elnevezésben threshold
+def fourier_fss(fcst, obs, threshold, window, percentiles, mode):
     """
     Compute the fractional skill score using convolution
     :paramfcst: nd-array, forecast field
@@ -24,18 +24,18 @@ def fourier_fss(fcst, obs, threshold, window, percentiles, mode): # csak elnevez
     ny, nx = fcst.shape
     if mode=='valid' and any(np.array(window) > np.array(fcst.shape)):
       return np.nan, np.nan, np.nan, np.nan
-    #if converse_binary_fields == True: # De ez mindig true lesz nem? 
-
-    if percentiles: # but these are also boolean arguments? 
-      fhat = fourier_filter(fcst == np.percentile(fcst, threshold), window, mode)
-      ohat = fourier_filter(obs == np.percentile(obs, threshold), window, mode)
+    if percentiles:
+      fhat = fourier_filter(fcst > np.percentile(fcst, threshold), window, mode)
+      ohat = fourier_filter(obs > np.percentile(obs, threshold), window, mode)
     else:
-      fhat = fourier_filter(fcst == threshold, window, mode)
-      ohat = fourier_filter(obs == threshold, window, mode)
+      fhat = fourier_filter(fcst > threshold, window, mode)
+      ohat = fourier_filter(obs > threshold, window, mode)
     num = np.nanmean(np.power(fhat - ohat, 2))
     denom = np.nanmean(np.power(fhat,2) + np.power(ohat,2))
     ovest = (np.sum(fcst > threshold) - np.sum(obs > threshold)) / fcst.size
-    return num, denom, 1.-num/denom, ovest
+    with np.errstate(divide='ignore', invalid='ignore'):
+       fss_ret = 1.-num/denom
+    return num, denom, fss_ret, ovest
 
 def fourier_fss_eps(fcst, obs, threshold, window, percentiles, mode):
     """
@@ -58,10 +58,11 @@ def fourier_fss_eps(fcst, obs, threshold, window, percentiles, mode):
     num = np.nanmean(np.power(fhat - ohat, 2))
     denom = np.nanmean(np.power(fhat,2) + np.power(ohat,2))
     ovest = (np.sum(fcst > threshold) - np.sum(obs > threshold)) / fcst.size
-    return num, denom, 1.-num/denom, ovest
+    with np.errstate(divide='ignore', invalid='ignore'):
+       fss_ret = 1.-num/denom
+    return num, denom, fss_ret, ovest
     
 def fss_frame(fcst, obs, windows, levels, percentiles=False, mode='same'):
-    #meghívva calc.scoresban nem minden lesz true, de többször is meg lehet hívni és konkatenálni 
     """
     Compute the fraction skill score data-frame.
     :paramfcst: nd-array, forecast field.
@@ -73,7 +74,7 @@ def fss_frame(fcst, obs, windows, levels, percentiles=False, mode='same'):
     num_data_fft, den_data_fft, fss_data_fft, overestimated = [], [], [], []
     
     for level in levels:
-        _data_fft = [fourier_fss(fcst, obs, level, w, percentiles, mode) for w in windows] # nem kell ide is beszúrni a converse binaryt? ha nem, akkor hol kell true vá tenni? 
+        _data_fft = [fourier_fss(fcst, obs, level, w, percentiles, mode) for w in windows]
         num_data_fft.append([x[0] for x in _data_fft])
         den_data_fft.append([x[1] for x in _data_fft])
         fss_data_fft.append([x[2] for x in _data_fft])

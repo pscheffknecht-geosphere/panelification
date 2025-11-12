@@ -1,0 +1,114 @@
+import numpy as np
+from shutil import copyfile
+import os
+from model_parameters import inca_ana_paths
+from paths import PAN_DIR_TMP
+import netCDF4
+from netCDF4 import Dataset
+
+import logging
+logger = logging.getLogger(__name__)
+
+#------------------  SAF CM Variables -------------------------*/
+# these variables apply to the extension of the full imported SAF image 
+# at a further stage I'd delinate it with the shape file of Hungary boundary, same for the forecast data 
+Num_rows = 480
+Num_columns = 640
+
+def SAF_grid():
+    # read the numpy array that stores coordinates of SAF products, as SAF images are stored separately from a deaafult SAF coordinatefile. 
+    # I modified the originally flattened array into a 2D array, the nc_path points to the 2D one. 
+    # where is the right place to add the path? 
+    # if here:
+    nc_path = (r"/home/lovasz_v/Desktop/Panelification_PScheffknecht/panelification/TEST_DATA/SAFcoord/fixed_SAFcoord.nc")
+    with Dataset(nc_path, 'r') as ds:
+        lat_SAF = ds.variables['lat'][:]
+        lon_SAF = ds.variables['lon'][:]
+  
+
+
+    return lat_SAF,lon_SAF
+
+    # 
+
+def read_SAF_obs(data_list, start_date, end_date, args):# is it the data_list from main? 
+
+    first = True
+    if 'cma' in args.parameter: #  
+        read_dt = dt(hours=1) #we have SAF cma image in every hour 
+        dtype = np.int16
+
+       # relevant bring and checkpath functions is also  modified in the bring_obs library.
+    
+       
+
+    for read_SAF_date in loop_datetime(start_date + dt(hours=1), end_date + dt(hours=1), read_dt): # itt lesz többidőpont mert ez egy loop
+        datestring = read_SAF_date.strftime("%Y%m%d%H")
+        logging.info("reading inca at " + str(read_SAF_date))
+
+
+
+        # i guess the original code was for accumulating the  precip amount? 
+        '''if first:
+            var_tmp = bO.bringSAF_netcdf(datestring)
+            first = False
+        else:
+            var_tmp = var_tmp + bO.bringSAF_netcdf(datestring)''' # cma will be for a fixed UTC, no accumulation. But we'll verify multiple UTCs. 
+         
+        cma_data = bO.bringSAF_netcdf(datestring)
+
+    lat, lon = SAF_grid()
+
+    data_list.insert(0, {
+        'conf': 'SAF',
+        'type': 'obs',
+        'name': 'SAF cma {datestring}',
+        'lat': np.asarray(lat),
+        'lon': np.asarray(lon),
+        'precip_data': cma_data
+    })
+    return data_list # 
+    # 
+    
+
+
+# I guess I wont need read(file) function in its original form , since the SAF netcdf aleady has the binary image stored in a 2D array (480, 640 extension) 
+def read_SAF (file): 
+    # file shall be the path of the SAF image file, I'll add it somewhere   
+    with Dataset(file, 'r') as nc:
+        RR = nc.variables['cma'][:] 
+    return RR
+#  2D cma 
+
+def check_paths(date): # 
+    OBS = (r"/home/lovasz_v/Desktop/Panelification_PScheffknecht/panelification/TEST_DATA/SAF") # obs folder became broken?? 
+    # our SAF cma filenames are like: bMma20250907_1755.nc   (ends with UTC) 
+    
+    yyyymmdd = date[:8]
+    formatum = f"bMma{yyyymmdd}_*.nc"
+    for filename in os.listdir(OBS):
+            if filename.startswith(f"bMma{yyyymmdd}_") and filename.endswith(".nc"):
+                obs_file = os.path.join(OBS, filename)
+                logger.info(f"File found: {obs_file}")
+
+                return obs_file # 
+            
+    return False
+
+def bringSAF_netcdf(date):
+    
+    
+    
+    obs_file_path = check_paths(date) 
+    
+    if not obs_file_path:
+         return False 
+    
+    try:
+        RR = read_SAF(obs_file_path)  #
+    except:
+        logging.error(f"Failed to read file {obs_file_path}")
+        raise
+        return False
+
+    return RR

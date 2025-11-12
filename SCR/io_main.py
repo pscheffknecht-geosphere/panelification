@@ -195,22 +195,6 @@ class ModelConfiguration:
             ret = custom_experiment_item
         # logger.debug(f"Picked {ret} for {self.parameter} in experiment {self.experiment_name}")
         return ret
-    
-    def __fill_cmc_with_base_values(self, cmc, args):
-        """ if the experiment is deried from a base experiment, not all keys
-        need values, only experiments which do not refer to a base_experiment
-        need all their values filled"""
-        keys = ["init_interval", "max_leadtime", 
-                "output_interval", "unit_factor", "accumulated", "color", "ensemble"]
-        for key in keys:
-            logger.debug(f"Setting key {key}")
-            if not key in cmc.keys():
-                if key in args.custom_experiment_data[cmc["base_experiment"]]:
-                    logger.debug("Replacing {:s} in {:s} witht key, dict needs an 'else': .... entry to fall back onto.")
-        else:
-            ret = custom_experiment_item
-        # logger.debug(f"Picked {ret} for {self.parameter} in experiment {self.experiment_name}")
-        return ret
 
         
     def __fill_cmc_with_base_values(self, cmc, args):
@@ -276,14 +260,16 @@ class ModelConfiguration:
     def __file_check(self, files_to_check):
         ret_OK = True
         for fil in files_to_check:
-            if os.path.isfile(fil):
-                if os.path.getsize(fil) == 0:
-                    ret_OK = False
+            if fil is not None:
+                if os.path.isfile(fil):
+                    if os.path.getsize(fil) == 0:
+                        return False
+                else:
+                    return False
             else:
-                ret_OK = False
-        if self.file_type is None: 
-            self.file_type = self.__get_file_type(files_to_check)
-        return ret_OK
+                return False
+        self.file_type = self.__get_file_type(files_to_check)
+        return True
 
     def __files_valid(self):        
         if self.netcdf_one_file:
@@ -303,29 +289,27 @@ class ModelConfiguration:
 
 
     def get_data(self, param):
-        #if param == 'gusts' or param == 'hail':
-            #return self.__get_data_max()
-        #else:
+        if "Hungaro" in self.experiment_name:
+                    return read_HungaroMet_netcdf(self.file_list[0])
+        if param == 'gusts' or param == 'hail':
+            return self.__get_data_max()
+        else:
 
             # 1. check if experiment is an INCA forecast of any kind
-            #if any([s in self.experiment_name for s in ["INCA", "inca", "Inca"]]):
-                #if self.file_type == "GRIB":
-                    #return get_inca_rain_accumulated(self) # TODO: create common INCA read function
-        if self.file_type == "NetCDF":
-                    #return read_inca_plus_netcdf(self.one_file, self.lead, self.lead_end)
-                    # modified to our forecast readig 
-                    return read_HungaroMet_netcdf(self.file_list[0])
-                
-
+            if any([s in self.experiment_name for s in ["INCA", "inca", "Inca"]]):
+                if self.file_type == "GRIB":
+                    return get_inca_rain_accumulated(self) # TODO: create common INCA read function
+                elif self.file_type == "NetCDF":
+                    return read_inca_plus_netcdf(self.one_file, self.lead, self.lead_end)
             # catch raw icon ensemble members
-            #if "ICOND2_m" in self.experiment_name:
-                #return get_icon_unstructured(self)
-            #if self.netcdf_one_file:
-                #return self.__get_data_onefile()
-            #if self.accumulated:
-                #return self.__get_data_accumulated()
-            #else:
-                #return self.__get_data_not_accumulated()
+            if "ICOND2_m" in self.experiment_name:
+                return get_icon_unstructured(self)
+            if self.netcdf_one_file:
+                return self.__get_data_onefile()
+            if self.accumulated:
+                return self.__get_data_accumulated()
+            else:
+                return self.__get_data_not_accumulated()
 
 
     def __get_data_onefile(self):
@@ -549,7 +533,7 @@ def get_sims_and_file_list(data_list, args):
                     "conf": model_name,
                     "type": "model",
                     "init": exp_init_date,
-                    "lead": leadmin,
+                    "lead": exp_lead,
                     "name": "{:s} {:s}".format(model_name, exp_init_date.strftime("%Y-%m-%d %H")),
                     "lon": lon,
                     "lat": lat,

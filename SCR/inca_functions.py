@@ -1,5 +1,6 @@
 import pyresample
 import os
+import sys
 import numpy as np
 import pygrib
 from datetime import datetime
@@ -13,7 +14,7 @@ from model_parameters import verification_subdomains, inca_ana_paths
 import grib_handles
 from netCDF4 import Dataset
 import urllib.request
-from netCDF4 import Dataset
+
 from paths import PAN_DIR_OBS
 
 import logging
@@ -82,7 +83,6 @@ def resample_data(data_list, verification_subdomain, args):
         sim['p90_color'] = 'black' if p90 <= 10. else 'white'
     return data_list
 
-
 def INCA_grid(INCAplus=False):
     """
     function that returns a meshgrid of latitudes and longitudes
@@ -114,62 +114,76 @@ def INCA_grid(INCAplus=False):
     logging.debug("############################################################################")
     return lon_INCA,lat_INCA
 
-def SAF_grid():
-    # read the numpy array that stores coordinates of SAF products, as SAF images are stored separately from a deaafult SAF coordinatefile. 
-    # I modified the originally flattened array into a 2D array, the nc_path points to the 2D one. 
-    # where is the right place to add the path? 
-    # if here:
-    nc_path = (r"/home/lovasz_v/Desktop/Panelification_PScheffknecht/panelification/TEST_DATA/SAFcoord/fixed_SAFcoord.nc")
-    with Dataset(nc_path, 'r') as ds:
-        lat_SAF = ds.variables['lat'][:]
-        lon_SAF = ds.variables['lon'][:]
-  
 
-
-    return lat_SAF,lon_SAF
-
-    # 
-
-def read_SAF_obs(data_list, start_date, end_date, args):# is it the data_list from main? 
-
-    first = True
-    if 'cma' in args.parameter: #  
-        read_dt = dt(hours=1) #we have SAF cma image in every hour 
+def read_INCA(data_list, start_date, end_date, args):
+    first=True
+    if 'precip' in args.parameter:
+        read_dt = dt(hours=1)
         dtype = np.int16
-
-       # relevant bring and checkpath functions is also  modified in the bring_obs library.
+    elif args.parameter == 'sunshine':
+        read_dt = dt(minutes=15)
+        dtype = np.int32
+    for read_inca_date in loop_datetime(start_date + dt(hours=1), end_date + dt(hours=1), read_dt):
+        datestring=read_inca_date.strftime("%Y%m%d%H")
+        logging.info("reading inca at "+str(read_inca_date))
+        if 'precip' in args.parameter:
+            if first:
+                var_tmp = bO.bring(datestring, inca_file=None)
+                first = False
+            else:
+                var_tmp = var_tmp + bO.bring(datestring, inca_file=None)
+        elif args.parameter == "sunshine":
+            logging.info("reading INCA sunshine")
+            inca_file = inca_ana_paths['sunshine'].format(
+                read_inca_date.strftime("%Y%m%d"),
+                read_inca_date.strftime("%H%M"))
+            logging.debug(inca_file)
+            if first:
+                var_tmp = 1./3600.*bO.bring(datestring, inca_file=inca_file) 
+                first = False
+            else:
+                var_tmp += 1./3600.*bO.bring(datestring, inca_file=inca_file)
+    lon, lat = INCA_grid()
+    data_list.insert(0,{
+        'conf' : 'INCA',
+        'type' : 'obs',
+        'name' : 'INCA',
+        'lat' : np.asarray(lat),
+        'lon' : np.asarray(lon),
+        'precip_data': var_tmp})
+    logger.debug(data_list[0]["precip_data"])
+    logger.debug(data_list[0]["precip_data"].max())
+    logger.debug(data_list[0]["precip_data"].min())
+    return data_list
     
-       
-
-    for read_SAF_date in loop_datetime(start_date + dt(hours=1), end_date + dt(hours=1), read_dt): # itt lesz többidőpont mert ez egy loop
-        datestring = read_SAF_date.strftime("%Y%m%d%H")
-        logging.info("reading inca at " + str(read_SAF_date))
-
-
-
-        # i guess the original code was for accumulating the  precip amount? 
-        '''if first:
-            var_tmp = bO.bringSAF_netcdf(datestring)
-            first = False
+    
+def read_INCAPlus_ANA(data_list, start_date, end_date, args):
+    tt = start_date + dt(hours=1)
+    rr_tmp = None
+    while tt <= end_date:
+        dat_str = tt.strftime("%Y%m%d%H")
+        inca_file_path = f"/incaplus_arch1/iplus/out/INCAPlus_1h/inca/{tt.year}/{tt.month:02d}/{tt.day:02d}/INCAPlus_1h_RR_15m_ANA_{dat_str}00.nc"
+        if os.path.isfile(inca_file_path):
+            logger.info(f"reading INCAPlus from {inca_file_path}")
+            data_tmp = Dataset(inca_file_path, "r")
+            if rr_tmp is None:
+                rr_tmp = rr_tmp = data_tmp.variables['RR'][0, :, :]
+            else:
+                rr_tmp += data_tmp.variables['RR'][0, :, :]
         else:
-            var_tmp = var_tmp + bO.bringSAF_netcdf(datestring)''' # cma will be for a fixed UTC, no accumulation. But we'll verify multiple UTCs. 
-         
-        cma_data = bO.bringSAF_netcdf(datestring)
+            logger.critical(f"INCAPlus output at {inca_file_path} not found!!")
+            sys.exit(1)
+        tt += dt(hours=1)
+    lon, lat = INCA_grid(INCAplus=True)
+    data_list.insert(0,{
+        'conf' : "INCAPlus",
+        'type' : 'obs',
+        'name' : "IncaPlus",
+        'lat' : lat,
+        'lon' : lon,
+        'precip_data' : rr_tmp})
+    return data_list
 
-    lat, lon = SAF_grid()
-
-    data_list.insert(0, {
-        'conf': 'SAF',
-        'type': 'obs',
-        'name': 'SAF cma {datestring}',
-        'lat': np.asarray(lat),
-        'lon': np.asarray(lon),
-        'precip_data': cma_data
-    })
-    return data_list # 
-    # 
-    
-    
 
 def read_inca_fc_accum(sim, args):
     inca_file = sim['inca_file']
@@ -373,39 +387,3 @@ def read_inca_netcdf_archive(data_list, start_date, end_date, args):
     logger.debug(data_list[0]["precip_data"].max())
     logger.debug(data_list[0]["precip_data"].min())
     return data_list
-
-
-def read_incaPlus_netcdf_ana(data_list, start_date, end_date, args):
-    """ read INCA data from netcdf hourly archive"""
-    tt = start_date
-    # 1. check if all necessary files exist and are up to date:
-    fetched_current = False # if current month is found, was it updated?
-    rr_tmp = None
-    first = True
-    data_tmp = None
-    while tt < end_date:
-        tt_str = tt.strftime("%Y%m")
-        yyyymmdd = tt.strftime("%Y/%m/%d")
-        yyyymmddhh = tt.strftime("%Y%m%d%H")
-        read_file = f"/hpcperm/kmek/obs/INCAPlus_1h/inca/{yyyymmdd}/INCAPlus_1h_RR_ANA_{yyyymmddhh}00.nc"
-        logger.info(f"Reading {read_file}")
-        data_tmp = Dataset(read_file, "r")
-        if first:
-            rr_tmp = data_tmp.variables['RR'][0, :, :]
-            first = False
-        else:
-            rr_tmp += data_tmp.variables['RR'][0, :, :]
-        tt += dt(hours=1)
-    lon, lat = INCA_grid(INCAplus=True)
-    data_list.insert(0,{
-        'conf' : 'INCA',
-        'type' : 'obs',
-        'name' : 'INCA Plus Hourly',
-        'lat' : np.asarray(lat),
-        'lon' : np.asarray(lon),
-        'precip_data': rr_tmp})
-    logger.debug(data_list[0]["precip_data"])
-    logger.debug(data_list[0]["precip_data"].max())
-    logger.debug(data_list[0]["precip_data"].min())
-    return data_list
-
