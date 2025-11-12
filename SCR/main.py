@@ -20,7 +20,6 @@ import read_antilope as antilope
 import read_esp as esp
 import panel_plotter
 import io_main as io
-import data_from_dcmdb
 import scan_obs
 import regions
 import prepare_for_web
@@ -86,15 +85,12 @@ def parse_arguments():
         help = "Draw a rectangle to show the verification subdomain")
     parser.add_argument('--case', '-c', type=str, nargs='+', default="austria_2022",
         help = "Select case to verify")
-    parser.add_argument('--experiments', '-e', type=str, nargs='+',
-        default = None,
-        help = """select experiments, if left empty/None it will select all available""")
     parser.add_argument('--custom_experiment_file', type=str, 
         default = "custom_experiments.py",
-        help = """add you own models not listed in DCMDB""")
+        help = """file which contains information on model experiments""")
     parser.add_argument('--custom_experiments', type=str, nargs='+',
         default = None,
-        help = """add you own models not listed in DCMDB""")
+        help = """select from experiments listed in the custom_experiments_file""")
     # parser.add_argument('--output_format', type=str, default='png',
     #     help = "Desired output format (png, jpg, pdf, eps, ...)")
     parser.add_argument('--lonlat_limits', type=float, nargs='+',
@@ -263,14 +259,11 @@ def main():
     print_some_basics(start_date, end_date, min_lead, max_lead)
     # generate a list of available simulations and add data, observations and scores
     data_list = []
-    if args.experiments:
-        data_from_dcmdb.get_sim_and_file_list(data_list, args)
     if args.custom_experiments:
         io.get_sims_and_file_list(data_list, args)
     if len(data_list) == 0:
         logging.critical("No valid models found, exiting...")
         exit()
-    #data_list = data_from_dcmdb.read_data(data_list, args)
     # if args.parameter in ['precip', 'sunshine']:
     # if args.parameter in ['precip', 'precip2', 'precip3', 'sunshine']:
     if args.precip_verif_dataset == "INCA":
