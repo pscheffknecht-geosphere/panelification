@@ -14,6 +14,7 @@ import sys
 from model_parameters import *
 import scoring
 import inca_functions as inca
+import read_SAF
 import read_opera as opera
 import obs_from_db as obs
 import read_antilope as antilope
@@ -277,8 +278,7 @@ def main():
     if args.verif_dataset == "INCA":
         data_list = inca.read_INCA(data_list, start_date, end_date, args)
     elif args.verif_dataset == "SAF_cma":
-        print("Hello")
-        data_list = inca.read_SAF_obs(data_list, start_date, end_date, args)
+        data_list = read_SAF.read_SAF_obs(data_list, start_date, end_date, args)
     elif args.verif_dataset == "INCAPlus":
         data_list = inca.read_INCAPlus_ANA(data_list, start_date, end_date, args)
     elif args.verif_dataset == "INCA_archive":
@@ -289,7 +289,7 @@ def main():
         data_list = obs.read_hail(data_list, start_date, end_date)
         data_list = io.scale_hail(data_list) # scale all fields to 0...4
     elif args.parameter == 'cma':
-        data_list =io.cloud_fraction_to_cma(data_list) # new function is written in io_main to have preprocessing steps to forecast data 
+        data_list = io.cloud_fraction_to_cma(data_list) # new function is written in io_main to have preprocessing steps to forecast data 
     elif args.verif_dataset == "ANTILOPE":
         data_list = antilope.read_ANTILOPE(data_list, start_date, end_date, args)
     elif args.verif_dataset == "ESP":
