@@ -431,7 +431,8 @@ def score_time_series(data_list, r, tmp_string, args):
         "rms": "Root Mean Squared Error",
         "mae": "Mean Absolute Error",
         "d90": "90th Percentile Displacement",
-        "corr": "Pearson Correlation"}
+        "corr": "Pearson Correlation",
+        "cwfss_robust": "weighted averaged FSS"}
     total_width, total_height, _, _, _ = arrange_subplots(r, clean=args.clean)
     for sidx, s in enumerate(args.rank_score_time_series):
         s = 'bias_real' if s == 'bias' else s

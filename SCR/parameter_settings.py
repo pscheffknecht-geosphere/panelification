@@ -51,7 +51,6 @@ def get_fss_thresholds(args):
         'gusts' : [5, 10, 15, 20, 25, 30, 40, 50, 70, 99999],
         'lightning' : [0.1*x for x in [1, 2, 5, 10, 25, 35, 50, 75, 100]] + [99999],
         'cma': [0.5] + [99999]
-        # 'cma': np.arange(0.1, 0.95, 0.1) 
     }
     return thresholds_for_fss[args.parameter]
 
@@ -195,7 +194,6 @@ precip3_colors = np.array([
     [0.70, 0.45, 0.70],
     [0.40, 0.15, 0.40]])
 
-
 def lightning_cmap_and_levels(args):
     levels = [0.1*x for x in [0., 5. , 10. ,  15.,  20.,  25.,  30.,  40.,  50., 70.]]
     mycolors =  warn_colors
@@ -249,7 +247,6 @@ def precip3_cmap_and_levels(args):
     cmap = mplcolors.ListedColormap(mycolors2)
     return levels, cmap, norm
 
-
 def precip_cmap_and_levels(args):
     mycolors = None # only change if required
     if args.mode == 'normal' or args.mode == 'resampled':
@@ -301,5 +298,3 @@ def get_cmap_and_levels(args):
         return gusts_cmap_and_levels(args)
     elif args.parameter == 'cma':
         return cma_cmap_and_levels(args)
-
-

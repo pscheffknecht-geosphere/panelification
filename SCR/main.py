@@ -60,7 +60,7 @@ def parse_arguments():
     parser = argparse.ArgumentParser(conflict_handler="resolve")
     parser.add_argument('--parameter', '-p', type=str, default='precip',
         help = 'parameter to verify/plot')
-    parser.add_argument('--verif_dataset', type=str, default = 'SAF_cma',
+    parser.add_argument('--verif_dataset', type=str, default = 'INCA',
         help = """select precip data set:
             INCA ... INCA analysis over Austria
             OPERA .. OPERA analysis over Europ (MUST be in ../OBS!!)""")
@@ -144,7 +144,7 @@ def parse_arguments():
     parser.add_argument('--loglevel', type=str, default='info',
         help = """Logging level:
           debug, info, warning, error""")
-    parser.add_argument('--rank_score_time_series', nargs='*', default= [], type=str,
+    parser.add_argument('--rank_score_time_series', nargs='+', default=[], type=str,
         help = """Draw line plots of model performance, init on x axis, score on y axis""")
     parser.add_argument('--check_ranking', nargs='?', default=False, const=True, type=str2bool,
         help = 'Use random sampling and bootstrapping to test the robustness of the suggested ranking')
@@ -274,7 +274,6 @@ def main():
     #data_list = data_from_dcmdb.read_data(data_list, args)
     # if args.parameter in ['precip', 'sunshine']:
     # if args.parameter in ['precip', 'precip2', 'precip3', 'sunshine']:
-
     if args.verif_dataset == "INCA":
         data_list = inca.read_INCA(data_list, start_date, end_date, args)
     elif args.verif_dataset == "SAF_cma":
@@ -323,7 +322,7 @@ def main():
                 sim["lon_resampled"] = _lon
                 sim["lat_resampled"] = _lat
                 sim["precip_data_resampled"] = _data
-            Parallel(n_jobs=16,backend='threading')(delayed(scoring.calc_scores)(sim, data_list[0], args) for ii, sim in enumerate(data_list))
+            Parallel(n_jobs=2,backend='threading')(delayed(scoring.calc_scores)(sim, data_list[0], args) for ii, sim in enumerate(data_list))
             scoring.rank_scores(data_list)
             if args.check_ranking:
                 ranking_check.add_rank_robustness_info(data_list, args)

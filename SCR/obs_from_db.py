@@ -6,7 +6,6 @@ import datetime as dt
 import numpy as np
 import progress
 from inca_functions import INCA_grid
-import matplotlib.pyplot as plt
 # import matplotlib.pyplot as plt
 
 from paths import PAN_DIR_OBS_ARCH

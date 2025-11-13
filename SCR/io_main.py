@@ -525,7 +525,7 @@ def get_sims_and_file_list(data_list, args):
             logger.debug("Checking for {:s} at {:s}".format(
                 model_name, exp_init_date.strftime("%Y-%m-%d %H")))
             mod = ModelConfiguration(model_name, exp_init_date, exp_lead, args)
-            if mod.valid: # if the instance from the class is created without bug? 
+            if mod.valid:
                 lon, lat, mod_field_data = mod.get_data(args.parameter)
                 sim = {
                     "case": args.case[0],
@@ -537,7 +537,7 @@ def get_sims_and_file_list(data_list, args):
                     "name": "{:s} {:s}".format(model_name, exp_init_date.strftime("%Y-%m-%d %H")),
                     "lon": lon,
                     "lat": lat,
-                    "precip_data": mod_field_data,  # but this point, this data is TCC
+                    "precip_data": mod_field_data,
                     "color" : mod.color,
                     "ensemble" : mod.ensemble}
                 data_list.append(sim)
