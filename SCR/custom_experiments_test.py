@@ -19,15 +19,14 @@ experiment_configurations = {
         "max_leadtime"     : 60, 
         "accumulated"      : {'gusts': False,
                               'hail': False,
-                              'cma' : False,
                               'else': True},
         "path_template"    : {'precip': "../TEST_DATA/arome/%Y%m%d/arome_%H+%LLLL.grb",
-                              'cma': "../TEST_DATA/arome/%Y%m%d/chra%Y%m%d_%H%S+%LLL00", #20250907 folder is HungaroMet 
                               'else': None},
         "unit_factor"      : {'sunshine': 1./3600.,
                               'hail': 1000.,
                               'else': 1.},
         "color"            : 'blue'
+        },
     "arome_hun_test": {
         "init_interval"    : 24, # to get only 00 UTC init
         "output_interval"  : 1, # 
