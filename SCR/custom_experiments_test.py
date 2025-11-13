@@ -14,27 +14,38 @@ logger = logging.getLogger(__name__)
 # one parameter and another path for all other parameters.
 experiment_configurations = {
     "arome_test": {
-        "init_interval"    : 24, # to get only 00 UTC init
-        "output_interval"  : 1, # 
+        "init_interval"    : 3,
+        "output_interval"  : 1,
         "max_leadtime"     : 60, 
         "accumulated"      : {'gusts': False,
                               'hail': False,
                               'cma' : False,
                               'else': True},
-        "path_template"    : {'cma': "../TEST_DATA/arome/%Y%m%d/chra%Y%m%d_%H%S+%LLL00", #20250907 folder is HungaroMet 
+        "path_template"    : {'precip': "../TEST_DATA/arome/%Y%m%d/arome_%H+%LLLL.grb",
+                              'cma': "../TEST_DATA/arome/%Y%m%d/chra%Y%m%d_%H%S+%LLL00", #20250907 folder is HungaroMet 
                               'else': None},
         "unit_factor"      : {'sunshine': 1./3600.,
                               'hail': 1000.,
                               'else': 1.},
+        "color"            : 'blue'
+    "arome_hun_test": {
+        "init_interval"    : 24, # to get only 00 UTC init
+        "output_interval"  : 1, # 
+        "max_leadtime"     : 60, 
+        "accumulated"      : {'cma' : False,
+                              'else': True},
+        "path_template"    : {'cma': ["../TEST_DATA/arome/%Y%m%d/chra%Y%m%d_%H%S+%LLL00", #20250907 folder is HungaroMet 
+                                      "../TEST_DATA/arome/20250907/arome_hun_00+0018.nc"],
+                              'else': None},
+        "unit_factor"      : 1.,
         "color"            : 'blue',
-        "file_type"        : 'NetCDF'
         },
     "ecmwf_test": {
-        "init_interval"    : 24,
+        "init_interval"    : 6,
         "output_interval"  : 1, # 3 for some lead times, but panelification can sort that out
         "max_leadtime"     : 120,
-        "path_template"    : "../TEST_DATA/ecmwf/%Y%m%d/cedh%Y%m%d_%H%S+%LLLLL.nc",
-        "accumulated"      : False,
+        "path_template"    : "../TEST_DATA/ecmwf/%Y%m%d/ecmwf_%H+%LLLL.grb",
+        "accumulated"      : True,
         "unit_factor"      : 1000.,
         "color"            : "black"
     },
