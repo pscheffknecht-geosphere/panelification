@@ -111,4 +111,5 @@ def read_HungaroMet_netcdf(nc_file_path, **kwargs):
         data = ds.variables["CloudTot"][0, :, :]
         data = np.where(data == ds.variables["CloudTot"]._FillValue, np.nan, data)
 
+    print(lon2d, lat2d, data)
     return lon2d, lat2d, data

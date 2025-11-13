@@ -289,7 +289,7 @@ class ModelConfiguration:
 
 
     def get_data(self, param):
-        if "Hungaro" in self.experiment_name:
+        if "arome_hun" in self.experiment_name:
                     return read_HungaroMet_netcdf(self.file_list[0])
         if param == 'gusts' or param == 'hail':
             return self.__get_data_max()
