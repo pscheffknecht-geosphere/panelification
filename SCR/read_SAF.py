@@ -95,7 +95,7 @@ def read_SAF (file):
 #  2D cma 
 
 def check_paths(date): # 
-    OBS = (r"/ment_arch2/pscheff/DEV_PAN/flowermapping-panelification/TEST_DATA/SAF") # obs folder became broken?? 
+    OBS = (r"../TEST_DATA/SAF") # obs folder became broken?? 
     # our SAF cma filenames are like: bMma20250907_1755.nc   (ends with UTC) 
     
     yyyymmdd = date[:8]
