@@ -44,3 +44,5 @@ TMP/*
 nohup.out
 panelification_web.yml
 panelification_web_withbuilds.yml
+SCR/optandsamos.py
+OBS/INCA_netcdf/INCAL_HOURLY_RR_202507.nc
