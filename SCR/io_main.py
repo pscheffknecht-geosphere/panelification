@@ -6,7 +6,6 @@ import urllib.request
 from pathlib import Path
 
 from grib_handle_check import find_grib_handles
-from data_from_dcmdb import fill_path_file_template
 from mars_request_templates import mars_request_templates
 
 from io_grib import read_data_grib, get_inca_rain_accumulated, get_icon_unstructured
@@ -17,6 +16,23 @@ from paths import PAN_DIR_TMP, PAN_DIR_MODEL, PAN_DIR_MODEL2, PAN_DIR_DATA
 
 import logging
 logger = logging.getLogger(__name__)
+
+def fill_path_file_template(pft, exp_init_date, exp_lead):
+    """ Replace placeholders in the path and file pattern, code snipped from cases.py of DCMDB"""
+    re_map = { '%Y': '{:04d}'.format(exp_init_date.year),
+               '%m': '{:02d}'.format(exp_init_date.month),
+               '%d': '{:02d}'.format(exp_init_date.day),
+               '%H': '{:02d}'.format(exp_init_date.hour),
+               '%M': '{:02d}'.format(exp_init_date.minute),
+               '%S': '{:02d}'.format(exp_init_date.second),
+               '%LLLL': '{:04d}'.format(exp_lead),
+               '%LLL': '{:03d}'.format(exp_lead),
+               '%LL': '{:02d}'.format(exp_lead),
+               '%LM': '00' # NO MINUTE SUPPORT YET {:02d}'.format(int(exp_lead)),
+         }
+    for k,v in re_map.items():
+        pft = pft.replace(k,str(v))
+    return pft
 
 
 def mars_request(exp_name, init, step,path=None):
