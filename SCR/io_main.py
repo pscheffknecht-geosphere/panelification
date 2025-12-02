@@ -75,8 +75,8 @@ def cloud_fraction_to_cma(data_list, threshold): # is this datalist in the argum
 
     for sim in data_list:
         threshold = 0.2
-        new_arr = np.array(sim['..... '], copy=False)
-        sim['cloud_data'] = np.where(new_arr >= threshold, 1, 0)
+        new_arr = np.array(sim['precip_data'], copy=False)
+        sim['precip_data'] = np.where(new_arr >= threshold, 1, 0)
 
         
     return data_list
