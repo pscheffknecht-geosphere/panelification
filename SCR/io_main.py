@@ -70,15 +70,10 @@ def scale_hail(data_list):
             sim['precip_data'] = new_arr
     return data_list
 
-def cloud_fraction_to_cma(data_list, threshold): # is this datalist in the argumentum the return of read_HungaroMet_netcdf? 
-
-
+def cloud_fraction_to_cma(data_list, threshold=0.2): # is this datalist in the argumentum the return of read_HungaroMet_netcdf? 
     for sim in data_list:
-        threshold = 0.2
         new_arr = np.array(sim['precip_data'], copy=False)
         sim['precip_data'] = np.where(new_arr >= threshold, 1, 0)
-
-        
     return data_list
 
 
