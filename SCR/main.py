@@ -284,11 +284,6 @@ def main():
         data_list = inca.read_inca_netcdf_archive(data_list, start_date, end_date, args)
     elif args.verif_dataset == "OPERA":
             data_list = opera.read_OPERA(data_list, start_date, end_date, args)
-    elif args.parameter == 'hail':
-        data_list = obs.read_hail(data_list, start_date, end_date)
-        data_list = io.scale_hail(data_list) # scale all fields to 0...4
-    elif args.parameter == 'cma':
-        data_list = io.cloud_fraction_to_cma(data_list) # new function is written in io_main to have preprocessing steps to forecast data 
     elif args.verif_dataset == "ANTILOPE":
         data_list = antilope.read_ANTILOPE(data_list, start_date, end_date, args)
     elif args.verif_dataset == "ESP":
@@ -296,6 +291,11 @@ def main():
     else:
         logging.critical("Unknown verification data set: {:s}, exiting...".format(
             args.precip_verif_dataset))
+    if args.parameter == 'hail':
+        data_list = obs.read_hail(data_list, start_date, end_date)
+        data_list = io.scale_hail(data_list) # scale all fields to 0...4
+    elif args.parameter == 'cma':
+        data_list = io.cloud_fraction_to_cma(data_list) # new function is written in io_main to have preprocessing steps to forecast data 
     # elif args.parameter == 'lightning':
     #     data_list = obs.read_lightning(data_list, start_date, end_date)
     # else:
