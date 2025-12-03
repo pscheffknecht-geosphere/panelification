@@ -87,6 +87,7 @@ DEFAULTS = {
     "grib_handles": None,
     "lagged_ensemble": False,
     "color": None,
+    "file_type": None,
     "netcdf_variable": None,
     "netcdf_one_file": False
 }
@@ -98,7 +99,13 @@ class ModelConfiguration:
         Every model and run in the verification is handled here. It contains some
         basic sanity checks, handles locating the files and reading them etc."""
         # grab information from custom_experiments file
-        cmc = args.custom_experiment_data[custom_experiment_name]
+        if custom_experiment_name in args.custom_experiment_data:
+            cmc = args.custom_experiment_data[custom_experiment_name]
+            logger.debug(cmc)
+        else:
+            logger.error(f"Could not find configuration {custom_experiment_name} in the custom_experiments_file!!!")
+            self.valid = False
+            return
         # grab information from base experiment if provided
         self.valid = False
         self.init = init #datetime
@@ -117,8 +124,11 @@ class ModelConfiguration:
             logger.debug(f"   {tmpl}")
         for anam in ["init_interval", "max_leadtime", "output_interval", "accumulated", "unit_factor"]:
             setattr(self, anam, self.__pick_value_by_parameter(cmc[anam]))
-        for anam in ["ensemble", "grib_handles", "lagged_ensemble", "color"]:
+        for anam in ["ensemble", "grib_handles", "lagged_ensemble", "color", "file_type"]:
+            logger.debug(f" looking {anam} in custom experiment info")
             setattr(self, anam, self.__pick_value_by_parameter(cmc[anam]) if anam in cmc else None)
+            if anam in cmc:
+                logger.debug(f" found {anam}, setting it to {self.__pick_value_by_parameter(cmc[anam])}")
         for anam, default_value in DEFAULTS.items():
             setattr(self, anam, cmc.get(anam, default_value))
             logger.debug(f"{self.experiment_name}: Setting {anam} to {getattr(self, anam)}")
@@ -256,7 +266,8 @@ class ModelConfiguration:
                     return False
             else:
                 return False
-        self.file_type = self.__get_file_type(files_to_check)
+        if not self.file_type:
+            self.file_type = self.__get_file_type(files_to_check)
         return True
 
     def __files_valid(self):        
