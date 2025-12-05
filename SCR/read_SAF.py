@@ -43,7 +43,7 @@ def read_SAF_obs(data_list, start_date, end_date, args):# is it the data_list fr
        # relevant bring and checkpath functions is also  modified in the bring_obs library.
     
        
-
+    first = True
     for read_SAF_date in loop_datetime(start_date + dt.timedelta(hours=1), end_date + dt.timedelta(hours=1), read_dt): # itt lesz többidőpont mert ez egy loop
         datestring = read_SAF_date.strftime("%Y%m%d%H")
         logging.info("reading inca at " + str(read_SAF_date))
@@ -56,8 +56,11 @@ def read_SAF_obs(data_list, start_date, end_date, args):# is it the data_list fr
             first = False
         else:
             var_tmp = var_tmp + bO.bringSAF_netcdf(datestring)''' # cma will be for a fixed UTC, no accumulation. But we'll verify multiple UTCs. 
-         
-        cma_data = bringSAF_netcdf(datestring)
+        if first: 
+            cma_data = bringSAF_netcdf(datestring)
+            first = False
+        else:
+            cma_data += bringSAF_netcdf(datestring)
 
     lat, lon = SAF_grid()
 
