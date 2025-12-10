@@ -77,13 +77,15 @@ def read_OPERA(data_list, start_date, end_date, args):
     data = np.zeros((dim, 2200, 1900))
     idx = 0
     read_dt = dt.timedelta(minutes=60)
-    for read_opera_date in loop_datetime(start_date + dt.timedelta(minutes=0), end_date, read_dt):
+    read_opera_date = start_date + dt.timedelta(minutes=60)
+    while read_opera_date <= end_date:
         dat_str = read_opera_date.strftime("%Y%m%d%H%M")
         year, month, day, hour = read_opera_date.year, read_opera_date.month, read_opera_date.day, read_opera_date.hour
         opera_file_name = f"/scratch/snh02/DE_observations/opera/{year}/{month:02d}/{day:02d}/T_PASH22_C_EUOC_{year}{month:02d}{day:02d}{hour:02d}0000.hdf"
         logger.info("reading OPERA for {:s} ".format(read_opera_date.strftime("%Y-%m-%d %H:%M")))
         data[idx, :, :] = read_from_hdf(opera_file_name)
         idx += 1
+        read_opera_date += dt.timedelta(minutes=60)
     lon, lat = OPERA_grid()
     tmp_precip = np.nansum(data, 0)
     tmp_precip = np.where(tmp_precip>2000., np.nan, tmp_precip)
