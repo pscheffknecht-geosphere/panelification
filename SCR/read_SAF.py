@@ -22,7 +22,7 @@ def SAF_grid():
     # I modified the originally flattened array into a 2D array, the nc_path points to the 2D one. 
     # where is the right place to add the path? 
     # if here:
-    nc_path = (r"/ment_arch2/pscheff/DEV_PAN/flowermapping-panelification/TEST_DATA/SAFcoord/fixed_SAFcoord.nc")
+    nc_path = (r"../TEST_DATA/SAFcoord/fixed_SAFcoord.nc")
     with Dataset(nc_path, 'r') as ds:
         lat_SAF = ds.variables['lat'][:]
         lon_SAF = ds.variables['lon'][:]
