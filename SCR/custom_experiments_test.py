@@ -33,8 +33,7 @@ experiment_configurations = {
         "max_leadtime"     : 60, 
         "accumulated"      : {'cma' : False,
                               'else': True},
-        "path_template"    : {'cma': ["../TEST_DATA/arome/%Y%m%d/chra%Y%m%d_%H%S+%LLL00", #20250907 folder is HungaroMet 
-                                      "../TEST_DATA/arome/20250907/arome_hun_00+0018.nc"],
+        "path_template"    : {'cma': "../TEST_DATA/arome/20251125/arome_hun_%H+%LLLL.nc",
                               'else': None},
         "unit_factor"      : 1.,
         "color"            : 'blue',

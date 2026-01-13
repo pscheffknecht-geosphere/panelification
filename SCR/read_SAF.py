@@ -72,12 +72,14 @@ def read_SAF_obs(data_list, start_date, end_date, args):# is it the data_list fr
         'lon': np.asarray(lon),
         'precip_data': cma_data
     })
+
     return data_list # 
     # 
     
 
 def bringSAF_netcdf(date):
     obs_file_path = check_paths(date) 
+    logger.info(f"reading saf data from {obs_file_path}")
     if not obs_file_path:
          return False 
     try:
@@ -98,7 +100,7 @@ def read_SAF (file):
 #  2D cma 
 
 def check_paths(date): # 
-    OBS = (r"../TEST_DATA/SAF") # obs folder became broken?? 
+    OBS = (r"../TEST_DATA/SAF/moreSAF") # obs folder became broken?? 
     # our SAF cma filenames are like: bMma20250907_1755.nc   (ends with UTC) 
     
     yyyymmdd = date[:8]
