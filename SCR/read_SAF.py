@@ -7,6 +7,8 @@ import netCDF4
 from netCDF4 import Dataset
 import datetime as dt
 from misc import loop_datetime
+from datetime import timedelta
+
 
 import logging
 logger = logging.getLogger(__name__)
@@ -45,7 +47,7 @@ def read_SAF_obs(data_list, start_date, end_date, args):# is it the data_list fr
        
     first = True
     for read_SAF_date in loop_datetime(start_date + dt.timedelta(hours=1), end_date + dt.timedelta(hours=1), read_dt): # itt lesz többidőpont mert ez egy loop
-        datestring = read_SAF_date.strftime("%Y%m%d%H")
+        datetime= read_SAF_date
         logging.info("reading inca at " + str(read_SAF_date))
 
 
@@ -57,10 +59,10 @@ def read_SAF_obs(data_list, start_date, end_date, args):# is it the data_list fr
         else:
             var_tmp = var_tmp + bO.bringSAF_netcdf(datestring)''' # cma will be for a fixed UTC, no accumulation. But we'll verify multiple UTCs. 
         if first: 
-            cma_data = bringSAF_netcdf(datestring)
+            cma_data = bringSAF_netcdf(datetime)
             first = False
         else:
-            cma_data += bringSAF_netcdf(datestring)
+            cma_data += bringSAF_netcdf(datetime)
 
     lat, lon = SAF_grid()
 
@@ -99,18 +101,25 @@ def read_SAF (file):
     return RR
 #  2D cma 
 
-def check_paths(date): # 
-    OBS = (r"../TEST_DATA/SAF/moreSAF") # obs folder became broken?? 
-    # our SAF cma filenames are like: bMma20250907_1755.nc   (ends with UTC) 
-    
-    yyyymmdd = date[:8]
-    formatum = f"bMma{yyyymmdd}_*.nc"
+
+
+
+def check_paths(date):
+    OBS = r"../TEST_DATA/SAF/moreSAF"
+
+    obs_file_date = date - dt.timedelta(minutes=5)
+    obs_file_date_str = obs_file_date.strftime("%Y%m%d_%H%M")
+    yyyymmdd = obs_file_date.strftime("%Y%m%d")
+
     for filename in os.listdir(OBS):
-            if filename.startswith(f"bMma{yyyymmdd}_") and filename.endswith(".nc"):
-                obs_file = os.path.join(OBS, filename)
-                logger.info(f"File found: {obs_file}")
 
-                return obs_file # 
-            
-    return False
+        if filename.startswith(f"bMma{yyyymmdd}_"):
+            if filename.endswith(".nc"):
 
+                if filename.replace(".nc", "").endswith(obs_file_date_str):
+                    obs_file = os.path.join(OBS, filename)
+                    logger.info(f"File found: {obs_file}")
+                    return obs_file
+
+    logger.error(f"Did not find any output file in {OBS}")
+    raise FileNotFoundError
