@@ -124,7 +124,7 @@ class ModelConfiguration:
             logger.debug(f"   {tmpl}")
         for anam in ["init_interval", "max_leadtime", "output_interval", "accumulated", "unit_factor"]:
             setattr(self, anam, self.__pick_value_by_parameter(cmc[anam]))
-        for anam in ["ensemble", "grib_handles", "lagged_ensemble", "color", "file_type"]:
+        for anam in ["ensemble", "grib_handles", "lagged_ensemble", "color", "file_type", "netcdf_variable_name"]:
             setattr(self, anam, self.__pick_value_by_parameter(cmc[anam]) if anam in cmc else None)
         for anam, default_value in DEFAULTS.items():
             setattr(self, anam, cmc.get(anam, default_value))
@@ -263,7 +263,8 @@ class ModelConfiguration:
                     return False
             else:
                 return False
-        self.file_type = self.__get_file_type(files_to_check)
+        if not hasattr(self, "file_type"):
+            self.file_type = self.__get_file_type(files_to_check)
         return True
 
     def __files_valid(self):        
@@ -284,8 +285,9 @@ class ModelConfiguration:
 
 
     def get_data(self, param):
-        if "arome_hun" in self.experiment_name:
-                    return read_HungaroMet_netcdf(self.file_list[0])
+        if "_hun" in self.experiment_name:
+            return read_HungaroMet_netcdf(self.file_list[0], self.netcdf_variable_name)
+                    
         if param == 'gusts' or param == 'hail':
             return self.__get_data_max()
         else:
