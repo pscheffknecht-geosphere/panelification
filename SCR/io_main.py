@@ -264,7 +264,7 @@ class ModelConfiguration:
                     return False
             else:
                 return False
-        if not hasattr(self, "file_type"):
+        if not self.file_type:
             self.file_type = self.__get_file_type(files_to_check)
         return True
 
