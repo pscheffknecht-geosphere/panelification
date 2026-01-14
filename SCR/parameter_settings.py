@@ -219,9 +219,9 @@ def gusts_cmap_and_levels(args):
     return levels, cmap, norm
 
 def cma_cmap_and_levels(args):
-    levels = [0., 0.5, 1.]
+    levels = [0., 0.5, 1., 1.5, 2.0, 3.0]
     cmap = nclcmaps.cmap("WhiteBlueGreenYellowRed")
-    norm = nnorm(vmin=0., vmax=1.)
+    norm = nnorm(vmin=0., vmax=3.)
     return levels, cmap, norm
 
 def sunshine_cmap_and_levels(args):

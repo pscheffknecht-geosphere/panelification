@@ -105,7 +105,7 @@ def read_SAF (file):
 
 
 def check_paths(date):
-    OBS = r"../TEST_DATA/SAF/moreSAF"
+    OBS = r"/mnt/d/Users/lovasz_v/cma_panelification"
 
     obs_file_date = date - dt.timedelta(minutes=5)
     obs_file_date_str = obs_file_date.strftime("%Y%m%d_%H%M")

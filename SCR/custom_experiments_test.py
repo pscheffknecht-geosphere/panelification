@@ -27,17 +27,42 @@ experiment_configurations = {
                               'else': 1.},
         "color"            : 'blue'
         },
+
+
+    
     "arome_hun_test": {
         "init_interval"    : 24, # to get only 00 UTC init
         "output_interval"  : 1, # 
         "max_leadtime"     : 60, 
         "accumulated"      : {'cma' : False,
                               'else': True},
-        "path_template"    : {'cma': "../TEST_DATA/arome/20251125/arome_hun_%H+%LLLL.nc",
+        "path_template"    : {'cma': [r"/mnt/d/Users/lovasz_v/arome_panelification/20251224/chra%Y%m%d_%H%M+%LLL00"],
                               'else': None},
         "unit_factor"      : 1.,
         "color"            : 'blue',
+        "file_type"        : 'NetCDF',
+        "netcdf_variable_name"  : 'CloudTot'
         },
+
+    "ecmwf_hun_test": {
+        "init_interval"    : 24, # to get only 00 UTC init
+        "output_interval"  : 1, # 
+        "max_leadtime"     : 60, 
+        "accumulated"      : {'cma' : False,
+                              'else': True},
+        "path_template"    : {'cma': [r"/mnt/d/Users/lovasz_v/ecmwf_panelification/20251224/cedh%Y%m%d_%H%M+%LLL00"],
+                              'else': None},
+        "unit_factor"      : 1.,
+        "color"            : 'blue',
+        "file_type"        : 'NetCDF',    # always set to netcdf, our model data has no extension of .nc
+        "netcdf_variable_name"  : 'tcc'
+        },
+
+
+
+
+
+
     "ecmwf_test": {
         "init_interval"    : 6,
         "output_interval"  : 1, # 3 for some lead times, but panelification can sort that out

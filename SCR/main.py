@@ -105,7 +105,7 @@ def parse_arguments():
             LonMin, LonMax, LatMin, LatMax)""")
     parser.add_argument('--draw', nargs='?', default=False, const=True, type=str2bool,
         help = 'draw panels if average rain is above 5 mm or maximum rain is above 100 mm')
-    parser.add_argument('--forcedraw', nargs='?', default=False, const=True, type=str2bool,
+    parser.add_argument('--forcedraw', nargs='?', default=True, const=True, type=str2bool,
         help = 'draw panels for all subdomains, no matter how much rain was observed')
     parser.add_argument('--cmap', type=str, default="mycolors",
         help = 'color map selection')
@@ -122,7 +122,7 @@ def parse_arguments():
     #         'diff' ............. Draw interpolated rain field difference to INCA analysis\n
     parser.add_argument('--fix_nans', nargs='?', default=False, const=True, type=str2bool,
         help = 'Fix NaNs in OBS and Model fields by setting them to 0.')
-    parser.add_argument('--save', nargs='?', default=False, const=True, type=str2bool,
+    parser.add_argument('--save', nargs='?', default=True, const=True, type=str2bool,
         help = 'save full fields to pickle files')
     parser.add_argument('--fss_mode', type=str, default='ranks')
     parser.add_argument('--fss_calc_mode', type=str, default='same')
@@ -131,7 +131,7 @@ def parse_arguments():
         fss_total_abs_score .................. use the old FSS Rank Score
         fss_condensed ........................ condensed FSS value, uniform weight
         fss_condensed_weighted (default) ..... condensed FSS value, higher weight smaller windows and higher precipitation""")
-    parser.add_argument('--save_full_fss', nargs='?', default=False, const=True, type=str2bool,
+    parser.add_argument('--save_full_fss', nargs='?', default=True, const=True, type=str2bool,
         help = 'save full FSS, including numerator and denominator')
     parser.add_argument('--hidden', nargs='?', default=False, const=True, type=str2bool,
         help = 'clean panels, with names hidden and numbers used instead')
