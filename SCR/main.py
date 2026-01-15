@@ -274,11 +274,6 @@ def main():
         exit()
     
     data_list = read_obs(start_date, end_date, data_list, args)
-    if args.parameter == 'hail':
-        data_list = obs.read_hail(data_list, start_date, end_date)
-        data_list = io.scale_hail(data_list) # scale all fields to 0...4
-    elif args.parameter == 'cma':
-        data_list = io.cloud_fraction_to_cma(data_list) # new function is written in io_main to have preprocessing steps to forecast data 
     
     if args.region == "Dynamic":
         region_data = regions.regions
@@ -331,24 +326,28 @@ def main():
                 io.save_fss(data_list, subdomain_name, start_date, end_date, args)
 
 def read_obs(start_date, end_date, data_list, args):
-    if args.verif_dataset == "INCA":
-        data_list = inca.read_INCA(data_list, start_date, end_date, args)
-    elif args.verif_dataset == "SAF_cma":
+    if "precip" in args.parameter:
+        if args.verif_dataset == "INCA":
+            data_list = inca.read_INCA(data_list, start_date, end_date, args)
+        elif args.verif_dataset == "INCAPlus":
+            data_list = inca.read_INCAPlus_ANA(data_list, start_date, end_date, args)
+        elif args.verif_dataset == "INCA_archive":
+            data_list = inca.read_inca_netcdf_archive(data_list, start_date, end_date, args)
+        elif args.verif_dataset == "OPERA":
+                data_list = opera.read_OPERA(data_list, start_date, end_date, args)
+        elif args.verif_dataset == "ANTILOPE":
+            data_list = antilope.read_ANTILOPE(data_list, start_date, end_date, args)
+        elif args.verif_dataset == "ESP":
+            data_list = esp.read_esp(data_list, start_date, end_date, args)
+    elif args.parameter == "cma":
         data_list = read_SAF.read_SAF_obs(data_list, start_date, end_date, args)
-    elif args.verif_dataset == "INCAPlus":
-        data_list = inca.read_INCAPlus_ANA(data_list, start_date, end_date, args)
-    elif args.verif_dataset == "INCA_archive":
-        data_list = inca.read_inca_netcdf_archive(data_list, start_date, end_date, args)
-    elif args.verif_dataset == "OPERA":
-            data_list = opera.read_OPERA(data_list, start_date, end_date, args)
-    elif args.verif_dataset == "ANTILOPE":
-        data_list = antilope.read_ANTILOPE(data_list, start_date, end_date, args)
-    elif args.verif_dataset == "ESP":
-        data_list = esp.read_esp(data_list, start_date, end_date, args)
+        data_list = io.cloud_fraction_to_cma(data_list) # new function is written in io_main to have preprocessing steps to forecast data 
+    elif args.parameter == 'hail':
+        data_list = obs.read_hail(data_list, start_date, end_date)
+        data_list = io.scale_hail(data_list) # scale all fields to 0...4
     else:
-        logging.critical("Unknown verification data set: {:s}, exiting...".format(
-            args.precip_verif_dataset))
-            
+        logging.critical("Unknown verification dataset {args.precip_verif_dataset} for parameter {args.parameter}! Exiting...")
+        exit(1)            
     return data_list
 
 
