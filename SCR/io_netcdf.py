@@ -90,7 +90,7 @@ def read_inca_plus_netcdf(nc_file_path, lead_start, lead_end):
 
 
 
-def read_HungaroMet_netcdf(nc_file_path, **kwargs): 
+def read_HungaroMet_netcdf(nc_file_path, netcdf_variable_name, **kwargs): 
     # this function is for the Total Cloud Cover variable in our AROME netcdfs 
     
    
@@ -127,8 +127,8 @@ def read_HungaroMet_netcdf(nc_file_path, **kwargs):
         lon2d, lat2d = np.meshgrid(lons, lats)
 
        
-        data = ds.variables["CloudTot"][0, :, :]
-        data = np.where(data == ds.variables["CloudTot"]._FillValue, np.nan, data)
+        data = ds.variables[netcdf_variable_name][0, :, :]
+        data = np.where(data == ds.variables[netcdf_variable_name]._FillValue, np.nan, data)
 
     print(lon2d, lat2d, data)
     return lon2d, lat2d, data
