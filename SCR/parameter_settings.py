@@ -18,16 +18,20 @@ MODIFY AT YOUR OWN RISK!!!
 """
 
 # string for use in the title of the entire panel
-title_part = {
-    'precip': 'Acc. Precip. [mm]',
-    'precip2': 'Acc. Precip. [mm]',
-    'precip3': 'Acc. Precip. [mm]',
-    'sunshine': 'Acc. Sunshine Duration [h]',
-    'lightning': 'lightning strikes [km$^{-2}$]',
-    'gusts': 'wind gusts [m s$^{-1}$]',
-    'hail': 'Hail [??]',
-    'cma': 'Cloud Cover'  # if feltételt bevezetni, ha ad >1, akkor Cloud Cover Duration? 
-}
+def title_part(args):
+    title_parts = {
+        'precip': 'Acc. Precip. [mm]',
+        'precip2': 'Acc. Precip. [mm]',
+        'precip3': 'Acc. Precip. [mm]',
+        'sunshine': 'Acc. Sunshine Duration [h]',
+        'lightning': 'lightning strikes [km$^{-2}$]',
+        'gusts': 'wind gusts [m s$^{-1}$]',
+        'hail': 'Hail [??]',
+        'cma': 'Cloud Cover' if args.duration == 1 else 'Cloud Duration'
+    }
+    return title_parts[args.parameter]
+
+    
 # label for the color bar
 colorbar_label = {
     'precip': 'accumulated precipitation [mm]',

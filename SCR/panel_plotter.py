@@ -506,7 +506,7 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
     rank_colors = 500*['white']
     rank_colors[1:3] = ['gold', 'silver', 'darkorange']
     # init projections
-    suptit = "'"+parameter_settings.title_part[args.parameter] + " from "+start_date.strftime("%Y%m%d %H")+" to "+end_date.strftime("%Y%m%d %H UTC")+"'"
+    suptit = "'"+parameter_settings.title_part(args) + " from "+start_date.strftime("%Y%m%d %H")+" to "+end_date.strftime("%Y%m%d %H UTC")+"'"
     name_part = '' #if args.mode == 'None' else args.mode+'_'
     start_date_str = start_date.strftime("%Y%m%d_%H")
     outfilename = f"{PAN_DIR_PLOTS}/{args.name}_{args.parameter}_{name_part}panel_{start_date_str}UTC_{args.duration:02d}h_acc_{verification_subdomain}.png"
