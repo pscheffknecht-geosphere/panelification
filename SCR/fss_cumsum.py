@@ -70,9 +70,17 @@ def fss_threshold(fcst, obs, t1, t2, windows, percentiles=False, threshold_mode=
     fss_t = np.zeros(windows.shape)
     ovest = np.zeros(windows.shape)
     t1o = np.percentile(obs, t1) if percentiles else t1
-    t2o = np.percentile(obs, t2) if percentiles else t2
     t1f = np.percentile(fcst, t1) if percentiles else t1
-    t2f = np.percentile(fcst, t2) if percentiles else t2
+    if percentiles:
+        if t2:
+            t2o = np.percentile(obs, t2) if percentiles else t2
+            t2f = np.percentile(fcst, t2) if percentiles else t2
+        print(f"SAT: converting threshold {t1} into obs threshold {t1o}.")
+        print(f"SAT: converting threshold {t1} into fcst threshold {t1f}.")
+        if t2:
+            print(f"SAT: converting threshold {t2} into obs threshold {t2o}.")
+            print(f"SAT: converting threshold {t2} into fcst threshold {t2f}.")
+    
     if threshold_mode == "over":
         obs_bin = compute_integral_table((obs > t1o).astype(int))
         mod_bin = compute_integral_table((fcst > t1f).astype(int))
@@ -104,13 +112,13 @@ def fss_cumsum_parallel(fcst, obs, thresholds, windows, percentiles=False, thres
         ret = Parallel(n_jobs=1)(delayed(fss_threshold)(
             fcst, obs, thresholds[ii], thresholds[ii+1], windows, percentiles=percentiles, threshold_mode=threshold_mode) for ii in range(thresholds.size-1))
     elif threshold_mode == "over" or threshold_mode == "under" or threshold_mode == "tolerance":
-        ret = Parallel(n_jobs=16)(delayed(fss_threshold)(
+        ret = Parallel(n_jobs=1)(delayed(fss_threshold)(
             fcst, obs, t, None, windows, percentiles=percentiles, threshold_mode=threshold_mode, tolerance=tolerance) for t in thresholds)
     ret_arr = np.swapaxes(np.array(ret), 0, 1)
     return ret_arr
 
 def fss_cumsum_frame(fcst, obs, thresholds, windows, percentiles=False, threshold_mode="over", tolerance=0.1):
-    ret_arr = fss_cumsum_parallel(fcst, obs, thresholds, windows, threshold_mode="over", tolerance=tolerance)
+    ret_arr = fss_cumsum_parallel(fcst, obs, thresholds, windows, percentiles=percentiles, threshold_mode="over", tolerance=tolerance)
     return (pd.DataFrame(ret_arr[0], index=thresholds, columns=windows),
             pd.DataFrame(ret_arr[1], index=thresholds, columns=windows),
             pd.DataFrame(ret_arr[2], index=thresholds, columns=windows),
