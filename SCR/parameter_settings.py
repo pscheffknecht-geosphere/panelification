@@ -26,7 +26,7 @@ title_part = {
     'lightning': 'lightning strikes [km$^{-2}$]',
     'gusts': 'wind gusts [m s$^{-1}$]',
     'hail': 'Hail [??]',
-    'cma': 'Cloud Cover'
+    'cma': 'Cloud Cover'  # if feltételt bevezetni, ha ad >1, akkor Cloud Cover Duration? 
 }
 # label for the color bar
 colorbar_label = {
@@ -233,7 +233,7 @@ def gusts_cmap_and_levels(args):
 
 def cma_cmap_and_levels(args):
     levels = [0., 0.5, 1., 1.5, 2.0, 3.0]
-    cmap = nclcmaps.cmap("WhiteBlueGreenYellowRed")
+    cmap = nclcmaps.cmap("MPL_GnBu")
     norm = nnorm(vmin=0., vmax=3.)
     return levels, cmap, norm
 
