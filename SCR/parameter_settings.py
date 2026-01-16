@@ -147,7 +147,7 @@ def get_cma_ydict(args):
         ii += 1
     cma_ydict[ii] = [99999]
     ii += 1
-    for idx, s in ['25%', '50%', '75%', '90%', '95%']:
+    for idx, s in enumerate(['25%', '50%', '75%', '90%', '95%']):
         cma_ydict[ii + idx] = s
     return cma_ydict
 
