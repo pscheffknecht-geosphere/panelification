@@ -341,7 +341,7 @@ def read_obs(start_date, end_date, data_list, args):
             data_list = esp.read_esp(data_list, start_date, end_date, args)
     elif args.parameter == "cma":
         data_list = read_SAF.read_SAF_obs(data_list, start_date, end_date, args)
-        data_list = io.cloud_fraction_to_cma(data_list) # new function is written in io_main to have preprocessing steps to forecast data 
+        #data_list = io.cloud_fraction_to_cma(data_list) # new function is written in io_main to have preprocessing steps to forecast data 
     elif args.parameter == 'hail':
         data_list = obs.read_hail(data_list, start_date, end_date)
         data_list = io.scale_hail(data_list) # scale all fields to 0...4
