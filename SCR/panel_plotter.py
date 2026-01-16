@@ -370,7 +370,7 @@ def draw_single_figure(sim, obs, r, jj, levels, cmap, norm, verification_subdoma
     if args.hidden:
         panel_title = str(jj) if jj > 0 else sim['name']
         panel_title_fc = 'white'
-    elif args.clean or sim["conf"] == "INCA" or sim["conf"] == "OPERA":
+    elif args.clean or sim["type"] == "obs":
         panel_title = sim['name']
         panel_title_fc = 'white'
     else:

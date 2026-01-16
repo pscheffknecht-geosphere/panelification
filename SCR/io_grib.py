@@ -80,7 +80,8 @@ def calc_data(tmp_data_list, parameter):
        "sunshine": data_sum,
        "lightning": data_sum,
        "hail": data_sum,
-       "gusts" : data_norm
+       "gusts" : data_norm,
+       "cma" : data_sum
        }
     return calc_funcs[parameter](tmp_data_list)
 

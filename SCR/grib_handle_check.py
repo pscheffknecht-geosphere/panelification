@@ -203,6 +203,17 @@ def check_lightning_fields(grb, lead):
         raise
     return None
 
+def check_cma_fields(grb, lead):
+    try:
+        logger.debug("trying indicatorOfParamter 171")
+        grb.select(indicatorOfParameter=171) #, indicatorOfTypeOfLevel=1, level=0)
+        return [
+            {"indicatorOfParameter": 171}] #, "indicatorOfTypeOfLevel": 1, "level": 0},
+    except:
+        logger.debug("Failed to find 171")
+        raise
+    return None
+
 # factory for grib field checks
 def find_grib_handles(grb, param, lead):
     check_function = {
@@ -212,7 +223,8 @@ def find_grib_handles(grb, param, lead):
         'sunshine': check_sunshine_fields,
         'hail': check_hail_fields,
         'lightning': check_lightning_fields,
-        'gusts': check_gust_fields
+        'gusts': check_gust_fields,
+        'cma': check_cma_fields
     }
     ret = check_function[param](grb, lead)
     if not ret:

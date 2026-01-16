@@ -126,6 +126,7 @@ class ModelConfiguration:
             setattr(self, anam, self.__pick_value_by_parameter(cmc[anam]))
         for anam in ["ensemble", "grib_handles", "lagged_ensemble", "color", "file_type", "netcdf_variable_name"]:
             setattr(self, anam, self.__pick_value_by_parameter(cmc[anam]) if anam in cmc else None)
+            logger.debug(f"Setting {anam} to {getattr(self, anam)}")
         for anam, default_value in DEFAULTS.items():
             setattr(self, anam, cmc.get(anam, default_value))
             logger.debug(f"{self.experiment_name}: Setting {anam} to {getattr(self, anam)}")
@@ -263,7 +264,7 @@ class ModelConfiguration:
                     return False
             else:
                 return False
-        if not hasattr(self, "file_type"):
+        if not self.file_type:
             self.file_type = self.__get_file_type(files_to_check)
         return True
 
