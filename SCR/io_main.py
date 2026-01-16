@@ -286,8 +286,8 @@ class ModelConfiguration:
 
     def get_data(self, param):
         if "_hun" in self.experiment_name:
-            return read_HungaroMet_netcdf(self.file_list[0], self.netcdf_variable_name)
-                    
+            #return read_HungaroMet_netcdf(fcs for fcs in self.file_list, self.netcdf_variable_name)
+            return read_HungaroMet_netcdf(self.file_list, self.netcdf_variable_name)
         if param == 'gusts' or param == 'hail':
             return self.__get_data_max()
         else:
