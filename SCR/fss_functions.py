@@ -79,10 +79,10 @@ def fss_frame(fcst, obs, windows, levels, percentiles=False, mode='same'):
         den_data_fft.append([x[1] for x in _data_fft])
         fss_data_fft.append([x[2] for x in _data_fft])
         overestimated.append([x[3] for x in _data_fft])
-    return (pd.DataFrame(num_data_fft,  index=levels), #, columns=["{:d}x{:d}".format([*window for window in windows]),
-            pd.DataFrame(den_data_fft,  index=levels), #, columns=windows),
-            pd.DataFrame(fss_data_fft,  index=levels), #, columns=windows),
-            pd.DataFrame(overestimated, index=levels)) #, columns=windows))
+    return (pd.DataFrame(num_data_fft,  index=levels, columns=windows),
+            pd.DataFrame(den_data_fft,  index=levels, columns=windows),
+            pd.DataFrame(fss_data_fft,  index=levels, columns=windows),
+            pd.DataFrame(overestimated, index=levels, columns=windows))
 
 def fss_raw(fcst, obs, windows, levels, percentiles=False, mode='same'):
     """
