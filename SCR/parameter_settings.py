@@ -50,7 +50,7 @@ def get_fss_thresholds(args):
         'hail' : [1, 2, 5, 10, 25, 35, 50, 75, 100, 99999],
         'gusts' : [5, 10, 15, 20, 25, 30, 40, 50, 70, 99999],
         'lightning' : [0.1*x for x in [1, 2, 5, 10, 25, 35, 50, 75, 100]] + [99999],
-        'cma': [0.5] + [99999]
+        'cma': [x + 0.5 for x in range(args.duration)] + [99999]
     }
     return thresholds_for_fss[args.parameter]
 
@@ -67,6 +67,7 @@ def make_fss_axis_sunshine(args):
 
 
 def get_axes_for_fss_rank_plot(args):
+
     ax_ticks = {
     'precip' : {
         'xticks' : range(12),
@@ -81,9 +82,7 @@ def get_axes_for_fss_rank_plot(args):
     'cma' : {
         'xticks' : range(12),
         'yticks' : range(7),
-        'ydict': {
-            0 : '0.5',
-            1 : '', 2 : '25%', 3 : '50%', 4 : '75%', 5 : '90%', 6 : '95%'},
+        'ydict': get_cma_ydict(args),
         'xdict' : {
             0 : '10', 1 : '20', 2 : '30', 3 : '40', 4 : '60', 5 : '80', 6 : '100', 7 : '120', 
             8 : '140', 9 : '160', 10 : '180', 11 : '200'}
@@ -138,7 +137,21 @@ def get_axes_for_fss_rank_plot(args):
         }
     }
     return ax_ticks[args.parameter]
-        
+
+
+def get_cma_ydict(args):
+    cma_ydict = {}
+    ii = 0
+    for x in range(args.duration):
+        cma_ydict[ii] = f"{x:.1f}"
+        ii += 1
+    cma_ydict[ii] = [99999]
+    ii += 1
+    for idx, s in ['25%', '50%', '75%', '90%', '95%']:
+        cma_ydict[ii + idx] = s
+    return cma_ydict
+
+
 # RGB tuples for custom color maps
 warn_colors = [
     (255, 255, 255), 
