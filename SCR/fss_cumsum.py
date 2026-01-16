@@ -2,6 +2,7 @@ import numpy as np
 import time
 from joblib import Parallel, delayed
 from scipy.stats import bootstrap
+import pandas as pd
 
 def compute_integral_table(field):
     return field.cumsum(1).cumsum(0)
@@ -67,6 +68,7 @@ def fss_threshold(fcst, obs, t1, t2, windows, threshold_mode="over", tolerance=0
     num_t = np.zeros(windows.shape)
     den_t = np.zeros(windows.shape)
     fss_t = np.zeros(windows.shape)
+    ovest = np.zeros(windows.shape)
     if threshold_mode == "over":
         obs_bin = compute_integral_table((obs > t1).astype(int))
         mod_bin = compute_integral_table((fcst > t1).astype(int))
@@ -82,7 +84,10 @@ def fss_threshold(fcst, obs, t1, t2, windows, threshold_mode="over", tolerance=0
     for jj, window in enumerate(windows):
         num_t[jj], den_t[jj], fss_t[jj] = fss(fcst, obs, t1, t2, window, 
                                                 fcst_cache=mod_bin, obs_cache=obs_bin, threshold_mode=threshold_mode)
-    return num_t, den_t, fss_t
+        ovest[jj] = (np.sum(fcst > t1) - np.sum(obs > t1)) / fcst.size
+    
+    
+    return [num_t, den_t, fss_t, ovest]
     
 def fss_cumsum_parallel(fcst, obs, thresholds, windows, threshold_mode="over", tolerance=0.1):
     if not isinstance(thresholds, np.ndarray):
@@ -92,13 +97,43 @@ def fss_cumsum_parallel(fcst, obs, thresholds, windows, threshold_mode="over", t
     ret = None
     if threshold_mode == "between":
         thresholds = np.insert(thresholds, 0, -1.) # insert -1 to retain zero values as OK
-        ret = Parallel(n_jobs=16)(delayed(fss_threshold)(
+        ret = Parallel(n_jobs=1)(delayed(fss_threshold)(
             fcst, obs, thresholds[ii], thresholds[ii+1], windows, threshold_mode=threshold_mode) for ii in range(thresholds.size-1))
     elif threshold_mode == "over" or threshold_mode == "under" or threshold_mode == "tolerance":
         ret = Parallel(n_jobs=16)(delayed(fss_threshold)(
             fcst, obs, t, None, windows, threshold_mode=threshold_mode, tolerance=tolerance) for t in thresholds)
     ret_arr = np.swapaxes(np.array(ret), 0, 1)
     return ret_arr
+
+def fss_cumsum_frame(fcst, obs, thresholds, windows, threshold_mode="over", tolerance=0.1):
+    ret_arr = fss_cumsum_parallel(fcst, obs, thresholds, windows, threshold_mode="over", tolerance=tolerance)
+    return (pd.DataFrame(ret_arr[0], index=thresholds, columns=windows),
+            pd.DataFrame(ret_arr[1], index=thresholds, columns=windows),
+            pd.DataFrame(ret_arr[2], index=thresholds, columns=windows),
+            pd.DataFrame(ret_arr[3], index=thresholds, columns=windows))
+    
+
+def fss_frame(fcst, obs, windows, levels, percentiles=False, mode='same'):
+    """
+    Compute the fraction skill score data-frame.
+    :paramfcst: nd-array, forecast field.
+    :paramobs: nd-array, observation field.
+    :param window: list, window sizes.
+    :param levels: list, threshold levels.
+    return: list, dataframes of the FSS: numerator, denominator and score.
+    """
+    num_data_fft, den_data_fft, fss_data_fft, overestimated = [], [], [], []
+    
+    for level in levels:
+        _data_fft = [fourier_fss(fcst, obs, level, w, percentiles, mode) for w in windows]
+        num_data_fft.append([x[0] for x in _data_fft])
+        den_data_fft.append([x[1] for x in _data_fft])
+        fss_data_fft.append([x[2] for x in _data_fft])
+        overestimated.append([x[3] for x in _data_fft])
+    return (pd.DataFrame(num_data_fft,  index=levels), #, columns=["{:d}x{:d}".format([*window for window in windows]),
+            pd.DataFrame(den_data_fft,  index=levels), #, columns=windows),
+            pd.DataFrame(fss_data_fft,  index=levels), #, columns=windows),
+            pd.DataFrame(overestimated, index=levels)) #, columns=windows))
 
 ### Randomized thresholds and windows
 # pseudo-random 2D vlaues with good coverage and non-fixed smaple count
