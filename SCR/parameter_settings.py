@@ -33,7 +33,9 @@ def title_part(args):
 
     
 # label for the color bar
-colorbar_label = {
+def colorbar_label(args):
+    
+    colorbar_labels= {
     'precip': 'accumulated precipitation [mm]',
     'precip2': 'accumulated precipitation [mm]',
     'precip3': 'accumulated precipitation [mm]',
@@ -41,8 +43,11 @@ colorbar_label = {
     'lightning': 'lightning strikes [km$^{-2}$]',
     'gusts': 'gust speed [m s$^{-1}$]',
     'hail': 'hail [??]',
-    'cma' : 'Cloud cover'
-}
+    'cma' : 'Cloud cover'  if args.duration == 1 else 'Cloud Duration'
+    
+    }
+
+    return colorbar_labels[args.parameter]
 
 # thresholds for the calculation of the FSS depending on the parameter
 def get_fss_thresholds(args):
