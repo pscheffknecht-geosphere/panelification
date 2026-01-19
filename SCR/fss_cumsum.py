@@ -4,6 +4,9 @@ from joblib import Parallel, delayed
 from scipy.stats import bootstrap
 import pandas as pd
 
+import logging
+logger = logging.getLogger(__name__)
+
 def compute_integral_table(field):
     return field.cumsum(1).cumsum(0)
 
@@ -117,7 +120,10 @@ def fss_cumsum_parallel(fcst, obs, thresholds, windows, percentiles=False, thres
     ret_arr = np.swapaxes(np.array(ret), 0, 1)
     return ret_arr
 
-def fss_cumsum_frame(fcst, obs, thresholds, windows, percentiles=False, threshold_mode="over", tolerance=0.1):
+def fss_cumsum_frame(fcst, obs, windows, thresholds, percentiles=False, threshold_mode="over", tolerance=0.1,
+                    mode=None):
+    if mode:
+        logger.warning(f"fss_mode was set to {mode}, this is ignored unless fss_method is set to legacy!")
     ret_arr = fss_cumsum_parallel(fcst, obs, thresholds, windows, percentiles=percentiles, threshold_mode="over", tolerance=tolerance)
     return (pd.DataFrame(ret_arr[0], index=thresholds, columns=windows),
             pd.DataFrame(ret_arr[1], index=thresholds, columns=windows),
