@@ -78,11 +78,6 @@ def fss_threshold(fcst, obs, t1, t2, windows, percentiles=False, threshold_mode=
         if t2:
             t2o = np.percentile(obs, t2) if percentiles else t2
             t2f = np.percentile(fcst, t2) if percentiles else t2
-        print(f"SAT: converting threshold {t1} into obs threshold {t1o}.")
-        print(f"SAT: converting threshold {t1} into fcst threshold {t1f}.")
-        if t2:
-            print(f"SAT: converting threshold {t2} into obs threshold {t2o}.")
-            print(f"SAT: converting threshold {t2} into fcst threshold {t2f}.")
     
     if threshold_mode == "over":
         obs_bin = compute_integral_table((obs > t1o).astype(int))
@@ -124,6 +119,8 @@ def fss_cumsum_frame(fcst, obs, windows, thresholds, percentiles=False, threshol
                     mode=None):
     if mode:
         logger.warning(f"fss_mode was set to {mode}, this is ignored unless fss_method is set to legacy!")
+    # adjust windows from legacy format:
+    windows = [w[0] for w in windows]
     ret_arr = fss_cumsum_parallel(fcst, obs, thresholds, windows, percentiles=percentiles, threshold_mode="over", tolerance=tolerance)
     return (pd.DataFrame(ret_arr[0], index=thresholds, columns=windows),
             pd.DataFrame(ret_arr[1], index=thresholds, columns=windows),
