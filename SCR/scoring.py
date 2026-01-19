@@ -354,8 +354,12 @@ def fss_d90(rrm, rro, args):
     equals 0.5. Values are linearly interpolated between array entries.
     Missing Values / Fails return 9999.
     """
+    fss_calc_func = fss_cumsum.fss_cumsum_frame
+    if args.fss_method == 'legacy':
+        logger.info("FSS method is set to legacy, using old FFT approximation for D90!")
+        fss_calc_func = fss_functions.fss_frame
     # consistency check
-    windows = [1, 3, 5, 7, 11, 21, 31, 41, 51, 61, 81, 101, 121, 141, 181, 251, 351, 501, 701]
+    windows = [3, 5, 7, 11, 21, 31, 41, 51, 61, 81, 101, 121, 141, 181, 251, 351, 501, 701]
     windows_2d = prep_windows(windows, args.mode, *rrm.shape)
     levels = [0.5]
     _rro = np.where(rro > np.percentile(np.copy(rro), 90), 1, 0)
@@ -367,7 +371,7 @@ def fss_d90(rrm, rro, args):
         logger.warning("No precipitation in model array, returning no d90!")
         return np.nan
     overlap = float(np.sum(_rro*rrm))/float(np.sum(rrm))
-    _, _, _arr, _ = fss_functions.fss_frame(rro_s, rrm_s, windows_2d, levels, args.fss_calc_mode)
+    _, _, _arr, _ = fss_calc_func(rro_s, rrm_s, windows_2d, levels, mode=args.fss_calc_mode)
     arr = _arr.values.flatten()
     for ii in range(1,len(arr)):
         if arr[ii] - arr[ii-1] < 0:
