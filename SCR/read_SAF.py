@@ -79,7 +79,7 @@ def SAF_grid_large():
     # handle missing value
     lon = np.where(np.isnan(lon), 0., lon)
     lat = np.where(np.isnan(lat), 0., lat)
-    return lat[100:600, 0:900], lon[100:600, 0:900]
+    return lat, lon
 
 def read_SAF_obs(data_list, start_date, end_date, args):# is it the data_list from main? 
 
@@ -112,6 +112,9 @@ def read_SAF_obs(data_list, start_date, end_date, args):# is it the data_list fr
     # TODO: fix this ad-hoc check!!
     if cma_data.shape == (650, 1100):
         lat, lon = SAF_grid_large()
+        lat = lat[100:600, 0:900]
+        lon = lon[100:600, 0:900]
+        cma_data = cma_data[100:600, 0:900]
     else:
         lat, lon = SAF_grid()
     
@@ -121,7 +124,7 @@ def read_SAF_obs(data_list, start_date, end_date, args):# is it the data_list fr
         'name': 'SAF cma',
         'lat': np.asarray(lat),
         'lon': np.asarray(lon),
-        'precip_data': cma_data[100:600, 0:900]
+        'precip_data': cma_data
     })
 
     return data_list # 
