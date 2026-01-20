@@ -74,7 +74,7 @@ def make_fss_axis_sunshine(args):
 
 
 def get_axes_for_fss_rank_plot(args):
-
+    cma_ydict = get_cma_ydict(args)
     ax_ticks = {
     'precip' : {
         'xticks' : range(12),
@@ -88,8 +88,8 @@ def get_axes_for_fss_rank_plot(args):
         },
     'cma' : {
         'xticks' : range(12),
-        'yticks' : range(7),
-        'ydict': get_cma_ydict(args),
+        'yticks' : range(len(cma_ydict)),
+        'ydict': cma_ydict,
         'xdict' : {
             0 : '10', 1 : '20', 2 : '30', 3 : '40', 4 : '60', 5 : '80', 6 : '100', 7 : '120', 
             8 : '140', 9 : '160', 10 : '180', 11 : '200'}
@@ -150,7 +150,7 @@ def get_cma_ydict(args):
     cma_ydict = {}
     ii = 0
     for x in range(args.duration):
-        cma_ydict[ii] = f"{x+0.5:.1f}"
+        cma_ydict[ii] = f"{int(x+1):d} h"
         ii += 1
     cma_ydict[ii] = ""
     ii += 1
