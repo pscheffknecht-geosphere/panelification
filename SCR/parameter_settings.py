@@ -151,14 +151,11 @@ def get_cma_ydict(args):
     ii = 0
     for x in range(args.duration):
         cma_ydict[ii] = f"{int(x+1):d} h"
-        logger.debug(f"adding {int(x+1):d} h at with key {ii}")
         ii += 1
     cma_ydict[ii] = ""
-    logger.debug(f"adding empty string with key {ii}")
     ii += 1
     for idx, s in enumerate(['25%', '50%', '75%', '90%', '95%']):
         cma_ydict[ii + idx] = s
-        logger.debug(f"adding {s} with key {ii+idx}")
     return cma_ydict
 
 

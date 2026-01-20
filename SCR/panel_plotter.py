@@ -80,7 +80,6 @@ def make_fss_rank_plot_axes(ax, args):
     ax ............. axes object from pyplot.add_axes
     args ........... parsed command line arguments"""
     all_ticks = parameter_settings.get_axes_for_fss_rank_plot(args)
-    print(all_ticks)
     xticks = all_ticks['xticks']
     yticks = all_ticks['yticks']
     ax.set_xticks(xticks)
