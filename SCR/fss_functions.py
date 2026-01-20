@@ -25,14 +25,14 @@ def fourier_fss(fcst, obs, threshold, window, percentiles, mode):
     if mode=='valid' and any(np.array(window) > np.array(fcst.shape)):
       return np.nan, np.nan, np.nan, np.nan
     if percentiles:
-      fhat = fourier_filter(fcst > np.percentile(fcst, threshold), window, mode)
-      ohat = fourier_filter(obs > np.percentile(obs, threshold), window, mode)
+      fhat = fourier_filter(fcst >= np.percentile(fcst, threshold), window, mode)
+      ohat = fourier_filter(obs >= np.percentile(obs, threshold), window, mode)
     else:
-      fhat = fourier_filter(fcst > threshold, window, mode)
-      ohat = fourier_filter(obs > threshold, window, mode)
+      fhat = fourier_filter(fcst >= threshold, window, mode)
+      ohat = fourier_filter(obs >= threshold, window, mode)
     num = np.nanmean(np.power(fhat - ohat, 2))
     denom = np.nanmean(np.power(fhat,2) + np.power(ohat,2))
-    ovest = (np.sum(fcst > threshold) - np.sum(obs > threshold)) / fcst.size
+    ovest = (np.sum(fcst >= threshold) - np.sum(obs >= threshold)) / fcst.size
     with np.errstate(divide='ignore', invalid='ignore'):
        fss_ret = 1.-num/denom
     return num, denom, fss_ret, ovest
