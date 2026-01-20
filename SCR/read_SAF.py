@@ -8,6 +8,7 @@ from netCDF4 import Dataset
 import datetime as dt
 from misc import loop_datetime
 from datetime import timedelta
+from pyproj import CRS, Transformer
 
 
 import logging
@@ -33,7 +34,52 @@ def SAF_grid():
 
     return lat_SAF,lon_SAF
 
-    # 
+
+def SAF_grid_large():
+    # ------------------------------------------------------------------
+    # 1. Define projection from global attributes
+    # ------------------------------------------------------------------
+    crs_geos = CRS.from_proj4(
+        "+proj=geos "
+        "+a=6378137.0 "
+        "+b=6356752.3 "
+        "+lon_0=0.0 "
+        "+h=35785863.0 "
+        "+sweep=y"
+    )
+
+    crs_ll = CRS.from_epsg(4326)
+
+    transformer = Transformer.from_crs(
+        crs_geos, crs_ll, always_xy=True
+    )
+
+    # ------------------------------------------------------------------
+    # 2. Reconstruct x/y grid from GDAL geotransform
+    # ------------------------------------------------------------------
+    # gdal_geotransform_table:
+    # (x0, dx, rx, y0, ry, dy)
+    x0 = -1222664.0
+    dx =  3000.403
+    y0 =  5348219.0
+    dy = -3000.403
+
+    # Replace with your actual dimensions
+    ny, nx = 650, 1100 #data.shape   # e.g. cloud mask array
+
+    x = x0 + dx * np.arange(nx)
+    y = y0 + dy * np.arange(ny)
+
+    xx, yy = np.meshgrid(x, y)
+
+    # ------------------------------------------------------------------
+    # 3. Project to lon/lat
+    # ------------------------------------------------------------------
+    lon, lat = transformer.transform(xx, yy)
+    # handle missing value
+    lon = np.where(np.isnan(lon), 0., lon)
+    lat = np.where(np.isnan(lat), 0., lat)
+    return lat[100:600, 0:900], lon[100:600, 0:900]
 
 def read_SAF_obs(data_list, start_date, end_date, args):# is it the data_list from main? 
 
@@ -50,8 +96,6 @@ def read_SAF_obs(data_list, start_date, end_date, args):# is it the data_list fr
         datetime= read_SAF_date
         logging.info("reading inca at " + str(read_SAF_date))
 
-
-
         # i guess the original code was for accumulating the  precip amount? 
         '''if first:
             var_tmp = bO.bringSAF_netcdf(datestring)
@@ -64,15 +108,20 @@ def read_SAF_obs(data_list, start_date, end_date, args):# is it the data_list fr
         else:
             cma_data += bringSAF_netcdf(datetime)
 
-    lat, lon = SAF_grid()
-
+    
+    # TODO: fix this ad-hoc check!!
+    if cma_data.shape == (650, 1100):
+        lat, lon = SAF_grid_large()
+    else:
+        lat, lon = SAF_grid()
+    
     data_list.insert(0, {
         'conf': 'SAF',
         'type': 'obs',
         'name': 'SAF cma {datestring}',
         'lat': np.asarray(lat),
         'lon': np.asarray(lon),
-        'precip_data': cma_data
+        'precip_data': cma_data[100:600, 0:900]
     })
 
     return data_list # 
@@ -105,21 +154,18 @@ def read_SAF (file):
 
 
 def check_paths(date):
-    OBS = r"/mnt/d/Users/lovasz_v/cma_panelification"
-
-    obs_file_date = date - dt.timedelta(minutes=5)
-    obs_file_date_str = obs_file_date.strftime("%Y%m%d_%H%M")
-    yyyymmdd = obs_file_date.strftime("%Y%m%d")
-
-    for filename in os.listdir(OBS):
-
-        if filename.startswith(f"bMma{yyyymmdd}_"):
-            if filename.endswith(".nc"):
-
-                if filename.replace(".nc", "").endswith(obs_file_date_str):
-                    obs_file = os.path.join(OBS, filename)
-                    logger.info(f"File found: {obs_file}")
-                    return obs_file
-
-    logger.error(f"Did not find any output file in {OBS}")
+    date_str = date.strftime("%Y%m%dT%H")
+    date_str_m5m = (date - dt.timedelta(minutes=5)).strftime("%Y%m%d_%H%M")
+    obs_file_templates = [
+        f"/ment_arch2/pscheff/DEV_PAN/flowermapping-panelification/TEST_DATA/SAF/S_NWC_CMA_MSG3_Europe-VISIR_{date_str}0000Z.nc",
+        f"/mnt/d/Users/lovasz_v/cma_panelification/bMma{date_str_m5m}.nc"
+    ]
+    for oft in obs_file_templates:
+        logger.debug("Check for file {oft}...")
+        if os.path.isfile(oft):
+            return oft
+    
+    for oft in obs_file_templates:
+        logger.error(f" {oft} does not exist")
+    logger.error(f"Did not find OBS file in any of the paths")
     raise FileNotFoundError
