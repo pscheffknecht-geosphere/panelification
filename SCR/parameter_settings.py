@@ -41,6 +41,7 @@ def colorbar_label(args):
     'precip3': 'accumulated precipitation [mm]',
     'sunshine': 'sunshine duration [h]',
     'lightning': 'lightning strikes [km$^{-2}$]',
+
     'gusts': 'gust speed [m s$^{-1}$]',
     'hail': 'hail [??]',
     'cma' : 'Cloud cover'  if args.duration == 1 else 'Cloud Duration'
@@ -241,7 +242,11 @@ def gusts_cmap_and_levels(args):
     return levels, cmap, norm
 
 def cma_cmap_and_levels(args):
-    levels = [0., 0.5, 1., 1.5, 2.0, 3.0]
+    # levels = [0., 0.5, 1., 1.5, 2.0, 3.0]
+    levels = [x for x in range(args.duration + 1)]
+    #levels = [x for x in (args.duration + 1)]
+    
+    # increase with 1 hours, as long as the duration is 
     cmap = nclcmaps.cmap("MPL_GnBu")
     norm = nnorm(vmin=0., vmax=3.)
     return levels, cmap, norm
