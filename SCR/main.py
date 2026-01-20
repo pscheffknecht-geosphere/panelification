@@ -286,7 +286,12 @@ def main():
         data_list = newlist
     df_subdomain_details = scan_obs.get_interesting_subdomains(data_list[0], args)
     thresholds = parameter_settings.get_fss_thresholds(args)
-    windows = [10,20,30,40,60,80,100,120,140,160,180,200]
+    
+    if args.parameter =='cma':
+        windows = [3, 10, 30, 50, 100]
+    else:
+        windows = [10,20,30,40,60,80,100,120,140,160,180,200]
+
     for _, dom in df_subdomain_details.iterrows():
         subdomain_name = dom['name']
         if dom['score'] or dom['draw'] or args.save:
