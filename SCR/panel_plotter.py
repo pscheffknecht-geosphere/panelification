@@ -258,7 +258,7 @@ def draw_solo_colorbar(levels, cmap, norm, tmp_string, args):
     cb = mpl.colorbar.ColorbarBase(ax_rr, cmap=cmap, norm=norm, 
         orientation='horizontal', ticks=levels, extend='max')
     cb.cmap.set_bad('gray')
-    cb.set_label(parameter_settings.colorbar_label[args.parameter])
+    cb.set_label(parameter_settings.colorbar_label(args))
     plt.savefig(f"{PAN_DIR_TMP}/{tmp_string}/cbar.png")
 
 def draw_RGB_colorbars(tmp_string, args):

@@ -33,7 +33,8 @@ def title_part(args):
 
     
 # label for the color bar
-colorbar_label = {
+def colorbar_label(args):
+    cbl = {
     'precip': 'accumulated precipitation [mm]',
     'precip2': 'accumulated precipitation [mm]',
     'precip3': 'accumulated precipitation [mm]',
@@ -41,8 +42,10 @@ colorbar_label = {
     'lightning': 'lightning strikes [km$^{-2}$]',
     'gusts': 'gust speed [m s$^{-1}$]',
     'hail': 'hail [??]',
-    'cma' : 'Cloud cover'
-}
+    'cma' : 'Cloud cover' if args.duration == 1 else "Cloud Duration"
+    }
+    return cbl[args.parameter]
+
 
 # thresholds for the calculation of the FSS depending on the parameter
 def get_fss_thresholds(args):
@@ -236,9 +239,9 @@ def gusts_cmap_and_levels(args):
     return levels, cmap, norm
 
 def cma_cmap_and_levels(args):
-    levels = [0., 0.5, 1., 1.5, 2.0, 3.0]
-    cmap = nclcmaps.cmap("WhiteBlueGreenYellowRed")
-    norm = nnorm(vmin=0., vmax=3.)
+    levels = [x for x in range(args.duration + 1)] #[0., 0.5, 1., 1.5, 2.0, 3.0]
+    cmap = nclcmaps.cmap("MPL_YlGnBu")
+    norm = nnorm(vmin=0., vmax=args.duration)
     return levels, cmap, norm
 
 def sunshine_cmap_and_levels(args):
