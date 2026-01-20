@@ -118,7 +118,7 @@ def read_SAF_obs(data_list, start_date, end_date, args):# is it the data_list fr
     data_list.insert(0, {
         'conf': 'SAF',
         'type': 'obs',
-        'name': 'SAF cma {datestring}',
+        'name': 'SAF cma',
         'lat': np.asarray(lat),
         'lon': np.asarray(lon),
         'precip_data': cma_data[100:600, 0:900]
@@ -129,7 +129,7 @@ def read_SAF_obs(data_list, start_date, end_date, args):# is it the data_list fr
     
 
 def bringSAF_netcdf(date):
-    obs_file_path = check_paths(date) 
+    obs_file_path = check_paths(date)
     logger.info(f"reading saf data from {obs_file_path}")
     if not obs_file_path:
          return False 

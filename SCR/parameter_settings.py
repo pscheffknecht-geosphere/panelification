@@ -34,18 +34,32 @@ def title_part(args):
     
 # label for the color bar
 def colorbar_label(args):
+<<<<<<< HEAD
     cbl = {
+=======
+    
+    colorbar_labels= {
+>>>>>>> 5bcfde2a89722649a98176c5207a11c04b35daad
     'precip': 'accumulated precipitation [mm]',
     'precip2': 'accumulated precipitation [mm]',
     'precip3': 'accumulated precipitation [mm]',
     'sunshine': 'sunshine duration [h]',
     'lightning': 'lightning strikes [km$^{-2}$]',
+
     'gusts': 'gust speed [m s$^{-1}$]',
     'hail': 'hail [??]',
+<<<<<<< HEAD
     'cma' : 'Cloud cover' if args.duration == 1 else "Cloud Duration"
     }
     return cbl[args.parameter]
 
+=======
+    'cma' : 'Cloud cover'  if args.duration == 1 else 'Cloud Duration'
+    
+    }
+
+    return colorbar_labels[args.parameter]
+>>>>>>> 5bcfde2a89722649a98176c5207a11c04b35daad
 
 # thresholds for the calculation of the FSS depending on the parameter
 def get_fss_thresholds(args):
@@ -239,9 +253,19 @@ def gusts_cmap_and_levels(args):
     return levels, cmap, norm
 
 def cma_cmap_and_levels(args):
+<<<<<<< HEAD
     levels = [x for x in range(args.duration + 1)] #[0., 0.5, 1., 1.5, 2.0, 3.0]
     cmap = nclcmaps.cmap("MPL_YlGnBu")
     norm = nnorm(vmin=0., vmax=args.duration)
+=======
+    # levels = [0., 0.5, 1., 1.5, 2.0, 3.0]
+    levels = [x for x in range(args.duration + 1)]
+    #levels = [x for x in (args.duration + 1)]
+    
+    # increase with 1 hours, as long as the duration is 
+    cmap = nclcmaps.cmap("MPL_GnBu")
+    norm = nnorm(vmin=0., vmax=3.)
+>>>>>>> 5bcfde2a89722649a98176c5207a11c04b35daad
     return levels, cmap, norm
 
 def sunshine_cmap_and_levels(args):
