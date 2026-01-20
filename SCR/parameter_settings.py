@@ -150,9 +150,9 @@ def get_cma_ydict(args):
     cma_ydict = {}
     ii = 0
     for x in range(args.duration):
-        cma_ydict[ii] = f"{x:.1f}"
+        cma_ydict[ii] = f"{x+0.5:.1f}"
         ii += 1
-    cma_ydict[ii] = [99999]
+    cma_ydict[ii] = ""
     ii += 1
     for idx, s in enumerate(['25%', '50%', '75%', '90%', '95%']):
         cma_ydict[ii + idx] = s
