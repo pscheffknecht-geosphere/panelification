@@ -80,6 +80,7 @@ def make_fss_rank_plot_axes(ax, args):
     ax ............. axes object from pyplot.add_axes
     args ........... parsed command line arguments"""
     all_ticks = parameter_settings.get_axes_for_fss_rank_plot(args)
+    print(all_ticks)
     xticks = all_ticks['xticks']
     yticks = all_ticks['yticks']
     ax.set_xticks(xticks)
@@ -154,7 +155,11 @@ def add_fss_plot_new(ax, sim, rank_vmax, jj, args):
     rb_norm = bnorm(np.arange(-.22, .221, .04), ncolors=mpl.colormaps['RdBu'].N)
     cmapG = mpl.colormaps['Greens']
     cmapBR = mpl.colormaps['RdBu']
+    doing_percentile = False
     for yy in range(ny):
+        yaxis_value = sim["fssf"].index[yy]
+        if yaxis_value > 90000:
+            doing_percentile = True
         for xx in range(nx):
             xedge = -0.5 + np.array([xx+pad, xx+pad, xx+1-pad, xx+1-pad, xx+pad])
             yedge = -0.5 + np.array([yy+pad, yy+1-pad, yy+1-pad, yy+pad, yy+pad])
@@ -176,17 +181,17 @@ def add_fss_plot_new(ax, sim, rank_vmax, jj, args):
                 # ax.add_patch(circle)
             if sim['fss_ranks'][yy, xx] == 1: # and yy < 9: #only for bad but not nan
                 bias = sim['fss_overestimated'].to_numpy()[yy, xx]
-                if yy > 9:
+                if doing_percentile:
                     bias = 0 # workaround for bug
                 xedget, yedget = make_triangle(xx, yy, np.clip(-bias / 0.22, -1., 1.)) # <-- needs scaled bias to have .22 mapped to 1. for max triangle
                 col = cmapBR(rb_norm(bias)) # <-- needs no scaled bias because norm scales the interval to [-1, 1]
-            if yy == 9 or sim['fss_ranks'][yy, xx] == 0:
+            if yaxis_value > 90000 or sim['fss_ranks'][yy, xx] == 0:
                 ax.plot(xedge[[0, 2]], yedge[[0, 2]], 'gray', lw=0.5, zorder=999)
                 ax.plot(xedge[[1, 3]], yedge[[1, 3]], 'gray', lw=0.5, zorder=999)
                 # col = 'black' # fix red separation line for fiels that contain nans
             else:
                 ax.fill(xedge, yedge, facecolor=col, zorder=777)
-            if sim['fss_ranks'][yy, xx] == 1 and yy < 9: #only for bad but not nan
+            if sim['fss_ranks'][yy, xx] == 1 and not doing_percentile: #only for bad but not nan
                 ax.fill(xedget, yedget, facecolor='white', zorder=999)
 
 
