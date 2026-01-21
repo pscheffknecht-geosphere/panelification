@@ -3,6 +3,7 @@ import copy
 import os
 import pandas as pd
 import fss_functions
+import fss_cumsum
 import parameter_settings
 import csv
 
@@ -273,6 +274,10 @@ def calc_scores(sim, obs, args):
     windows=[10,20,30,40,60,80,100,120,140,160,180,200]
     ny, nx = sim["precip_data_resampled"].shape
     windows = prep_windows(windows, args.fss_calc_mode, nx, ny)
+    fss_calc_func = fss_cumsum.fss_cumsum_frame
+    if args.fss_method == 'legacy':
+        logger.info("FSS method is set to legacy, using old FFT approximation!")
+        fss_calc_func = fss_functions.fss_frame
     if sim['type'] == 'obs':
         sim['bias'] = 999
         sim['bias_real'] = 999
@@ -311,11 +316,11 @@ def calc_scores(sim, obs, args):
         mae = np.mean(np.abs(sim["precip_data_resampled"]-obs["precip_data_resampled"]))
         rms = np.sqrt(np.mean(np.square(sim["precip_data_resampled"]-obs["precip_data_resampled"])))
         corr = np.corrcoef(sim["precip_data_resampled"].flatten(),obs["precip_data_resampled"].flatten())[0,1]
-        fss_num, fss_den, fss, ovest = fss_functions.fss_frame(
+        fss_num, fss_den, fss, ovest = fss_calc_func(
             sim["precip_data_resampled"],
             obs["precip_data_resampled"],
             windows,levels,percentiles=False, mode=args.fss_calc_mode.replace("_adaptive", ""))
-        fssp_num, fssp_den, fssp, ovestp = fss_functions.fss_frame(
+        fssp_num, fssp_den, fssp, ovestp = fss_calc_func(
             np.copy(sim["precip_data_resampled"]), # circumvent numpy issue #21524
             np.copy(obs["precip_data_resampled"]), # circumvent numpy issue #21524
             windows,percs,percentiles=True, mode=args.fss_calc_mode.replace("_adaptive", "")) 
@@ -349,8 +354,12 @@ def fss_d90(rrm, rro, args):
     equals 0.5. Values are linearly interpolated between array entries.
     Missing Values / Fails return 9999.
     """
+    fss_calc_func = fss_cumsum.fss_cumsum_frame
+    if args.fss_method == 'legacy':
+        logger.info("FSS method is set to legacy, using old FFT approximation for D90!")
+        fss_calc_func = fss_functions.fss_frame
     # consistency check
-    windows = [1, 3, 5, 7, 11, 21, 31, 41, 51, 61, 81, 101, 121, 141, 181, 251, 351, 501, 701]
+    windows = [3, 5, 7, 11, 21, 31, 41, 51, 61, 81, 101, 121, 141, 181, 251, 351, 501, 701]
     windows_2d = prep_windows(windows, args.mode, *rrm.shape)
     levels = [0.5]
     _rro = np.where(rro > np.percentile(np.copy(rro), 90), 1, 0)
@@ -362,7 +371,7 @@ def fss_d90(rrm, rro, args):
         logger.warning("No precipitation in model array, returning no d90!")
         return np.nan
     overlap = float(np.sum(_rro*rrm))/float(np.sum(rrm))
-    _, _, _arr, _ = fss_functions.fss_frame(rro_s, rrm_s, windows_2d, levels, args.fss_calc_mode)
+    _, _, _arr, _ = fss_calc_func(rro_s, rrm_s, windows_2d, levels, mode=args.fss_calc_mode)
     arr = _arr.values.flatten()
     for ii in range(1,len(arr)):
         if arr[ii] - arr[ii-1] < 0:

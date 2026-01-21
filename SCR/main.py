@@ -120,6 +120,7 @@ def parse_arguments():
         help = 'save full fields to pickle files')
     parser.add_argument('--fss_mode', type=str, default='ranks')
     parser.add_argument('--fss_calc_mode', type=str, default='same')
+    parser.add_argument('--fss_method', type=str, default='default')
     parser.add_argument('--rank_by_fss_metric',type=str, default='fss_condensed_weighted',
         help = """Select score used when ranking simulation by their FSS performance:
         fss_total_abs_score .................. use the old FSS Rank Score
