@@ -139,10 +139,13 @@ class ModelConfiguration:
             setattr(self, anam, cmc.get(anam, default_value))
             logger.debug(f"{self.experiment_name}: Setting {anam} to {getattr(self, anam)}")
         # is the simulation part of an ensemble or lagged ensemble?
-        if self.ensemble and not (args.merge_ens_init_times or self.lagged_ensemble):
+        if self.ensemble and not (args.merge_ens_init_times):
             init_str = self.init.strftime("%Y%m%d_%H")
             self.ensemble += f"_{init_str}"
             logger.debug(f"Treating different init times as different ensembles, changed to {self.ensemble}")
+        if self.lagged_ensemble:
+            self.ensemble = self.experiment_name + "_lagged"
+            logger.debug(f"{self.experiment_name} {self.init} is part of ensemble {self.ensemble}")
         # are we on ATOS and using MARS?
         self.on_mars = self.__pick_value_by_parameter(cmc["on_mars"]) if "on_mars" in cmc.keys() else False
         self.ecfs_path_template = self.__pick_value_by_parameter(cmc["ecfs_path_template"]) if "ecfs_path_template" in cmc else None
