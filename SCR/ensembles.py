@@ -65,7 +65,7 @@ class Ensemble:
         if self.fss_method == "legacy":
             self.pFSS = fss_functions.fss_frame_eps(self.precip_data_resampled, self.obs_data_resampled, self.windows, self.thresholds)
         else:
-            self.pFSS = fss_cumsum.fss_cumsum_frame_eps(self.precip_data_resampled, self.obs_data_resampled, self.windows, self.thresholds, eps=True)
+            self.pFSS = fss_cumsum.fss_cumsum_frame(self.precip_data_resampled, self.obs_data_resampled, self.windows, self.thresholds, eps=True)
         logger.info(f"  Calculating emFSS for {self.name}")
         if self.fss_method == "legacy":
             self.emFSS = fss_functions.fss_frame(np.mean(self.precip_data_resampled, axis=0), self.obs_data_resampled, self.windows, self.thresholds)
@@ -87,7 +87,7 @@ class Ensemble:
             self.thresholds
             ) for combo in combos)
         else:
-            self.dFSS = Parallel(n_jobs=16, backend='threading')(delayed(fss_cumsum.fss_raw)(
+            self.dFSS = Parallel(n_jobs=16, backend='threading')(delayed(fss_cumsum.fss_cumsum_frame)(
             self.precip_data_resampled[combo[0]], 
             self.precip_data_resampled[combo[1]], 
             self.windows, 
