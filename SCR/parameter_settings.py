@@ -61,6 +61,28 @@ def get_fss_thresholds(args):
     }
     return thresholds_for_fss[args.parameter]
 
+def get_windows(args):
+
+    if len(args.d_windows) ==0:
+
+
+        if args.parameter=='cma':
+
+            windows = [5,10,30,50,100]
+    
+        else:
+    # 
+            windows = [10,20,30,40,60,80,100,120,140,160,180,200]
+
+    else:
+       
+        windows = args.d_windows
+
+    return windows 
+
+
+
+
 # customize the tick labels for each parameter
 def make_fss_axis_sunshine(args):
     ydict = {}
@@ -75,6 +97,8 @@ def make_fss_axis_sunshine(args):
 
 def get_axes_for_fss_rank_plot(args):
     cma_ydict = get_cma_ydict(args)
+    cma_xdict = get_cma_xdict(args)
+    
     ax_ticks = {
     'precip' : {
         'xticks' : range(12),
@@ -87,12 +111,17 @@ def get_axes_for_fss_rank_plot(args):
             8 : '140', 9 : '160', 10 : '180', 11 : '200'}
         },
     'cma' : {
-        'xticks' : range(12),
+        'xticks' : range(len(cma_xdict)),
         'yticks' : range(len(cma_ydict)),
         'ydict': cma_ydict,
-        'xdict' : {
-            0 : '10', 1 : '20', 2 : '30', 3 : '40', 4 : '60', 5 : '80', 6 : '100', 7 : '120', 
-            8 : '140', 9 : '160', 10 : '180', 11 : '200'}
+        
+        'xdict' : cma_xdict
+        
+        # {
+        #      0 : '10', 1 : '20', 2 : '30', 3 : '40', 4 : '60', 5 : '80', 6 : '100', 7 : '120', 
+        #      8 : '140', 9 : '160', 10 : '180', 11 : '200'}
+
+
         },
     'precip2' : {
         'xticks' : range(12),
@@ -157,6 +186,18 @@ def get_cma_ydict(args):
     for idx, s in enumerate(['25%', '50%', '75%', '90%', '95%']):
         cma_ydict[ii + idx] = s
     return cma_ydict
+
+def get_cma_xdict(args):
+    windows = get_windows(args)
+
+    cma_xdict = {}
+    ii = 0
+    for index, value in enumerate(windows):
+        cma_xdict[index] = value
+
+    return cma_xdict
+
+
 
 
 # RGB tuples for custom color maps

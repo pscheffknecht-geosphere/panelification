@@ -141,6 +141,8 @@ def parse_arguments():
         if rows x columns is larger than needed, fewer lines will be filled""")
     # parser.add_argument('--fast', nargs='?', default=False, const=True, type=str2bool,
     #     help = 'faster drawing using pcolormesh')
+
+    parser.add_argument('--d_windows', nargs='+', default=[], type=int, help='define your all window levels, overwriting the ones depending on parameter')
     parser.add_argument('--logfile', type=str, default=None, help='Name of logfile')
     parser.add_argument('--loglevel', type=str, default='info',
         help = """Logging level:
@@ -286,13 +288,7 @@ def main():
         data_list = newlist
     df_subdomain_details = scan_obs.get_interesting_subdomains(data_list[0], args)
     thresholds = parameter_settings.get_fss_thresholds(args)
-    
-    if args.parameter =='cma':
-        windows = [3, 10, 30, 50, 100]
-    else if args.parameter =='ct':
-        windows = [3, 10, 30, 50, 100]
-    else:
-        windows = [10,20,30,40,60,80,100,120,140,160,180,200]
+    windows = parameter_settings.get_windows(args)
 
     for _, dom in df_subdomain_details.iterrows():
         subdomain_name = dom['name']
@@ -319,7 +315,7 @@ def main():
             if args.ensemble_scores:
                 logging.info("Plotting pFSS for ensembles")
                 levels = parameter_settings.get_fss_thresholds(args)
-                windows=[10,20,30,40,60,80,100,120,140,160,180,200]
+                windows= parameter_settings.get_windows(args)
                 panel_plotter.ens_fss_plot(ensemble_data, windows, levels, subdomain_name, args)
             plot_start = datetime.now()
             outfilename = panel_plotter.draw_panels(data_list, start_date, end_date, subdomain_name, args) #, mode=args.mode)
