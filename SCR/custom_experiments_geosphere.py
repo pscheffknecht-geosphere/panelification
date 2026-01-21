@@ -26,7 +26,8 @@ experiment_configurations = {
                               'hail': 1000.,
                               'else': 1.},
         "color"            : 'blue',
-        "grib_handles"     : [{"indicatorOfParameter": 197}, {"indicatorOfParameter": 198}, {"indicatorOfParameter": 199}]
+        "grib_handles"     : [{"indicatorOfParameter": 197}, {"indicatorOfParameter": 198}, {"indicatorOfParameter": 199}],
+        "lagged_ensemble"  : True
         },
     "aromeruc": {
         "base_experiment"  : "arome",
@@ -178,7 +179,7 @@ experiment_configurations = {
         "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_%H+%LLLL.grb",
                               "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_00_%H+%LLLL.grb2",
                               "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_%H+%LLLL.grb2"],
-        "color"            : "dodgerblue"
+        "color"            : "dodgerblue",
     },
     "claef1k-mean": {
         "base_experiment"  : "claef1k-control",
@@ -193,102 +194,119 @@ experiment_configurations = {
     },
     "claef1k-m01": {
         "base_experiment"  : "claef1k-control",
+        "ensemble"         : "claef1k",
         "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_01_%H+%LLLL.grb",
                               "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_01_%H+%LLLL.grb2",
                               "/ment_arch2/aneduncheran/%Y%m%d_%H/MEM_01/CLAEF01+%LLLL.grb"]
     },
     "claef1k-m02": {
         "base_experiment"  : "claef1k-control",
+        "ensemble"         : "claef1k",
         "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_02_%H+%LLLL.grb",
                               "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_02_%H+%LLLL.grb2",
                               "/ment_arch2/aneduncheran/%Y%m%d_%H/MEM_02/CLAEF02+%LLLL.grb"]
     },
     "claef1k-m03": {
         "base_experiment"  : "claef1k-control",
+        "ensemble"         : "claef1k",
         "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_03_%H+%LLLL.grb",
                               "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_03_%H+%LLLL.grb2",
                               "/ment_arch2/aneduncheran/%Y%m%d_%H/MEM_03/CLAEF03+%LLLL.grb"]
     },
     "claef1k-m04": {
         "base_experiment"  : "claef1k-control",
+        "ensemble"         : "claef1k",
         "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_04_%H+%LLLL.grb",
                               "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_04_%H+%LLLL.grb2",
                               "/ment_arch2/aneduncheran/%Y%m%d_%H/MEM_04/CLAEF04+%LLLL.grb"]
     },
     "claef1k-m05": {
         "base_experiment"  : "claef1k-control",
+        "ensemble"         : "claef1k",
         "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_05_%H+%LLLL.grb",
                               "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_05_%H+%LLLL.grb2",
                               "/ment_arch2/aneduncheran/%Y%m%d_%H/MEM_05/CLAEF05+%LLLL.grb"]
     },
     "claef1k-m06": {
         "base_experiment"  : "claef1k-control",
+        "ensemble"         : "claef1k",
         "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_06_%H+%LLLL.grb",
                               "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_06_%H+%LLLL.grb2",
                               "/ment_arch2/aneduncheran/%Y%m%d_%H/MEM_06/CLAEF06+%LLLL.grb"]
     },
     "claef1k-m07": {
         "base_experiment"  : "claef1k-control",
+        "ensemble"         : "claef1k",
         "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_07_%H+%LLLL.grb",
                               "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_07_%H+%LLLL.grb2",
                               "/ment_arch2/aneduncheran/%Y%m%d_%H/MEM_07/CLAEF07+%LLLL.grb"]
     },
     "claef1k-m08": {
         "base_experiment"  : "claef1k-control",
+        "ensemble"         : "claef1k",
         "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_08_%H+%LLLL.grb",
                               "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_08_%H+%LLLL.grb2",
                               "/ment_arch2/aneduncheran/%Y%m%d_%H/MEM_08/CLAEF08+%LLLL.grb"]
     },
     "claef1k-m09": {
         "base_experiment"  : "claef1k-control",
+        "ensemble"         : "claef1k",
         "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_09_%H+%LLLL.grb",
                               "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_09_%H+%LLLL.grb2",
                               "/ment_arch2/aneduncheran/%Y%m%d_%H/MEM_09/CLAEF09+%LLLL.grb"]
     },
     "claef1k-m10": {
         "base_experiment"  : "claef1k-control",
+        "ensemble"         : "claef1k",
         "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_10_%H+%LLLL.grb",
                               "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_10_%H+%LLLL.grb2",
                               "/ment_arch2/aneduncheran/%Y%m%d_%H/MEM_10/CLAEF10+%LLLL.grb"]
     },
     "claef1k-m11": {
         "base_experiment"  : "claef1k-control",
+        "ensemble"         : "claef1k",
         "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_11_%H+%LLLL.grb",
                               "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_11_%H+%LLLL.grb2",
                               "/ment_arch2/aneduncheran/%Y%m%d_%H/MEM_11/CLAEF11+%LLLL.grb"]
     },
     "claef1k-m12": {
         "base_experiment"  : "claef1k-control",
+        "ensemble"         : "claef1k",
         "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_12_%H+%LLLL.grb",
                               "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_12_%H+%LLLL.grb2",
                               "/ment_arch2/aneduncheran/%Y%m%d_%H/MEM_12/CLAEF12+%LLLL.grb"]
     },
     "claef1k-m13": {
         "base_experiment"  : "claef1k-control",
+        "ensemble"         : "claef1k",
         "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_13_%H+%LLLL.grb",
                               "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_13_%H+%LLLL.grb2",
                               "/ment_arch2/aneduncheran/%Y%m%d_%H/MEM_13/CLAEF13+%LLLL.grb"]
     },
     "claef1k-m14": {
         "base_experiment"  : "claef1k-control",
+        "ensemble"         : "claef1k",
         "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_14_%H+%LLLL.grb",
                               "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_14_%H+%LLLL.grb2",
                               "/ment_arch2/aneduncheran/%Y%m%d_%H/MEM_14/CLAEF14+%LLLL.grb"]
     },
     "claef1k-m15": {
         "base_experiment"  : "claef1k-control",
+        "ensemble"         : "claef1k",
         "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_15_%H+%LLLL.grb",
                               "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_15_%H+%LLLL.grb2",
                               "/ment_arch2/aneduncheran/%Y%m%d_%H/MEM_15/CLAEF15+%LLLL.grb"]
     },
     "claef1k-m16": {
         "base_experiment"  : "claef1k-control",
+        "ensemble"         : "claef1k",
         "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_16_%H+%LLLL.grb",
                               "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_16_%H+%LLLL.grb2",
                               "/ment_arch2/aneduncheran/%Y%m%d_%H/MEM_16/CLAEF16+%LLLL.grb"]
     },
     "claef1k-m17": {
         "base_experiment"  : "claef1k-control",
+        "ensemble"         : "claef1k",
         "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_17_%H+%LLLL.grb",
                               "/ment_arch2/aneduncheran/%Y%m%d_%H/MEM_17/CLAEF17+%LLLL.grb",
                               "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_17_%H+%LLLL.grb2"]

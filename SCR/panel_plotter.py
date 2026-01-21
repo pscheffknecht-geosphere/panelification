@@ -550,8 +550,10 @@ def ens_fss_diff(ax, fss_data, name1, name2, windows, levels):
 def get_value_range(ens_fss_data):
     n_members = len(ens_fss_data)
     val = -9999.
+    print(n_members)
     for jj in range(1, n_members):
         for ii in range(0, n_members-1):
+            print(ii, jj)
             if ii < jj:
                 print(ens_fss_data[ii].pFSS[2])
                 print(ens_fss_data[jj].pFSS[2])
@@ -564,7 +566,10 @@ def get_value_range(ens_fss_data):
 def ens_fss_plot(ens_data, windows, levels, verification_subdomain, args):
     n_members = len(ens_data)
     fig, ax = plt.subplots(n_members+1, n_members+1, figsize=(4 * n_members, 4 * n_members), sharex=True, sharey=True, dpi=args.dpi)
-    vmax = get_value_range(ens_data)
+    #if n_members < 2:
+    #    logger.warning("Ensemble data has fewer than 2 entris, no comparison plot will be generated.")
+    #    return None
+    vmax = 1. if n_members < 2 else get_value_range(ens_data)
 
     levels1 = np.arange(0., 1.01, 0.05)
     step = 0.001
@@ -617,12 +622,13 @@ def ens_fss_plot(ens_data, windows, levels, verification_subdomain, args):
     cax2 = fig.add_axes([0.55, 0.05, 0.35, 0.01])
 
     cbar1 = plt.colorbar(c1, cax=cax1, orientation="horizontal", label="pFSS") #, extend="min")
-    cbar2 = plt.colorbar(c2, cax=cax2, orientation="horizontal", label="pFSS difference") #, extend='both')
-    plt.draw()  # Force rendering so labels exist
-    tick_labels = [label.get_text() for label in cbar2.ax.get_xticklabels()]
-    tick_positions = cbar2.ax.get_xticks()
-    cbar2.ax.set_xticks(tick_positions)
-    cbar2.ax.set_xticklabels(tick_labels, rotation=30)
+    if n_members > 1:
+        cbar2 = plt.colorbar(c2, cax=cax2, orientation="horizontal", label="pFSS difference") #, extend='both')
+        plt.draw()  # Force rendering so labels exist
+        tick_labels = [label.get_text() for label in cbar2.ax.get_xticklabels()]
+        tick_positions = cbar2.ax.get_xticks()
+        cbar2.ax.set_xticks(tick_positions)
+        cbar2.ax.set_xticklabels(tick_labels, rotation=30)
     
     start_date_str = dt.datetime.strptime(args.start, "%Y%m%d%H").strftime("%Y%m%d_%H")
     outfilename = f"{PAN_DIR_PLOTS}/{args.name}_{args.parameter}_pFSS_{start_date_str}UTC_acc_{args.duration}_{verification_subdomain}.png"
