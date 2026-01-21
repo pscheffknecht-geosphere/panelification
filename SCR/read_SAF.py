@@ -76,7 +76,7 @@ def SAF_grid_large(): # for Geosphere
     # handle missing value
     lon = np.where(np.isnan(lon), 0., lon)
     lat = np.where(np.isnan(lat), 0., lat)
-    return lat[100:600, 0:900], lon[100:600, 0:900]
+    return lat, lon
 
 def read_SAF_obs(data_list, start_date, end_date, args):# is it the data_list from main? 
 
@@ -100,15 +100,18 @@ def read_SAF_obs(data_list, start_date, end_date, args):# is it the data_list fr
         else:
             var_tmp = var_tmp + bO.bringSAF_netcdf(datestring)''' # cma will be for a fixed UTC, no accumulation. But we'll verify multiple UTCs. 
         if first: 
-            cma_data = bringSAF_netcdf(datetime)
+            cma_data = bringSAF_netcdf(datetime, args)
             first = False
         else:
-            cma_data += bringSAF_netcdf(datetime)
+            cma_data += bringSAF_netcdf(datetime, args)
 
     
     # TODO: fix this ad-hoc check!!
     if cma_data.shape == (650, 1100):
         lat, lon = SAF_grid_large()
+        lat = lat[100:600, 0:900]
+        lon = lon[100:600, 0:900]
+        cma_data = cma_data[100:600, 0:900]
     else:
         lat, lon = SAF_grid()
     
@@ -118,7 +121,7 @@ def read_SAF_obs(data_list, start_date, end_date, args):# is it the data_list fr
         'name': 'SAF cma',
         'lat': np.asarray(lat),
         'lon': np.asarray(lon),
-        'precip_data': cma_data[100:600, 0:900]
+        'precip_data': cma_data
     })
 
     return data_list # 
@@ -136,20 +139,20 @@ def read_CTSAF(file):
 
 
 
-def bring_SAF_CT_netcdf(date):
-# should be edited 
+# def bring_SAF_CT_netcdf(date, args):
+# # should be edited 
 
-    bs_file_path = check_paths(date)
-    logger.info(f"reading saf data from {obs_file_path}")
-    if not obs_file_path:
-         return False 
-    try:
-        RR = read_CTSAF(obs_file_path)  #
-    except:
-        logging.error(f"Failed to read file {obs_file_path}")
-        raise
-        return False
-    return RR
+#     bs_file_path = check_paths(date, args)
+#     logger.info(f"reading saf data from {obs_file_path}")
+#     if not obs_file_path:
+#          return False 
+#     try:
+#         RR = read_CTSAF(obs_file_path)  #
+#     except:
+#         logging.error(f"Failed to read file {obs_file_path}")
+#         raise
+#         return False
+#     return RR
 
 
 
@@ -189,15 +192,18 @@ def read_CT_SAF_obs(data_list, start_date, end_date, args):
         else:
             var_tmp = var_tmp + bO.bringSAF_netcdf(datestring)''' # cma will be for a fixed UTC, no accumulation. But we'll verify multiple UTCs. 
         if first: 
-            cma_data = bringSAF_netcdf(datetime)
+            cma_data = bringSAF_netcdf(datetime, args)
             first = False
         else:
-            cma_data += bringSAF_netcdf(datetime)
+            cma_data += bringSAF_netcdf(datetime, args)
 
     
     # TODO: fix this ad-hoc check!!
     if cma_data.shape == (650, 1100):
         lat, lon = SAF_grid_large()
+        lat = lat[100:600, 0:900]
+        lon = lon[100:600, 0:900]
+        cma_data = cma_data[100:600, 0:900]
     else:
         lat, lon = SAF_grid()
     
@@ -207,7 +213,7 @@ def read_CT_SAF_obs(data_list, start_date, end_date, args):
         'name': 'SAF cma',
         'lat': np.asarray(lat),
         'lon': np.asarray(lon),
-        'precip_data': cma_data[100:600, 0:900]
+        'precip_data': cma_data
     })
 
     return data_list # 
@@ -225,8 +231,8 @@ def read_CT_SAF_obs(data_list, start_date, end_date, args):
 
 
 
-def bringSAF_netcdf(date):
-    obs_file_path = check_paths(date)
+def bringSAF_netcdf(date, args):
+    obs_file_path = check_paths(date, args)
     logger.info(f"reading saf data from {obs_file_path}")
     if not obs_file_path:
          return False 
@@ -259,10 +265,10 @@ def check_paths(date, args):
         obs_file_templates = [
             f"/ment_arch2/pscheff/DEV_PAN/flowermapping-panelification/TEST_DATA/SAF/S_NWC_CMA_MSG3_Europe-VISIR_{date_str}0000Z.nc",
             f"/mnt/d/Users/lovasz_v/cma_panelification/bMma{date_str_m5m}.nc"
-
-    if args.parameter =='ct':
+        ]
+    #if args.parameter =='ct':
             # add Cloud Type data folder 
-    ]
+    
     #change the path to CDS6 when in operational use at HungaroMEt 
     for oft in obs_file_templates:
         logger.debug("Check for file {oft}...")
