@@ -8,9 +8,48 @@ import logging
 logger = logging.getLogger(__name__)
 
 def compute_integral_table(field):
-    return field.cumsum(1).cumsum(0)
+    if field.ndim == 2:
+        return field.cumsum(1).cumsum(0)
+    elif field.ndim == 3:
+        return field.cumsum(2).cumsum(1)
+    else:
+        logger.critical(f"FSS calculation received a {field.ndim}D array, only 2D and 3D is supported! Aborting...")
+        exit(1)
 
 def integral_filter(field, n):
+    """
+    Fast summed area table version of the sliding accumulator.
+    :param field: nd-array of binary hits/misses (2D or 3D).
+    :param n: window size.
+    """
+    w = n // 2
+    if w < 1.:
+        return field
+    
+    # Get the shape of the last two dimensions
+    rows, cols = field.shape[-2], field.shape[-1]
+    
+    r, c = np.mgrid[0:rows, 0:cols]
+    r = r.astype(int)
+    c = c.astype(int)
+    w = int(w)
+    
+    r0, c0 = (np.clip(r - w, 0, rows - 1),
+              np.clip(c - w, 0, cols - 1))
+    r1, c1 = (np.clip(r + w, 0, rows - 1),
+              np.clip(c + w, 0, cols - 1))
+    
+    integral_table = np.zeros(field.shape) #, dtype=np.int64)
+    
+    # Use ellipsis to handle any leading dimensions
+    integral_table += field[..., r1, c1]
+    integral_table += field[..., r0, c0]
+    integral_table -= field[..., r0, c1]
+    integral_table -= field[..., r1, c0]
+    
+    return integral_table
+
+def integral_filter_old(field, n):
     """
     Fast summed area table version of the sliding accumulator.
     :param field: nd-array of binary hits/misses.
@@ -39,6 +78,7 @@ def integral_filter(field, n):
     return integral_table
 
 
+
 def fss(fcst, obs, window, fcst_cache, obs_cache, threshold_mode="over"):
     """
     Compute the fraction skill score using summed area tables.
@@ -60,6 +100,11 @@ def fss(fcst, obs, window, fcst_cache, obs_cache, threshold_mode="over"):
         fhat = integral_filter(fcst_cache, window)
         ohat = integral_filter(obs_cache, window)
 
+    w = window // 2
+    inv_window_area = 1. / (2. * w + 1.) ** 2
+    fhat = fhat * inv_window_area
+    ohat = ohat * inv_window_area
+    
     num = np.nanmean(np.power(fhat - ohat, 2))
     denom = np.nanmean(np.power(fhat, 2) + np.power(ohat, 2))
     with np.errstate(divide='ignore', invalid='ignore'):
@@ -99,35 +144,77 @@ def fss_threshold(fcst, obs, t1, t2, windows, percentiles=False, threshold_mode=
         ovest[jj] = (np.sum(fcst > t1) - np.sum(obs > t1)) / fcst.size
     return [num_t, den_t, fss_t, ovest]
     
-def fss_cumsum_parallel(fcst, obs, thresholds, windows, percentiles=False, threshold_mode="over", tolerance=0.1):
+
+def fss_threshold_eps(fcst, obs, t1, t2, windows, percentiles=False, threshold_mode="over", tolerance=0.1):
+    assert fcst.ndim == 3, "eFSS calculation requires Forecast to be a 3D array, but it is {fcst.ndim}D with shape {fcst.shape}"
+    num_t = np.zeros(windows.shape)
+    den_t = np.zeros(windows.shape)
+    fss_t = np.zeros(windows.shape)
+    ovest = np.zeros(windows.shape)
+    t1o = np.percentile(obs, t1) if percentiles else t1
+    t1f = np.percentile(fcst, t1) if percentiles else t1
+    if percentiles:
+        if t2:
+            t2o = np.percentile(obs, t2) if percentiles else t2
+            t2f = np.percentile(fcst, t2) if percentiles else t2
+    
+    if threshold_mode == "over":
+        obs_bin = compute_integral_table((obs > t1o).astype(int))
+        mod_bin = compute_integral_table(np.mean(fcst > t1f, axis=0))
+    elif threshold_mode == "under":
+        obs_bin = compute_integral_table((obs <= t1o).astype(int))
+        mod_bin = compute_integral_table(np.mean(fcst <= t1f, axis=0))
+    elif threshold_mode == "between":
+        obs_bin = compute_integral_table(((obs > t1o) & (obs <= t2o)).astype(int))
+        mod_bin = compute_integral_table(np.mean((fcst > t1f) & (fcst <= t2f), axis=0))
+    elif threshold_mode == "tolerance":
+        obs_bin = compute_integral_table(
+            ((obs > (1.-tolerance) * t1o) & (obs <= (1.+tolerance)*t1o)).astype(int))
+        mod_bin = compute_integral_table(
+            np.mean((fcst > (1.-tolerance) * t1f) & (fcst <= (1.+tolerance)*t1o), axis=0))
+    for jj, window in enumerate(windows):
+        num_t[jj], den_t[jj], fss_t[jj] = fss(fcst, obs, window, 
+                                                fcst_cache=mod_bin, obs_cache=obs_bin, threshold_mode=threshold_mode)
+        ovest[jj] = (np.sum(fcst > t1) - np.sum(obs > t1)) / fcst.size
+    return [num_t, den_t, fss_t, ovest]
+    
+
+def fss_cumsum_parallel(fcst, obs, thresholds, windows, percentiles=False, threshold_mode="over", tolerance=0.1,
+                       eps=False):
     if not isinstance(thresholds, np.ndarray):
         thresholds = np.array(thresholds)
     if not isinstance(windows, np.ndarray):
         windows = np.array(windows)
+    use_fss_threshold_func = fss_threshold_eps if eps else fss_threshold
     ret = None
     if threshold_mode == "between":
         thresholds = np.insert(thresholds, 0, -1.) # insert -1 to retain zero values as OK
-        ret = Parallel(n_jobs=1)(delayed(fss_threshold)(
-            fcst, obs, thresholds[ii], thresholds[ii+1], windows, percentiles=percentiles, threshold_mode=threshold_mode) for ii in range(thresholds.size-1))
+        ret = Parallel(n_jobs=1)(delayed(use_fss_threshold_func)(
+            fcst, obs, thresholds[ii], thresholds[ii+1], windows, percentiles=percentiles, 
+            threshold_mode=threshold_mode) for ii in range(thresholds.size-1))
     elif threshold_mode == "over" or threshold_mode == "under" or threshold_mode == "tolerance":
-        ret = Parallel(n_jobs=1)(delayed(fss_threshold)(
-            fcst, obs, t, None, windows, percentiles=percentiles, threshold_mode=threshold_mode, tolerance=tolerance) for t in thresholds)
+        ret = Parallel(n_jobs=1)(delayed(use_fss_threshold_func)(
+            fcst, obs, t, None, windows, percentiles=percentiles, threshold_mode=threshold_mode, 
+            tolerance=tolerance) for t in thresholds)
     ret_arr = np.swapaxes(np.array(ret), 0, 1)
     return ret_arr
 
 def fss_cumsum_frame(fcst, obs, windows, thresholds, percentiles=False, threshold_mode="over", tolerance=0.1,
-                    mode=None):
+                    mode=None, eps=False, raw=False):
     if mode:
         logger.warning(f"fss_mode was set to {mode}, this is ignored unless fss_method is set to legacy!")
     # adjust windows from legacy format:
     windows = [w[0] for w in windows]
-    ret_arr = fss_cumsum_parallel(fcst, obs, thresholds, windows, percentiles=percentiles, threshold_mode="over", tolerance=tolerance)
-    return (pd.DataFrame(ret_arr[0], index=thresholds, columns=windows),
-            pd.DataFrame(ret_arr[1], index=thresholds, columns=windows),
-            pd.DataFrame(ret_arr[2], index=thresholds, columns=windows),
-            pd.DataFrame(ret_arr[3], index=thresholds, columns=windows))
+    ret_arr = fss_cumsum_parallel(fcst, obs, thresholds, windows, percentiles=percentiles, 
+                                  threshold_mode="over", tolerance=tolerance, eps=eps)
+    if raw:
+        return ret_arr[2]
+    else:
+        return (pd.DataFrame(ret_arr[0], index=thresholds, columns=windows),
+                pd.DataFrame(ret_arr[1], index=thresholds, columns=windows),
+                pd.DataFrame(ret_arr[2], index=thresholds, columns=windows),
+                pd.DataFrame(ret_arr[3], index=thresholds, columns=windows))
     
-
 
 ### Randomized thresholds and windows
 # pseudo-random 2D vlaues with good coverage and non-fixed smaple count
