@@ -9,6 +9,7 @@ import datetime as dt
 from misc import loop_datetime
 from datetime import timedelta
 from pyproj import CRS, Transformer
+import regions
 
 
 import logging
@@ -79,244 +80,99 @@ def lonlat_from_nwc_geos(
     # --- Transform ---
     lon, lat = transformer.transform(xx, yy)
 
-    return lon, lat
-
-def SAF_grid():
-    # HungaroMet --> use this 2D array instead of the original flattened array 
-    nc_path = (r"../TEST_DATA/SAFcoord/fixed_SAFcoord.nc")
-    with Dataset(nc_path, 'r') as ds:
-        lat_SAF = ds.variables['lat'][:]
-        lon_SAF = ds.variables['lon'][:]
-  
-
-
-    return lat_SAF,lon_SAF
-
-
-def SAF_grid_large(): # for Geosphere 
-    # ------------------------------------------------------------------
-    # 1. Define projection from global attributes
-    # ------------------------------------------------------------------
-    crs_geos = CRS.from_proj4(
-        "+proj=geos "
-        "+a=6378137.0 "
-        "+b=6356752.3 "
-        "+lon_0=0.0 "
-        "+h=35785863.0 "
-        "+sweep=y"
-    )
-
-    crs_ll = CRS.from_epsg(4326)
-
-    transformer = Transformer.from_crs(
-        crs_geos, crs_ll, always_xy=True
-    )
-
-    # ------------------------------------------------------------------
-    # 2. Reconstruct x/y grid from GDAL geotransform
-    # ------------------------------------------------------------------
-    # gdal_geotransform_table:
-    # (x0, dx, rx, y0, ry, dy)
-    x0 = -1222664.0
-    dx =  3000.403
-    y0 =  5348219.0
-    dy = -3000.403
-
-    # Replace with your actual dimensions
-    ny, nx = 650, 1100 #data.shape   # e.g. cloud mask array
-
-    x = x0 + dx * np.arange(nx)
-    y = y0 + dy * np.arange(ny)
-
-    xx, yy = np.meshgrid(x, y)
-
-    # ------------------------------------------------------------------
-    # 3. Project to lon/lat
-    # ------------------------------------------------------------------
-    lon, lat = transformer.transform(xx, yy)
-    # handle missing value
-    lon = np.where(np.isnan(lon), 0., lon)
-    lat = np.where(np.isnan(lat), 0., lat)
     return lat, lon
 
 def read_SAF_obs(data_list, start_date, end_date, args):# is it the data_list from main? 
-
+    read_dt = dt.timedelta(hours=1) #we have SAF cma image in every hour 
+    dtype = float # we do not know which data type the SAF cma data will be stored, so we use float
     first = True
-    if 'cma' in args.parameter: #  
-        read_dt = dt.timedelta(hours=1) #we have SAF cma image in every hour 
-        dtype = np.int16
+    read_time = start_date
 
-       # relevant bring and checkpath functions is also  modified in the bring_obs library.
-    
-       
-    first = True
-    for read_SAF_date in loop_datetime(start_date + dt.timedelta(hours=1), end_date + dt.timedelta(hours=1), read_dt): # itt lesz többidőpont mert ez egy loop
-        datetime= read_SAF_date
-        logging.info("reading inca at " + str(read_SAF_date))
+    while read_time <= end_date:
+        saf_data, lat, lon, nc_fill_value = read_saf_data(args, first, read_dt, dtype, read_time)
+    if saf_data.ndim ==3:
+        assert saf_data.shape[0] ==1, f"Unexpected multiple time dimensions in SAF data. Expected 2d or 3d with first dimension having size 1 but found {saf_data.shape}"
+        saf_data = saf_data[0, :, :]  # in case there is a time dimension
 
-        # i guess the original code was for accumulating the  precip amount? 
-        '''if first:
-            var_tmp = bO.bringSAF_netcdf(datestring)
-            first = False
-        else:
-            var_tmp = var_tmp + bO.bringSAF_netcdf(datestring)''' # cma will be for a fixed UTC, no accumulation. But we'll verify multiple UTCs. 
-        if first: 
-            cma_data = bringSAF_netcdf(datetime, args)
-            first = False
-        else:
-            cma_data += bringSAF_netcdf(datetime, args)
+    logging.info("Finished reading SAF data.")
+    logging.info(f"  SAF data shape: {saf_data.shape}")
+    valid_mask = saf_data != nc_fill_value
+    saf_data = np.where(valid_mask, saf_data, np.nan)
+    logging.info(f"  Valid data points: {np.sum(valid_mask)} / {saf_data.size}")
+    if np.sum(valid_mask) <saf_data.size:
+        saf_data, lat, lon = crop_to_region_extent(args, saf_data, lat, lon)
 
-    
-    # TODO: fix this ad-hoc check!!
-    print(cma_data.shape)
-    if cma_data.shape == (650, 1100):
-        lat, lon = SAF_grid_large()
-        lat = lat[100:600, 0:900]
-        lon = lon[100:600, 0:900]
-        cma_data = cma_data[100:600, 0:900]
-    else:
-        lat, lon = SAF_grid()
-    
     data_list.insert(0, {
         'conf': 'SAF',
         'type': 'obs',
         'name': 'SAF cma',
         'lat': np.asarray(lat),
         'lon': np.asarray(lon),
-        'precip_data': cma_data
+        'precip_data': saf_data
     })
 
-    return data_list # 
-    # 
-    
+    return data_list 
 
-def read_CTSAF(file):
+def crop_to_region_extent(args, saf_data, lat, lon):
+    logging.warning("  Missing data points detected in SAF data! Cropping to region extent. This may fail")
+    xmin, xmax, ymin, ymax = detect_lonlat_bounds(lon, lat, args.region)
+    saf_data = saf_data[ymin:ymax, xmin:xmax]
+    lon = lon[ymin:ymax, xmin:xmax]
+    lat = lat[ymin:ymax, xmin:xmax]
+    logging.debug(f"  Cropped lon range: {lon.min()} to {lon.max()}")
+    logging.debug(f"  Cropped lat range: {lat.min()} to {lat.max()}")
+    logging.info(f"  Cropped SAF data shape: {saf_data.shape}")
+    return saf_data,lat,lon
 
-
-    with Dataset(file, 'r') as nc:
-        RR = nc.variables['ct'][:] 
-    return RR
-#  return all the flags, should be shortlisted further  
-
-
-
-
-# def bring_SAF_CT_netcdf(date, args):
-# # should be edited 
-
-#     bs_file_path = check_paths(date, args)
-#     logger.info(f"reading saf data from {obs_file_path}")
-#     if not obs_file_path:
-#          return False 
-#     try:
-#         RR = read_CTSAF(obs_file_path)  #
-#     except:
-#         logging.error(f"Failed to read file {obs_file_path}")
-#         raise
-#         return False
-#     return RR
-
-
-
-
-def read_CT_SAF_obs(data_list, start_date, end_date, args):
-
-
-    #preprocessing: removing the grid points that have nothing to do with cloud
-    # preprocessing 2: inversing the order (flag 1 should be the highest threshold
-    # reading the data
-    #merging the categories into 3 (low, middle, high) 
-
-
-    # some of this should happen in preprocessing functions --> create bring_SAF_CT_netcdf (obtain the RR data)
-
-
-    # template help: this happened at this stage with cma (but CT should have way more preprocessing steps, because data is not ready:
-
-
-    first = True
-    if 'ct' in args.parameter: #  
-        read_dt = dt.timedelta(hours=1) #we have SAF cma image in every hour 
-        dtype = np.int16
-
-       # relevant bring and checkpath functions is also  modified in the bring_obs library.
-    
-       
-    first = True # történhet-e CloudCover Duration Cloud Type adatokból? 
-    for read_SAF_date in loop_datetime(start_date + dt.timedelta(hours=1), end_date + dt.timedelta(hours=1), read_dt): # itt lesz többidőpont mert ez egy loop
-        datetime= read_SAF_date
-        logging.info("reading inca at " + str(read_SAF_date))
-
-        # i guess the original code was for accumulating the  precip amount? 
-        '''if first:
-            var_tmp = bO.bringSAF_netcdf(datestring)
-            first = False
-        else:
-            var_tmp = var_tmp + bO.bringSAF_netcdf(datestring)''' # cma will be for a fixed UTC, no accumulation. But we'll verify multiple UTCs. 
-        if first: 
-            cma_data = bringSAF_netcdf(datetime, args)
-            first = False
-        else:
-            cma_data += bringSAF_netcdf(datetime, args)
-
-    
-    # TODO: fix this ad-hoc check!!
-    if cma_data.shape == (650, 1100):
-        lat, lon = SAF_grid_large()
-        lat = lat[100:600, 0:900]
-        lon = lon[100:600, 0:900]
-        cma_data = cma_data[100:600, 0:900]
+def read_saf_data(args, first, read_dt, dtype, read_time):
+    saf_file_path = check_paths(read_time, args)
+    logging.info(f"reading SAF {args.parameter} at {str(read_time)} from {saf_file_path}")
+    nc = Dataset(saf_file_path, 'r')
+    if first:
+        saf_data = nc.variables[args.parameter][:].astype(dtype)
+        lat, lon = lonlat_from_nwc_geos(
+                gdal_projection=nc.gdal_projection,
+                gdal_geotransform=nc.gdal_geotransform_table,
+                ny=nc.dimensions['ny'].size,
+                nx=nc.dimensions['nx'].size
+            )
+        nc_fill_value = nc.variables[args.parameter]._FillValue
+        first = False
     else:
-        lat, lon = SAF_grid()
+        saf_data += nc.variables[args.parameter][:].astype(dtype)
+    nc.close()
+    read_time += read_dt
+    return saf_data,lat,lon,nc_fill_value
     
-    data_list.insert(0, {
-        'conf': 'SAF',
-        'type': 'obs',
-        'name': 'SAF cma',
-        'lat': np.asarray(lat),
-        'lon': np.asarray(lon),
-        'precip_data': cma_data
-    })
 
-    return data_list # 
-    # 
+def detect_lonlat_bounds(lon, lat, region):
+    logger.debug(f"Lon min and max: {np.min(lon)}, {np.max(lon)}")
+    logger.debug(f"Lat min and max: {np.min(lat)}, {np.max(lat)}")
+    lon_min, lon_max, lat_min, lat_max = region.extent
+    lon_mask = (lon >= lon_min) & (lon <= lon_max)
+    lat_mask = (lat >= lat_min) & (lat <= lat_max)
+    combined_mask = lon_mask & lat_mask
+    logging.debug(f"Detecting grid points within subdomain: {region.name}")
+    logging.debug(f"  Lon bounds: {lon_min} to {lon_max}")
+    logging.debug(f"  Lat bounds: {lat_min} to {lat_max}")
 
+    indices = np.where(combined_mask)
+    if indices[0].size == 0 or indices[1].size == 0:
+        raise ValueError("No grid points found within the specified subdomain.")
+    logging.debug(f"  Found {indices[0].size} grid points within subdomain.")
 
+    row_min = np.min(indices[0])
+    row_max = np.max(indices[0]) + 1  # +1 to include the max index
+    col_min = np.min(indices[1])
+    col_max = np.max(indices[1]) + 1  # +1 to include the max index
 
+    logging.debug(f"  Row indices: {row_min} to {row_max}") 
+    logging.debug(f"  Column indices: {col_min} to {col_max}")
 
-
-
-
-
-
-
-
-
-
-def bringSAF_netcdf(date, args):
-    obs_file_path = check_paths(date, args)
-    logger.info(f"reading saf data from {obs_file_path}")
-    if not obs_file_path:
-         return False 
-    try:
-        RR = read_SAF(obs_file_path)  #
-    except:
-        logging.error(f"Failed to read file {obs_file_path}")
-        raise
-        return False
-    return RR
-
-
-# I guess I wont need read(file) function in its original form , since the SAF netcdf aleady has the binary image stored in a 2D array (480, 640 extension) 
-def read_SAF (file): 
-    # file shall be the path of the SAF image file, I'll add it somewhere   
-    with Dataset(file, 'r') as nc:
-        RR = nc.variables['cma'][:] 
-    return RR
-#  2D cma 
-
-
-
+    logging.debug(f"corners of the subdomain in the original grid: ({row_min}, {col_min}) to ({row_max}, {col_max})")
+    logging.debug(f"this corresponds to lon/lat: ({lon[row_min, col_min]}, {lat[row_min, col_min]}) to ({lon[row_max-1, col_max-1]}, {lat[row_max-1, col_max-1]})")
+    logging.debug(f"{row_min}, {row_max}, {col_min}, {col_max}.")
+    return col_min, col_max, row_min, row_max
 
 def check_paths(date, args):
     date_str = date.strftime("%Y%m%dT%H")
@@ -330,6 +186,8 @@ def check_paths(date, args):
             f"/ment_arch2/pscheff/DEV_PAN/flowermapping-panelification/TEST_DATA/SAF/S_NWC_CMA_MSG3_Europe-VISIR_{date_str}0000Z.nc",
             f"/mnt/d/Users/lovasz_v/cma_panelification/bMma{date_str_m5m}.nc"
         ]
+    else:
+        raise ValueError(f"SAF parameter {args.parameter} not supported.")
     #if args.parameter =='ct':
             # add Cloud Type data folder 
     
