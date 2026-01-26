@@ -30,7 +30,8 @@ def read(file):
     return RR
 
 def check_paths(date):
-    DIRS_OBS = [r"/mnt/d/Users/lovasz_v/cma_panelification"]
+    DIRS_OBS = ['/mapp_arch/mgruppe/arc/inca_1h/prec/',
+               '/home/kmek/panelification/OBS/inca_1h/prec/']
     for DIR_OBS in DIRS_OBS:
         file_OBS_test=DIR_OBS+date[:4]+'/'+date[4:6]+'/'+date[6:8]+'/INCA_RR-'+date[8:10]+'.asc.gz'
         logger.debug(f"Checking for file {file_OBS_test}")
