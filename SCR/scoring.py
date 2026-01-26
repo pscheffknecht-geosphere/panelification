@@ -364,7 +364,7 @@ def fss_d90(rrm, rro, args):
         logger.warning("No precipitation in model array, returning no d90!")
         return np.nan
     overlap = float(np.sum(_rro*rrm))/float(np.sum(rrm))
-    _, _, _arr, _ = fss_functions.fss_frame(rro_s, rrm_s, windows_2d, levels, args.fss_calc_mode)
+    _, _, _arr, _ = fss_functions.fss_frame(rro_s, rrm_s, windows_2d, levels, mode=args.fss_calc_mode)
     arr = _arr.values.flatten()
     logger.debug(print(arr))
     for ii in range(1,len(arr)):
