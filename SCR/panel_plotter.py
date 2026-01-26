@@ -506,7 +506,6 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
         cols, lins = cols_new, lins_new
     logger.info("generating a panel plot with {} lines and {} columns".format(lins, cols))
     levels, cmap, norm = parameter_settings.get_cmap_and_levels(args)
-    cmap.set_over('orange')
     rank_colors = 500*['white']
     rank_colors[1:3] = ['gold', 'silver', 'darkorange']
     # init projections
