@@ -26,7 +26,10 @@ experiment_configurations = {
                               'hail': 1000.,
                               'else': 1.},
         "color"            : 'blue',
-        "grib_handles"     : [{"indicatorOfParameter": 197}, {"indicatorOfParameter": 198}, {"indicatorOfParameter": 199}],
+        "grib_handles"     : {
+                              'precip': [{"indicatorOfParameter": 197}, {"indicatorOfParameter": 198}, {"indicatorOfParameter": 199}],
+                              'cma'   : [{"indicatorOfParameter": 171}]
+                             }
         "lagged_ensemble"  : True
         },
     "aromeruc": {
