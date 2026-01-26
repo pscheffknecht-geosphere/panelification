@@ -29,7 +29,7 @@ experiment_configurations = {
         "grib_handles"     : {
                               'precip': [{"indicatorOfParameter": 197}, {"indicatorOfParameter": 198}, {"indicatorOfParameter": 199}],
                               'cma'   : [{"indicatorOfParameter": 171}]
-                             }
+                             },
         "lagged_ensemble"  : True
         },
     "aromeruc": {
