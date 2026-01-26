@@ -152,8 +152,9 @@ class ModelConfiguration:
             if anam in cmc:
                 logger.debug(f" found {anam}, setting it to {self.__pick_value_by_parameter(cmc[anam])}")
         for anam, default_value in DEFAULTS.items():
-            setattr(self, anam, cmc.get(anam, default_value))
-            logger.debug(f"{self.experiment_name}: Setting {anam} to {getattr(self, anam)}")
+            if not hasattr(self, anam):
+                setattr(self, anam, cmc.get(anam, default_value))
+                logger.debug(f"{self.experiment_name}: Setting {anam} to {getattr(self, anam)}")
         # is the simulation part of an ensemble or lagged ensemble?
         if self.ensemble and not (args.merge_ens_init_times):
             init_str = self.init.strftime("%Y%m%d_%H")
@@ -205,6 +206,7 @@ class ModelConfiguration:
         useparam = "precip" if "precip" in self.parameter else self.parameter
         if isinstance(custom_experiment_item, dict):
             for key, item in custom_experiment_item.items():
+                print(key, item)
                 if useparam in key or useparam == key:
                     ret = custom_experiment_item[useparam]
             if ret == None and 'else' in custom_experiment_item.keys():
