@@ -83,13 +83,8 @@ def lonlat_from_nwc_geos(
     return lat, lon
 
 def read_SAF_obs(data_list, start_date, end_date, args):# is it the data_list from main? 
-    read_dt = dt.timedelta(hours=1) #we have SAF cma image in every hour 
-    dtype = float # we do not know which data type the SAF cma data will be stored, so we use float
-    first = True
-    read_time = start_date
 
-    while read_time <= end_date:
-        saf_data, lat, lon, nc_fill_value = read_saf_data(args, first, read_dt, dtype, read_time)
+    saf_data, lat, lon, nc_fill_value = read_saf_data(args, start_date, end_date)
     if saf_data.ndim ==3:
         assert saf_data.shape[0] ==1, f"Unexpected multiple time dimensions in SAF data. Expected 2d or 3d with first dimension having size 1 but found {saf_data.shape}"
         saf_data = saf_data[0, :, :]  # in case there is a time dimension
@@ -124,24 +119,30 @@ def crop_to_region_extent(args, saf_data, lat, lon):
     logging.info(f"  Cropped SAF data shape: {saf_data.shape}")
     return saf_data,lat,lon
 
-def read_saf_data(args, first, read_dt, dtype, read_time):
-    saf_file_path = check_paths(read_time, args)
-    logging.info(f"reading SAF {args.parameter} at {str(read_time)} from {saf_file_path}")
-    nc = Dataset(saf_file_path, 'r')
-    if first:
-        saf_data = nc.variables[args.parameter][:].astype(dtype)
-        lat, lon = lonlat_from_nwc_geos(
-                gdal_projection=nc.gdal_projection,
-                gdal_geotransform=nc.gdal_geotransform_table,
-                ny=nc.dimensions['ny'].size,
-                nx=nc.dimensions['nx'].size
-            )
-        nc_fill_value = nc.variables[args.parameter]._FillValue
-        first = False
-    else:
-        saf_data += nc.variables[args.parameter][:].astype(dtype)
-    nc.close()
-    read_time += read_dt
+def read_saf_data(args, start_date, end_date):
+    read_dt = dt.timedelta(hours=1) #we have SAF cma image in every hour 
+    dtype = float # we do not know which data type the SAF cma data will be stored, so we use float
+    first = True
+    read_time = start_date
+    while read_time <= end_date:
+
+        saf_file_path = check_paths(read_time, args)
+        logging.info(f"reading SAF {args.parameter} at {str(read_time)} from {saf_file_path}")
+        nc = Dataset(saf_file_path, 'r')
+        if first:
+            saf_data = nc.variables[args.parameter][:].astype(dtype)
+            lat, lon = lonlat_from_nwc_geos(
+                    gdal_projection=nc.gdal_projection,
+                    gdal_geotransform=nc.gdal_geotransform_table,
+                    ny=nc.dimensions['ny'].size,
+                    nx=nc.dimensions['nx'].size
+                )
+            nc_fill_value = nc.variables[args.parameter]._FillValue
+            first = False
+        else:
+            saf_data += nc.variables[args.parameter][:].astype(dtype)
+        nc.close()
+        read_time += read_dt
     return saf_data,lat,lon,nc_fill_value
     
 
@@ -193,7 +194,7 @@ def check_paths(date, args):
     
     #change the path to CDS6 when in operational use at HungaroMEt 
     for oft in obs_file_templates:
-        logger.debug("Check for file {oft}...")
+        logger.debug(f"Check for file {oft}...")
         if os.path.isfile(oft):
             return oft
     
