@@ -332,6 +332,7 @@ def precip_cmap_and_levels(args):
         else:
             norm = bnorm(levels,ncolors=cm.get_cmap(args.cmap).N)
             cmap = args.cmap
+        cmap.set_over('orange')
     elif args.mode == 'diff':
         levels = [-100.,-50.,-45.,-40,-35.,-30.,-25.,-20.,-15.,-10.,-5.,-1.,-0.5,-0.2,-0.1,0.,0.1,0.2,0.5,1.,5.,10.,15.,20.,25.,30.,35.,40.,45.,50.,100.]
         cmap = 'NCV_jaisnd'
