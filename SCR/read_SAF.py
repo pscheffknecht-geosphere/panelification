@@ -107,6 +107,7 @@ def read_SAF_obs(data_list, start_date, end_date, args):# is it the data_list fr
 
     
     # TODO: fix this ad-hoc check!!
+    print(cma_data.shape)
     if cma_data.shape == (650, 1100):
         lat, lon = SAF_grid_large()
         lat = lat[100:600, 0:900]
@@ -258,11 +259,13 @@ def read_SAF (file):
 
 def check_paths(date, args):
     date_str = date.strftime("%Y%m%dT%H")
+    date_str_short = date.strftime("%Y%m%d")
     date_str_m5m = (date - dt.timedelta(minutes=5)).strftime("%Y%m%d_%H%M")
 
 
     if args.parameter =='cma':
         obs_file_templates = [
+            f"/ment_arch2/pscheff/DEV_PAN/flowermapping-panelification/TEST_DATA/SAF/S_NWC_CMA_MTI1_Europe-NR_{date_str}0000Z.nc",
             f"/ment_arch2/pscheff/DEV_PAN/flowermapping-panelification/TEST_DATA/SAF/S_NWC_CMA_MSG3_Europe-VISIR_{date_str}0000Z.nc",
             f"/mnt/d/Users/lovasz_v/cma_panelification/bMma{date_str_m5m}.nc"
         ]
