@@ -1,9 +1,9 @@
 import argparse
 
 
-def loop_datetime(start, end, delta):
+def loop_datetime(start, end, delta): 
     curr = start
-    while curr < end:
+    while curr < end: # then end date is excluded 
         yield curr
         curr += delta
 

@@ -52,8 +52,28 @@ regions = {
             "Default": {
                 "central_longitude": 9., "central_latitude": 46.25,
                 "x_size": 1000, "y_size": 500}
+        },
+    },
+
+
+
+    "Hungary": {
+        "central_longitude": 19.5,
+        "central_latitude": 47.18,
+        "extent": [15.3, 24, 45.759, 49.1], # bb visualisation 
+        "verification_subdomains": {     # for calculations 
+            "Default": { # all of Hungary
+                "central_longitude": 19.5, "central_latitude": 47.18,
+                "x_size": 524., "y_size": 303.}   #kms
         }
     },
+
+    # depending on requests, adding  requested subregions for AVIATON etc. 
+
+
+
+
+
     "Austria": {
         "central_longitude": 13.,
         "central_latitude": 48.3,

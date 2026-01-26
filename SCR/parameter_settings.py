@@ -18,25 +18,34 @@ MODIFY AT YOUR OWN RISK!!!
 """
 
 # string for use in the title of the entire panel
-title_part = {
-    'precip': 'Acc. Precip. [mm]',
-    'precip2': 'Acc. Precip. [mm]',
-    'precip3': 'Acc. Precip. [mm]',
-    'sunshine': 'Acc. Sunshine Duration [h]',
-    'lightning': 'lightning strikes [km$^{-2}$]',
-    'gusts': 'wind gusts [m s$^{-1}$]',
-    'hail': 'Hail [??]'
-}
+def title_part(args):
+    title_parts = {
+        'precip': 'Acc. Precip. [mm]',
+        'precip2': 'Acc. Precip. [mm]',
+        'precip3': 'Acc. Precip. [mm]',
+        'sunshine': 'Acc. Sunshine Duration [h]',
+        'lightning': 'lightning strikes [km$^{-2}$]',
+        'gusts': 'wind gusts [m s$^{-1}$]',
+        'hail': 'Hail [??]',
+        'cma': 'Cloud Cover' if args.duration == 1 else 'Cloud Duration'
+    }
+    return title_parts[args.parameter]
+
+    
 # label for the color bar
-colorbar_label = {
+def colorbar_label(args):
+    colorbar_labels= {
     'precip': 'accumulated precipitation [mm]',
     'precip2': 'accumulated precipitation [mm]',
     'precip3': 'accumulated precipitation [mm]',
     'sunshine': 'sunshine duration [h]',
     'lightning': 'lightning strikes [km$^{-2}$]',
+
     'gusts': 'gust speed [m s$^{-1}$]',
-    'hail': 'hail [??]'
-}
+    'hail': 'hail [??]',
+    'cma' : 'Cloud cover' if args.duration == 1 else 'Cloud Duration'
+    }
+    return colorbar_labels[args.parameter]
 
 # thresholds for the calculation of the FSS depending on the parameter
 def get_fss_thresholds(args):
@@ -47,9 +56,32 @@ def get_fss_thresholds(args):
         'sunshine' : list(np.arange(0., 1., 1/6.)) + [999999],
         'hail' : [1, 2, 5, 10, 25, 35, 50, 75, 100, 99999],
         'gusts' : [5, 10, 15, 20, 25, 30, 40, 50, 70, 99999],
-        'lightning' : [0.1*x for x in [1, 2, 5, 10, 25, 35, 50, 75, 100]] + [99999]
+        'lightning' : [0.1*x for x in [1, 2, 5, 10, 25, 35, 50, 75, 100]] + [99999],
+        'cma': [x + 0.5 for x in range(args.duration)] + [99999]
     }
     return thresholds_for_fss[args.parameter]
+
+def get_windows(args):
+
+    if len(args.d_windows) ==0:
+
+
+        if args.parameter=='cma':
+
+            windows = [5,10,30,50,100]
+    
+        else:
+    # 
+            windows = [10,20,30,40,60,80,100,120,140,160,180,200]
+
+    else:
+       
+        windows = args.d_windows
+
+    return windows 
+
+
+
 
 # customize the tick labels for each parameter
 def make_fss_axis_sunshine(args):
@@ -64,6 +96,9 @@ def make_fss_axis_sunshine(args):
 
 
 def get_axes_for_fss_rank_plot(args):
+    cma_ydict = get_cma_ydict(args)
+    cma_xdict = get_cma_xdict(args)
+    
     ax_ticks = {
     'precip' : {
         'xticks' : range(12),
@@ -74,6 +109,19 @@ def get_axes_for_fss_rank_plot(args):
         'xdict' : {
             0 : '10', 1 : '20', 2 : '30', 3 : '40', 4 : '60', 5 : '80', 6 : '100', 7 : '120', 
             8 : '140', 9 : '160', 10 : '180', 11 : '200'}
+        },
+    'cma' : {
+        'xticks' : range(len(cma_xdict)),
+        'yticks' : range(len(cma_ydict)),
+        'ydict': cma_ydict,
+        
+        'xdict' : cma_xdict
+        
+        # {
+        #      0 : '10', 1 : '20', 2 : '30', 3 : '40', 4 : '60', 5 : '80', 6 : '100', 7 : '120', 
+        #      8 : '140', 9 : '160', 10 : '180', 11 : '200'}
+
+
         },
     'precip2' : {
         'xticks' : range(12),
@@ -125,7 +173,33 @@ def get_axes_for_fss_rank_plot(args):
         }
     }
     return ax_ticks[args.parameter]
-        
+
+
+def get_cma_ydict(args):
+    cma_ydict = {}
+    ii = 0
+    for x in range(args.duration):
+        cma_ydict[ii] = f"{int(x+1):d} h"
+        ii += 1
+    cma_ydict[ii] = ""
+    ii += 1
+    for idx, s in enumerate(['25%', '50%', '75%', '90%', '95%']):
+        cma_ydict[ii + idx] = s
+    return cma_ydict
+
+def get_cma_xdict(args):
+    windows = get_windows(args)
+
+    cma_xdict = {}
+    ii = 0
+    for index, value in enumerate(windows):
+        cma_xdict[index] = value
+
+    return cma_xdict
+
+
+
+
 # RGB tuples for custom color maps
 warn_colors = [
     (255, 255, 255), 
@@ -181,7 +255,6 @@ precip3_colors = np.array([
     [0.70, 0.45, 0.70],
     [0.40, 0.15, 0.40]])
 
-
 def lightning_cmap_and_levels(args):
     levels = [0.1*x for x in [0., 5. , 10. ,  15.,  20.,  25.,  30.,  40.,  50., 70.]]
     mycolors =  warn_colors
@@ -206,6 +279,11 @@ def gusts_cmap_and_levels(args):
     norm = nnorm(vmin=0., vmax=100.)
     return levels, cmap, norm
 
+def cma_cmap_and_levels(args):
+    levels = [x for x in range(args.duration + 1)] #[0., 0.5, 1., 1.5, 2.0, 3.0]
+    cmap = nclcmaps.cmap("MPL_YlGnBu")
+    norm = nnorm(vmin=0., vmax=args.duration)
+    return levels, cmap, norm
 
 def sunshine_cmap_and_levels(args):
     levels = [x/3.*float(args.duration) for x in [0., 0.4, 0.8, 1.2, 1.6, 2., 2.4, 2.8, 3.]]
@@ -229,7 +307,6 @@ def precip3_cmap_and_levels(args):
     norm = bnorm(levels,ncolors=len(mycolors))
     cmap = mplcolors.ListedColormap(mycolors2)
     return levels, cmap, norm
-
 
 def precip_cmap_and_levels(args):
     mycolors = None # only change if required
@@ -280,6 +357,5 @@ def get_cmap_and_levels(args):
         return sunshine_cmap_and_levels(args)
     elif args.parameter == 'gusts':
         return gusts_cmap_and_levels(args)
-
-
-
+    elif args.parameter == 'cma':
+        return cma_cmap_and_levels(args)
