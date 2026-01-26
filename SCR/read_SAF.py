@@ -20,6 +20,67 @@ logger = logging.getLogger(__name__)
 Num_rows = 480
 Num_columns = 640
 
+def lonlat_from_nwc_geos(
+    *,
+    gdal_projection: str,
+    gdal_geotransform: tuple,
+    ny: int,
+    nx: int,
+) -> "tuple[np.ndarray, np.ndarray]":
+    """
+    Return 2D lon/lat arrays for NWC/GEO products (MSG, MSG-IODC, MTG).
+
+    Handles both:
+    - Earth-metric GEOS projections
+    - Normalized GEOS projections (MTG / MSG-IODC)
+
+    Parameters
+    ----------
+    gdal_projection : str
+        NetCDF global attribute 'gdal_projection'
+    gdal_geotransform : tuple
+        NetCDF global attribute 'gdal_geotransform_table'
+    ny, nx : int
+        Grid dimensions
+
+    Returns
+    -------
+    lon, lat : 2D numpy.ndarray
+    """
+
+    # --- Source CRS ---
+    crs_src = CRS.from_proj4(gdal_projection)
+
+    # --- Decide target CRS based on ellipsoid size ---
+    a = crs_src.ellipsoid.semi_major_metre
+
+    if a > 1e6:
+        # Earth-sized ellipsoid → standard WGS84 lon/lat
+        crs_dst = CRS.from_epsg(4326)
+    else:
+        # Normalized ellipsoid → build matching lon/lat CRS
+        crs_dst = CRS.from_proj4(
+            f"+proj=longlat +a={crs_src.ellipsoid.semi_major_metre} "
+            f"+b={crs_src.ellipsoid.semi_minor_metre} +no_defs"
+        )
+
+    transformer = Transformer.from_crs(
+        crs_src, crs_dst, always_xy=True
+    )
+
+    # --- Build grid ---
+    x0, dx, _, y0, _, dy = gdal_geotransform
+
+    x = x0 + dx * np.arange(nx)
+    y = y0 + dy * np.arange(ny)
+
+    xx, yy = np.meshgrid(x, y)
+
+    # --- Transform ---
+    lon, lat = transformer.transform(xx, yy)
+
+    return lon, lat
+
 def SAF_grid():
     # HungaroMet --> use this 2D array instead of the original flattened array 
     nc_path = (r"../TEST_DATA/SAFcoord/fixed_SAFcoord.nc")
