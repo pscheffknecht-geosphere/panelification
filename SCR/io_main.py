@@ -11,6 +11,7 @@ from mars_request_templates import mars_request_templates
 from io_grib import read_data_grib, get_inca_rain_accumulated, get_icon_unstructured
 from io_gdal import read_data_gdal
 from io_netcdf import read_data_netcdf, read_inca_plus_netcdf
+from io_netcdf import read_HungaroMet_netcdf
 
 from paths import PAN_DIR_TMP, PAN_DIR_MODEL, PAN_DIR_MODEL2, PAN_DIR_DATA
 
@@ -85,6 +86,12 @@ def scale_hail(data_list):
             sim['precip_data'] = new_arr
     return data_list
 
+def cloud_fraction_to_cma(data_list, threshold=0.2): # is this datalist in the argumentum the return of read_HungaroMet_netcdf? 
+    for sim in data_list:
+        new_arr = np.array(sim['precip_data'], copy=False)
+        sim['precip_data'] = np.where(new_arr >= threshold, 1, 0)
+    return data_list
+
 
 file_type_indicators = {
     "NetCDF": ["nc", "ncf", "ncd"],
@@ -140,8 +147,7 @@ class ModelConfiguration:
             logger.debug(f"   {tmpl}")
         for anam in ["init_interval", "max_leadtime", "output_interval", "accumulated", "unit_factor"]:
             setattr(self, anam, self.__pick_value_by_parameter(cmc[anam]))
-        for anam in ["ensemble", "grib_handles", "lagged_ensemble", "color", "file_type"]:
-            logger.debug(f" looking {anam} in custom experiment info")
+        for anam in ["ensemble", "grib_handles", "lagged_ensemble", "color", "file_type", "netcdf_variable_name"]:
             setattr(self, anam, self.__pick_value_by_parameter(cmc[anam]) if anam in cmc else None)
             if anam in cmc:
                 logger.debug(f" found {anam}, setting it to {self.__pick_value_by_parameter(cmc[anam])}")
@@ -307,6 +313,9 @@ class ModelConfiguration:
 
 
     def get_data(self, param):
+        if "_hun" in self.experiment_name:
+            #return read_HungaroMet_netcdf(fcs for fcs in self.file_list, self.netcdf_variable_name)
+            return read_HungaroMet_netcdf(self.file_list, self.netcdf_variable_name)
         if param == 'gusts' or param == 'hail':
             return self.__get_data_max()
         else:

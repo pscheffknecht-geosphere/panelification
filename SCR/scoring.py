@@ -271,7 +271,9 @@ def calc_scores(sim, obs, args):
     logger.info('Calculating scores for '+sim['name'])
     percs=[25, 50, 75, 90, 95]
     levels = parameter_settings.get_fss_thresholds(args)
-    windows=[10,20,30,40,60,80,100,120,140,160,180,200]
+    #windows=[10,20,30,40,60,80,100,120,140,160,180,200] # itt inkább térjen vissza egy függvénnyel 
+    windows = parameter_settings.get_windows(args)
+
     ny, nx = sim["precip_data_resampled"].shape
     windows = prep_windows(windows, args.fss_calc_mode, nx, ny)
     fss_calc_func = fss_cumsum.fss_cumsum_frame
@@ -362,8 +364,8 @@ def fss_d90(rrm, rro, args):
     windows = [3, 5, 7, 11, 21, 31, 41, 51, 61, 81, 101, 121, 141, 181, 251, 351, 501, 701]
     windows_2d = prep_windows(windows, args.mode, *rrm.shape)
     levels = [0.5]
-    _rro = np.where(rro > np.percentile(np.copy(rro), 90), 1, 0)
-    rrm = np.where(rrm > np.percentile(np.copy(rrm), 90), 1, 0) # circumvent numpy issue #21524
+    _rro = np.where(rro >= np.percentile(np.copy(rro), 90), 1, 0)
+    rrm = np.where(rrm >= np.percentile(np.copy(rrm), 90), 1, 0) # circumvent numpy issue #21524
     #rrm = np.where(rrm > np.percentile(rrm, 90), 1, 0)
     rro_s = np.maximum(_rro-rrm, 0)
     rrm_s = np.maximum(rrm-_rro, 0)
@@ -373,6 +375,7 @@ def fss_d90(rrm, rro, args):
     overlap = float(np.sum(_rro*rrm))/float(np.sum(rrm))
     _, _, _arr, _ = fss_calc_func(rro_s, rrm_s, windows_2d, levels, mode=args.fss_calc_mode)
     arr = _arr.values.flatten()
+    logger.debug(print(arr))
     for ii in range(1,len(arr)):
         if arr[ii] - arr[ii-1] < 0:
             logger.info("non-monotonous array in argument, returning no d90!")

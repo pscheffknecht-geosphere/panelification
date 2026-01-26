@@ -1,4 +1,5 @@
 # make map plots and panel them nicely to compare multiple simulations
+
 #
 import pyresample
 from datetime import datetime
@@ -14,6 +15,7 @@ import sys
 from model_parameters import *
 import scoring
 import inca_functions as inca
+import read_SAF
 import read_opera as opera
 import obs_from_db as obs
 import read_antilope as antilope
@@ -58,7 +60,7 @@ def parse_arguments():
     parser = argparse.ArgumentParser(conflict_handler="resolve")
     parser.add_argument('--parameter', '-p', type=str, default='precip',
         help = 'parameter to verify/plot')
-    parser.add_argument('--precip_verif_dataset', type=str, default = 'INCA',
+    parser.add_argument('--verif_dataset', type=str, default = 'INCA',
         help = """select precip data set:
             INCA ... INCA analysis over Austria
             OPERA .. OPERA analysis over Europ (MUST be in ../OBS!!)""")
@@ -99,7 +101,7 @@ def parse_arguments():
             LonMin, LonMax, LatMin, LatMax)""")
     parser.add_argument('--draw', nargs='?', default=False, const=True, type=str2bool,
         help = 'draw panels if average rain is above 5 mm or maximum rain is above 100 mm')
-    parser.add_argument('--forcedraw', nargs='?', default=False, const=True, type=str2bool,
+    parser.add_argument('--forcedraw', nargs='?', default=True, const=True, type=str2bool,
         help = 'draw panels for all subdomains, no matter how much rain was observed')
     parser.add_argument('--cmap', type=str, default="mycolors",
         help = 'color map selection')
@@ -116,7 +118,7 @@ def parse_arguments():
     #         'diff' ............. Draw interpolated rain field difference to INCA analysis\n
     parser.add_argument('--fix_nans', nargs='?', default=False, const=True, type=str2bool,
         help = 'Fix NaNs in OBS and Model fields by setting them to 0.')
-    parser.add_argument('--save', nargs='?', default=False, const=True, type=str2bool,
+    parser.add_argument('--save', nargs='?', default=True, const=True, type=str2bool,
         help = 'save full fields to pickle files')
     parser.add_argument('--fss_mode', type=str, default='ranks')
     parser.add_argument('--fss_calc_mode', type=str, default='same')
@@ -126,7 +128,7 @@ def parse_arguments():
         fss_total_abs_score .................. use the old FSS Rank Score
         fss_condensed ........................ condensed FSS value, uniform weight
         fss_condensed_weighted (default) ..... condensed FSS value, higher weight smaller windows and higher precipitation""")
-    parser.add_argument('--save_full_fss', nargs='?', default=False, const=True, type=str2bool,
+    parser.add_argument('--save_full_fss', nargs='?', default=True, const=True, type=str2bool,
         help = 'save full FSS, including numerator and denominator')
     parser.add_argument('--hidden', nargs='?', default=False, const=True, type=str2bool,
         help = 'clean panels, with names hidden and numbers used instead')
@@ -136,6 +138,8 @@ def parse_arguments():
         if rows x columns is larger than needed, fewer lines will be filled""")
     # parser.add_argument('--fast', nargs='?', default=False, const=True, type=str2bool,
     #     help = 'faster drawing using pcolormesh')
+
+    parser.add_argument('--d_windows', nargs='+', default=[], type=int, help='define your all window levels, overwriting the ones depending on parameter')
     parser.add_argument('--logfile', type=str, default=None, help='Name of logfile')
     parser.add_argument('--loglevel', type=str, default='info',
         help = """Logging level:
@@ -265,32 +269,9 @@ def main():
     if len(data_list) == 0:
         logging.critical("No valid models found, exiting...")
         exit()
-    # if args.parameter in ['precip', 'sunshine']:
-    # if args.parameter in ['precip', 'precip2', 'precip3', 'sunshine']:
-    if args.precip_verif_dataset == "INCA":
-        data_list = inca.read_INCA(data_list, start_date, end_date, args)
-    elif args.precip_verif_dataset == "INCAPlus":
-        data_list = inca.read_INCAPlus_ANA(data_list, start_date, end_date, args)
-    elif args.precip_verif_dataset == "INCA_archive":
-        data_list = inca.read_inca_netcdf_archive(data_list, start_date, end_date, args)
-    elif args.precip_verif_dataset == "OPERA":
-            data_list = opera.read_OPERA(data_list, start_date, end_date, args)
-    elif args.parameter == 'hail':
-        data_list = obs.read_hail(data_list, start_date, end_date)
-        data_list = io.scale_hail(data_list) # scale all fields to 0...4
-    elif args.precip_verif_dataset == "ANTILOPE":
-        data_list = antilope.read_ANTILOPE(data_list, start_date, end_date, args)
-    elif args.precip_verif_dataset == "ESP":
-        data_list = esp.read_esp(data_list, start_date, end_date, args)
-    else:
-        logging.critical("Unknown verification data set: {:s}, exiting...".format(
-            args.precip_verif_dataset))
-    # elif args.parameter == 'lightning':
-    #     data_list = obs.read_lightning(data_list, start_date, end_date)
-    # else:
-    #     logging.critical("Parameter {:s} unknown, accepted parameters: precip, sunshine, hail, lightning".format(
-    #         args.parameter))
-    #     exit(1)
+    
+    data_list = read_obs(start_date, end_date, data_list, args)
+    
     if args.region == "Dynamic":
         region_data = regions.regions
         region_data = regions.dynamic_region(data_list, region_data)
@@ -302,7 +283,8 @@ def main():
         data_list = newlist
     df_subdomain_details = scan_obs.get_interesting_subdomains(data_list[0], args)
     thresholds = parameter_settings.get_fss_thresholds(args)
-    windows = [10,20,30,40,60,80,100,120,140,160,180,200]
+    windows = parameter_settings.get_windows(args)
+
     for _, dom in df_subdomain_details.iterrows():
         subdomain_name = dom['name']
         if dom['score'] or dom['draw'] or args.save:
@@ -328,7 +310,7 @@ def main():
             if args.ensemble_scores:
                 logging.info("Plotting pFSS for ensembles")
                 levels = parameter_settings.get_fss_thresholds(args)
-                windows=[10,20,30,40,60,80,100,120,140,160,180,200]
+                windows= parameter_settings.get_windows(args)
                 panel_plotter.ens_fss_plot(ensemble_data, windows, levels, subdomain_name, args)
             plot_start = datetime.now()
             outfilename = panel_plotter.draw_panels(data_list, start_date, end_date, subdomain_name, args) #, mode=args.mode)
@@ -340,6 +322,40 @@ def main():
                 io.save_data(data_list, subdomain_name, start_date, end_date, args)
             if args.save_full_fss:
                 io.save_fss(data_list, subdomain_name, start_date, end_date, args)
+
+def read_obs(start_date, end_date, data_list, args):
+    if "precip" in args.parameter:
+        if args.verif_dataset == "INCA":
+            data_list = inca.read_INCA(data_list, start_date, end_date, args)
+        elif args.verif_dataset == "INCAPlus":
+            data_list = inca.read_INCAPlus_ANA(data_list, start_date, end_date, args)
+        elif args.verif_dataset == "INCA_archive":
+            data_list = inca.read_inca_netcdf_archive(data_list, start_date, end_date, args)
+        elif args.verif_dataset == "OPERA":
+                data_list = opera.read_OPERA(data_list, start_date, end_date, args)
+        elif args.verif_dataset == "ANTILOPE":
+            data_list = antilope.read_ANTILOPE(data_list, start_date, end_date, args)
+        elif args.verif_dataset == "ESP":
+            data_list = esp.read_esp(data_list, start_date, end_date, args)
+    elif args.parameter == "cma":
+        data_list = read_SAF.read_SAF_obs(data_list, start_date, end_date, args)
+
+        #data_list = io.cloud_fraction_to_cma(data_list) # new function is written in io_main to have preprocessing steps to forecast data
+    elif args.parameter =="ct":
+        data_list =read_SAF.read_CT_SAF_obs(data_list, start_date, end_date, args)
+
+
+
+
+
+
+    elif args.parameter == 'hail':
+        data_list = obs.read_hail(data_list, start_date, end_date)
+        data_list = io.scale_hail(data_list) # scale all fields to 0...4
+    else:
+        logging.critical("Unknown verification dataset {args.precip_verif_dataset} for parameter {args.parameter}! Exiting...")
+        exit(1)            
+    return data_list
 
 
 if __name__ == '__main__':
