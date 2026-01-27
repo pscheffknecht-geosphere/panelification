@@ -336,7 +336,10 @@ class ModelConfiguration:
             if self.accumulated:
                 return self.__get_data_accumulated()
             else:
-                return self.__get_data_not_accumulated()
+                if param == "cma":
+                    return self.__get_data_3d()
+                else:
+                    return self.__get_data_not_accumulated()
 
 
     def __get_data_onefile(self):
@@ -344,6 +347,28 @@ class ModelConfiguration:
         tmp_data = np.where(tmp_data < 0., 0., tmp_data)
         return lon, lat, self.unit_factor * tmp_data
 
+    def __get_data_3d(self):
+        first = True
+        for ii, fil in enumerate(self.file_list):
+            logger.info("Reading file ({:d}): {:s}".format(ii, fil))
+            if first:
+                lon, lat, tmp_data = self.read_data(fil, self.parameter, 0, **self.read_kwargs)
+                self.read_kwargs["get_lonlat_data"] = False
+                first = False
+            else:
+                td2 = self.read_data(fil, self.parameter, 0, **self.read_kwargs)
+                tmp_data = np.dstack((tmp_data, td2))
+        if self.parameter == "cma":
+            tmp_data = np.where(tmp_data >= 0.2, 1, 0)
+            logger.debug(f"tmp_data has shape {tmp_data.shape} before summing cloud fraction")
+            if tmp_data.ndim == 2:
+                logger.debug(f"Array is 2D, contains only 1 time step, no summing needed")
+            else: 
+                tmp_data = np.sum(tmp_data, axis=2)
+                logger.debug(f"CMA data is between {tmp_data.min()} and {tmp_data.max()}")
+        return lon, lat, self.unit_factor * tmp_data
+        
+    
     def __get_data_not_accumulated(self):
         first = True
         for i, fil in enumerate(self.file_list):

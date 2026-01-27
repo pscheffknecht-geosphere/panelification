@@ -17,14 +17,6 @@ def data_sum(tmp_data_list):
         return read_values_from_grib_field(tmp_data_list[0])
 
 
-def data_3d(tmp_data_list):
-    dims = read_values_from_grib_field(tmp_data_list[0]).shape[-2:]
-    data_3d_array = np.zeros((len(tmp_data_list), dims[0], dims[1]))
-    for i, grb in enumerate(tmp_data_list):   
-        data_3d_array[i, :, :] = read_values_from_grib_field(grb)
-    return data_3d_array
-
-
 def data_norm(tmp_data_list):
     if not len(tmp_data_list) == 2:
         raise ValueError("tmp_data_list has wrong lenght, must be 2 but is "+str(len(tmp_data_list)))
@@ -89,7 +81,7 @@ def calc_data(tmp_data_list, parameter):
        "lightning": data_sum,
        "hail": data_sum,
        "gusts" : data_norm,
-       "cma" : data_3d
+       "cma" : data_sum
        }
     return calc_funcs[parameter](tmp_data_list)
 
@@ -110,10 +102,6 @@ def read_data_grib(grib_file_path, parameter, lead, **kwargs): #get_lonlat_data=
         logger.debug("Getting {:s} from file {:s}".format(repr(grib_handles), grib_file_path))
         tmp_data_list = read_list_of_fields(f, grib_handles)
     tmp_data_field = calc_data(tmp_data_list, parameter)
-    if parameter == "cma":
-        # binarize cma data:
-        tmp_data_field = np.where(tmp_data_field > 0.2, 1., 0.)
-        tmp_data_field = np.sum(tmp_data_field, axis=0)
     tmp_data_field = np.where(tmp_data_field>=9000., np.nan, tmp_data_field)
     logger.debug(f"DATA FROM {grib_file_path} parameter {parameter}:")
     logger.debug(f"Type: {type(tmp_data_field)}")
