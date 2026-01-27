@@ -19,6 +19,7 @@ experiment_configurations = {
         "max_leadtime"     : 60, 
         "accumulated"      : {'gusts': False,
                               'hail': False,
+                              'cma': False,
                               'else': True},
         "path_template"    : {'precip': "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/arome_%H+%LLLL.grb",
                               'else': "/arome_arch/aladin/ARCHIVE/AROMEaut/%Y%m%d/%H/AROMEaut+%LLLL.grb"},
