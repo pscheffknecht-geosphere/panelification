@@ -9,6 +9,9 @@ import datetime as dt
 from misc import loop_datetime
 from datetime import timedelta
 from pyproj import CRS, Transformer
+import gzip
+from io import BytesIO
+
 import regions
 
 
@@ -128,7 +131,12 @@ def read_saf_data(args, start_date, end_date):
 
         saf_file_path = check_paths(read_time, args)
         logging.info(f"reading SAF {args.parameter} at {str(read_time)} from {saf_file_path}")
-        nc = Dataset(saf_file_path, 'r')
+        if saf_file_path.endswith('.gz'):
+            with gzip.open(saf_file_path, 'rb') as gz:
+                decompressed = BytesIO(gz.read())
+                nc = Dataset('in_memory.nc', mode='r', memory=decompressed.getvalue())
+        else:
+            nc = Dataset(saf_file_path, 'r')
         if first:
             saf_data = nc.variables[args.parameter][:].astype(dtype)
             lat, lon = lonlat_from_nwc_geos(
@@ -185,6 +193,7 @@ def check_paths(date, args):
         obs_file_templates = [
             f"/ment_arch2/pscheff/DEV_PAN/flowermapping-panelification/TEST_DATA/SAF/S_NWC_CMA_MTI1_Europe-NR_{date_str}0000Z.nc",
             f"/ment_arch2/pscheff/DEV_PAN/flowermapping-panelification/TEST_DATA/SAF/S_NWC_CMA_MSG3_Europe-VISIR_{date_str}0000Z.nc",
+            f"/ment_arch/aladin/ASSIM/OPLACE_archive/{date_str_short}/S_NWC_CMA_MTI1_Europe-NR_{date_str}0000Z.nc.gz",
             f"/mnt/d/Users/lovasz_v/cma_panelification/bMma{date_str_m5m}.nc"
         ]
     else:
