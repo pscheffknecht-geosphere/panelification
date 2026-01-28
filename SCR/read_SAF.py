@@ -127,7 +127,7 @@ def read_saf_data(args, start_date, end_date):
     dtype = float # we do not know which data type the SAF cma data will be stored, so we use float
     first = True
     read_time = start_date
-    while read_time <= end_date:
+    while read_time < end_date:
 
         saf_file_path = check_paths(read_time, args)
         logging.info(f"reading SAF {args.parameter} at {str(read_time)} from {saf_file_path}")
