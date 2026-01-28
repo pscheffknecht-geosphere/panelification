@@ -522,11 +522,13 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
     # dump data for each model into a single pickle file
     if args.rank_score_time_series:
         score_time_series(data_list, r, tmp_string, args)
+    logger.info("Saving pickle files for panels...")
     for jj, sim in enumerate(data_list):
         pickle.dump([sim, data_list[0], r, jj, levels, cmap,
             norm, verification_subdomain, rank_colors, data_list[0]['max_rank'], args, tmp_string], 
             open(f"{PAN_DIR_TMP}/{tmp_string}/{str(jj).zfill(3)}.p", 'wb'))
-        print(f"saving pickle to {PAN_DIR_TMP}/{tmp_string}/{str(jj).zfill(3)}.p")
+        logger.debug(f"saving pickle to {PAN_DIR_TMP}/{tmp_string}/{str(jj).zfill(3)}.p")
+    logger.info("Done.")
     # generate a list of commands, one for each model, these will call panel_plotter.py to draw a single model
     cmd_list = [f"{sys.executable} {PAN_DIR_SCR}/panel_plotter.py -p {pickle_file}" for pickle_file in glob.glob(f"{PAN_DIR_TMP}/{tmp_string}/???.p")]
     # execute the commands in parallel
@@ -553,13 +555,9 @@ def ens_fss_diff(ax, fss_data, name1, name2, windows, levels):
 def get_value_range(ens_fss_data):
     n_members = len(ens_fss_data)
     val = -9999.
-    print(n_members)
     for jj in range(1, n_members):
         for ii in range(0, n_members-1):
-            print(ii, jj)
             if ii < jj:
-                print(ens_fss_data[ii].pFSS[2])
-                print(ens_fss_data[jj].pFSS[2])
                 v_ = np.nanmax(np.abs(ens_fss_data[ii].pFSS[2] - ens_fss_data[jj].pFSS[2]))
                 if v_ > val:
                     val = v_

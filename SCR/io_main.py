@@ -206,7 +206,6 @@ class ModelConfiguration:
         useparam = "precip" if "precip" in self.parameter else self.parameter
         if isinstance(custom_experiment_item, dict):
             for key, item in custom_experiment_item.items():
-                print(key, item)
                 if useparam in key or useparam == key:
                     ret = custom_experiment_item[useparam]
             if ret == None and 'else' in custom_experiment_item.keys():

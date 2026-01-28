@@ -146,11 +146,3 @@ def read_HungaroMet_netcdf(nc_file_paths, netcdf_variable_name):
                 data += data_tmp
 
     return lon2d, lat2d, data
-    
-
-
-
-
-
-    print(lon2d, lat2d, data)
-    
