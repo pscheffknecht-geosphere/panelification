@@ -155,6 +155,11 @@ experiment_configurations = {
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/icond2_%H+%LLLL.grb",
         "color"            : "orange"
     },
+    "icond1e": {
+        "base_experiment"  : "arome",
+        "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/icond1e_%H+%LLLL.grb",
+        "color"            : "orange"
+    },
     "icon-eu": {
         "base_experiment"  : "arome",
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/icon-eu_%H+%LLLL.grb",
