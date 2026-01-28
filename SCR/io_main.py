@@ -546,9 +546,14 @@ class ModelConfiguration:
 
 
     def get_file_list(self):
-        lead = self.lead + self.output_interval
+        if self.parameter in ["cma"]:
+            logger.info("CMA is a SAF parameter, not hourly accumulated, adjusting lead times accordingly")
+            lead_offset = 0
+        else:
+            lead_offset = self.lead_interval
+        lead = self.lead + lead_offset
         file_list = []
-        while lead <= self.lead_end:
+        while lead < self.lead_end + lead_offset:
             file_list.append(self.get_file_path(lead))
             lead += self.output_interval
         return file_list
