@@ -20,7 +20,7 @@ def add_rank_robustness_info(data_list, args):
         window_limits=[10., 200.]) for sim in data_list[1::])
     logger.info("Done.")
     for cwfss, sim in zip(cwfss_tmp, data_list[1::]):
-        print(f"Bootstraping {sim['name']}, N = {10000}")
+        logging.debug(f"Bootstraping {sim['name']}, N = {10000}")
         cwfss.bootstrap(N=10000)
         sim[f"cwfss"] = cwfss
         sim[f"cwfss_robust"] = cwfss.cwfss
@@ -130,7 +130,7 @@ def draw_ranking_confidence_plot(data_list, start_date, end_date, verification_s
 
     plt.tight_layout()
 
-    print(fig.get_figheight() + 0.08)
+    # print(fig.get_figheight() + 0.08)
     bot = .75 / fig.get_figheight()
     fig.subplots_adjust(bottom=bot)
     cax1 = fig.add_axes([0.1, 0.04, 0.35, 0.015])

@@ -216,7 +216,7 @@ def rank_scores(data_list):
 def write_scores_to_csv(data_list, start_date, end_date, args, verification_subdomain, windows, thresholds):
     name_part = '' # if args.mode == 'None' else args.mode+'_'
     csv_file = "../SCORES/"+args.name+"RR_"+name_part+"score_"+start_date.strftime("%Y%m%d_%HUTC_")+'{:02d}h_acc_'.format(args.duration)+verification_subdomain+'.csv'
-    print(csv_file)
+    logging.info("Saving {csv_file}")
     start_date_str = start_date.strftime("%Y%m%d_%H")
     end_date_str = end_date.strftime("%Y%m%d_%H")
     csv_file = f"{PAN_DIR_SCORES}/{args.name}RR_{name_part}score_{start_date_str}UTC_{args.duration:02d}h_acc_{verification_subdomain}.csv"
@@ -239,6 +239,7 @@ def write_scores_to_csv(data_list, start_date, end_date, args, verification_subd
                 sim['rank_fss_condensed'], sim['rank_fss_condensed_weighted']])
     if args.save_percentiles:
         csv_file = f"{PAN_DIR_SCORES}/{args.name}RR_percentiles_{name_part}score_{start_date_str}UTC_{args.duration:02d}h_acc_{verification_subdomain}.csv"
+        logging.info("Saving percentiles to {csv_file}")
         with open(csv_file, 'w') as f:
             score_writer = csv.writer(f, delimiter=';')
             col_labels = ["conf", "init", "lead", "name"]
@@ -375,7 +376,8 @@ def fss_d90(rrm, rro, args):
     overlap = float(np.sum(_rro*rrm))/float(np.sum(rrm))
     _, _, _arr, _ = fss_calc_func(rro_s, rrm_s, windows_2d, levels, mode=args.fss_calc_mode)
     arr = _arr.values.flatten()
-    logger.debug(print(arr))
+    logger.debug("FSS array for D90 calculation:")
+    logger.debug(arr)
     for ii in range(1,len(arr)):
         if arr[ii] - arr[ii-1] < 0:
             logger.info("non-monotonous array in argument, returning no d90!")
