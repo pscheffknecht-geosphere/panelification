@@ -287,8 +287,8 @@ class ModelConfiguration:
                     logger.info(f" model uses {ftype} files")
                     return ftype
         else:
-            logger.info(f"file types found: {file_type_list}\n"
-                        f"Not all files have the same type in experiment {self.experiment_name} with init {self.init}!")
+            logger.error(f"file types found: {file_type_list}\n"
+                         f"Not all files have the same type in experiment {self.experiment_name} with init {self.init}!")
             return None
 
 
