@@ -262,11 +262,16 @@ class ModelConfiguration:
         """ Checks the requested init and lead time to see if they
         are availabled depending on the model configuration's init
         and lead time intervals"""
-        time_checks = [
-            self.lead%self.output_interval == 0,
-            self.init.hour%self.init_interval == 0,
-            self.lead_end%self.output_interval == 0]
-        return True if all(time_checks) else False
+        if self.lead%self.output_interval == 0:
+            logging.warning(f"Discarding {self.experiment_name} {self.init} +{self.lead}h because first lead time is not a multiple of output interval {self.output_interval}h")
+            return False
+        if self.init.hour%self.init_interval == 0:
+            logging.warning(f"Discarding {self.experiment_name} {self.init} +{self.lead}h because init hour is not a multiple of init interval {self.init_interval}h")
+            return False
+        if self.lead_end%self.output_interval == 0:
+            logging.warning(f"Discarding {self.experiment_name} {self.init} +{self.lead}h because last lead time is not a multiple of output interval {self.output_interval}h")
+            return False
+        return True
 
 
     def __get_file_type(self, file_list):
