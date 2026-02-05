@@ -167,6 +167,15 @@ class ModelConfiguration:
         self.on_mars = self.__pick_value_by_parameter(cmc["on_mars"]) if "on_mars" in cmc.keys() else False
         self.ecfs_path_template = self.__pick_value_by_parameter(cmc["ecfs_path_template"]) if "ecfs_path_template" in cmc else None
         self.url_template = cmc["url_template"] if "url_template" in cmc.keys() else None
+        self.__check_validity()
+        if self.valid:
+            self.read_data = read_func_dict[self.file_type]
+            self.__prep_read_kwargs()
+        else:
+            logger.debug("Model {:s} with init {:s} has no output for the requested time window.".format(
+                self.experiment_name, self.init.strftime("%Y-%m-%d %H")))
+
+    def __check_validity(self):
         if self.__times_valid():
             if self.netcdf_one_file:
                 self.one_file = self.get_file_path(self.lead_end)
@@ -177,12 +186,6 @@ class ModelConfiguration:
                 self.file_list = self.get_file_list()
             self.valid = self.__files_valid()
             self.print()
-        if self.valid:
-            self.read_data = read_func_dict[self.file_type]
-            self.__prep_read_kwargs()
-        else:
-            logger.debug("Model {:s} with init {:s} has no output for the requested time window.".format(
-                self.experiment_name, self.init.strftime("%Y-%m-%d %H")))
 
 
     def __prep_read_kwargs(self):
