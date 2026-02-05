@@ -313,19 +313,16 @@ class ModelConfiguration:
 
     def __files_valid(self):        
         if self.netcdf_one_file:
-            ret_OK = self.__file_check([self.one_file])
+            return self.__file_check([self.one_file])
         elif self.accumulated and self.lead > 0:
-            ret_OK = self.__file_check([self.start_file, self.end_file])
+            return self.__file_check([self.start_file, self.end_file])
         elif self.accumulated and self.lead == 0: # no start file to subtract
-            ret_OK = self.__file_check([self.end_file])
+            return self.__file_check([self.end_file])
         elif not self.accumulated:
-            ret_OK = self.__file_check(self.file_list)
+            return self.__file_check(self.file_list)
         else: # this should never happen
             logger.error(f"{self.experiment_name} with init {self.init} has no valid files to check!")
-        if ret_OK and self.file_type is not None:
-            self.read_data = read_func_dict[self.file_type]
-            return True
-        return False
+            return False
 
 
     def get_data(self, param):
