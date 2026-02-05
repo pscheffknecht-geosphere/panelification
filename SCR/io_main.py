@@ -286,7 +286,10 @@ class ModelConfiguration:
                 if first in suffixList:
                     logger.info(f" model uses {ftype} files")
                     return ftype
-        return None
+        else:
+            logger.info(f"file types found: {file_type_list}\n"
+                        f"Not all files have the same type in experiment {self.experiment_name} with init {self.init}!")
+            return None
 
 
     def __file_check(self, files_to_check):
@@ -295,12 +298,16 @@ class ModelConfiguration:
             if fil is not None:
                 if os.path.isfile(fil):
                     if os.path.getsize(fil) == 0:
+                        logger.error(f"File {fil} has size 0!")
                         return False
                 else:
+                    logger.error(f"File {fil} not found!")
                     return False
             else:
+                logger.error(f"File to check is None!")
                 return False
         if not self.file_type:
+            logger.debug(f"File type not set for {self.experiment_name}, detecting from files...")
             self.file_type = self.__get_file_type(files_to_check)
         return True
 
@@ -309,7 +316,7 @@ class ModelConfiguration:
             ret_OK = self.__file_check([self.one_file])
         elif self.accumulated and self.lead > 0:
             ret_OK = self.__file_check([self.start_file, self.end_file])
-        elif self.accumulated and self.lead == 0:
+        elif self.accumulated and self.lead == 0: # no start file to subtract
             ret_OK = self.__file_check([self.end_file])
         elif not self.accumulated:
             ret_OK = self.__file_check(self.file_list)
