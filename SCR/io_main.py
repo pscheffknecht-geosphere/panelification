@@ -363,11 +363,13 @@ class ModelConfiguration:
         for ii, fil in enumerate(self.file_list):
             logger.info("Reading file ({:d}): {:s}".format(ii, fil))
             if first:
-                lon, lat, tmp_data = self.read_data(fil, self.parameter, 0, **self.read_kwargs)
+                lon, lat, tmp_data = self.read_data(fil, self.parameter, 0, **self.read_kwargs, 
+                    grib_handles=self.grib_handles)
                 self.read_kwargs["get_lonlat_data"] = False
                 first = False
             else:
-                td2 = self.read_data(fil, self.parameter, 0, **self.read_kwargs)
+                td2 = self.read_data(fil, self.parameter, 0, **self.read_kwargs, 
+                    grib_handles=self.grib_handles)
                 tmp_data = np.dstack((tmp_data, td2))
         if self.parameter == "cma":
             tmp_data = np.where(tmp_data >= 0.2, 1, 0)
