@@ -44,6 +44,16 @@ regions = {
                 "x_size": 1500, "y_size": 1500}
         }
     },
+    "AROME-Aut": {
+        "central_longitude": 14.,
+        "central_latitude": 47.5,
+        "extent": [6.5 , 21.5, 43., 52.],
+        "verification_subdomains": {
+            "Default": {
+                "central_longitude": 14.0, "central_latitude": 47.5,
+                "x_size": 1050, "y_size":  850}
+        },
+    },
     "Alps": {
         "central_longitude": 9.,
         "central_latitude": 45.,
