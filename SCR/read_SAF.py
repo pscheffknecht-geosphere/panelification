@@ -209,5 +209,5 @@ def check_paths(date, args):
     
     for oft in obs_file_templates:
         logger.error(f" {oft} does not exist")
-    logger.error(f"Did not find OBS file in any of the paths")
+    logger.critical(f"Did not find OBS file in any of the paths")
     raise FileNotFoundError

@@ -218,8 +218,8 @@ def read_INCA_BIL(fname, bilfac=100., dom="L", twodim=False, verbose=True, dtype
 
     # check if file exists
     if not glob.glob(fname):
-        logging.error("Could not find file: " + fname)
-        return None
+        logging.critical("Could not find file: " + fname)
+        exit(1)
 
     if verbose:
         if twodim == True:
@@ -277,8 +277,8 @@ def read_INCA_plus(inca_file, k_start, k_end):
     try:
         f = pygrib.open(inca_file)
     except:
-        logging.error("Could not open "+inca_file)
-        return None
+        logging.critical("Could not open "+inca_file)
+        exit(1)
     grib_handle = grib_handles.GRIB_indicators['inca_plus-fc']['precip']
     for kk in range(k_start, k_end):
         first = True
