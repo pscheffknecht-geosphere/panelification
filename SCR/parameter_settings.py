@@ -281,7 +281,9 @@ def gusts_cmap_and_levels(args):
 
 def cma_cmap_and_levels(args):
     levels = [x for x in range(args.duration + 1)] #[0., 0.5, 1., 1.5, 2.0, 3.0]
-    cmap = nclcmaps.cmap("MPL_YlGnBu")
+    # cmap = nclcmaps.cmap("MPL_YlGnBu")
+    cmap = nclcmaps.cmap("MPL_gist_gray") 
+    cmap = truncate_colormap(cmap, 0.25, 1.)
     norm = nnorm(vmin=0., vmax=args.duration)
     return levels, cmap, norm
 
@@ -360,3 +362,11 @@ def get_cmap_and_levels(args):
         return gusts_cmap_and_levels(args)
     elif args.parameter == 'cma':
         return cma_cmap_and_levels(args)
+
+
+# https://stackoverflow.com/questions/18926031/how-to-extract-a-subset-of-a-colormap-as-a-new-colormap-in-matplotlib
+def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
+    new_cmap = mplcolors.LinearSegmentedColormap.from_list(
+        'trunc({n},{a:.2f},{b:.2f})'.format(n=cmap.name, a=minval, b=maxval),
+        cmap(np.linspace(minval, maxval, n)))
+    return new_cmap
