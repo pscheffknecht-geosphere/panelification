@@ -137,7 +137,7 @@ class ModelConfiguration:
         self.experiment_name = custom_experiment_name
         self.parameter = args.parameter
         self.check_ecfs = args.check_ecfs
-        self.path_template   = self.__pick_value_by_parameter(cmc["path_template"])
+        self.path_template   = self.__pick_value_by_parameter(cmc["path_template"], "path_template")
         if "base_experiment" in cmc.keys(): 
             self.__fill_cmc_with_base_values(cmc, args)
         if not isinstance(self.path_template, list) and isinstance(self.path_template, str):
@@ -146,11 +146,11 @@ class ModelConfiguration:
         for tmpl in self.path_template:
             logger.debug(f"   {tmpl}")
         for anam in ["init_interval", "max_leadtime", "output_interval", "accumulated", "unit_factor"]:
-            setattr(self, anam, self.__pick_value_by_parameter(cmc[anam]))
+            setattr(self, anam, self.__pick_value_by_parameter(cmc[anam], anam))
         for anam in ["ensemble", "grib_handles", "lagged_ensemble", "color", "file_type", "netcdf_variable_name"]:
-            setattr(self, anam, self.__pick_value_by_parameter(cmc[anam]) if anam in cmc else None)
+            setattr(self, anam, self.__pick_value_by_parameter(cmc[anam], anam) if anam in cmc else None)
             if anam in cmc:
-                logger.debug(f" found {anam}, setting it to {self.__pick_value_by_parameter(cmc[anam])}")
+                logger.debug(f" found {anam}, setting it to {self.__pick_value_by_parameter(cmc[anam], anam)}")
         for anam, default_value in DEFAULTS.items():
             if not hasattr(self, anam):
                 setattr(self, anam, cmc.get(anam, default_value))
@@ -164,8 +164,8 @@ class ModelConfiguration:
             self.ensemble = self.experiment_name + "_lagged"
             logger.debug(f"{self.experiment_name} {self.init} is part of ensemble {self.ensemble}")
         # are we on ATOS and using MARS?
-        self.on_mars = self.__pick_value_by_parameter(cmc["on_mars"]) if "on_mars" in cmc.keys() else False
-        self.ecfs_path_template = self.__pick_value_by_parameter(cmc["ecfs_path_template"]) if "ecfs_path_template" in cmc else None
+        self.on_mars = self.__pick_value_by_parameter(cmc["on_mars"], "on_mars") if "on_mars" in cmc.keys() else False
+        self.ecfs_path_template = self.__pick_value_by_parameter(cmc["ecfs_path_template"], "ecfs_path_template") if "ecfs_path_template" in cmc else None
         self.url_template = cmc["url_template"] if "url_template" in cmc.keys() else None
         self.__check_validity()
         if self.valid:
@@ -201,27 +201,27 @@ class ModelConfiguration:
             self.read_kwargs["netcdf_one_file"] = self.netcdf_one_file
 
 
-    def __pick_value_by_parameter(self, custom_experiment_item):
+    def __pick_value_by_parameter(self, custom_experiment_item, current_key):
         """ If path template is a dictionary, return the correct item for the given parameter
             if it is a string, return the string
             else raise a ValueError"""
-        ret = None
+        logger.debug(f"Picking value for key {current_key} in experiment {self.experiment_name} and parameter {self.parameter}")
         useparam = "precip" if "precip" in self.parameter else self.parameter
         if isinstance(custom_experiment_item, dict):
             for key, item in custom_experiment_item.items():
                 if useparam in key or useparam == key:
-                    ret = custom_experiment_item[useparam]
-            if ret == None and 'else' in custom_experiment_item.keys():
-                ret = custom_experiment_item['else']
-            elif not 'else' in custom_experiment_item.keys():
-                logger.debug("Found invalid entry in custom_experiments for experiment {self.experiment_name}")
-                for key, item in custom_experiment_item.items():
-                    logger.debug(f"{str(key)}: {str(item)}")
-                logger.critical(f"If parameter is not a dict key, dict needs an 'else': .... entry to fall back onto.")
+                    logger.debug(f"  Found match, using {item} for {useparam} in experiment {self.experiment_name}")   
+                    return custom_experiment_item[useparam]
+            if 'else' in custom_experiment_item.keys():
+                logger.debug(f"  No match found, using 'else' entry ({custom_experiment_item['else']}) for {self.experiment_name}")
+                return custom_experiment_item['else']
+            logger.warning(f"No match found for parameter {useparam} in experiment {self.experiment_name}[{current_key}]!\n"
+                            f"|    Add an 'else' entry to the dictionary to provide a fallback value or specify a value for the parameter {useparam}!")
+            for key, item in custom_experiment_item.items():
+                logger.debug(f"{self.experiment_name}[{current_key}][{str(key)}] = {str(item)}")
+            logger.warning(f"If parameter is not a dict key, dict needs an 'else': .... entry to fall back onto.")
         else:
-            ret = custom_experiment_item
-        # logger.debug(f"Picked {ret} for {self.parameter} in experiment {self.experiment_name}")
-        return ret
+            return custom_experiment_item
 
         
     def __fill_cmc_with_base_values(self, cmc, args):
