@@ -380,6 +380,10 @@ class Region():
         self.subdomains = {}
         for subdomain_name in subdomain_name_list:
             logger.info("Preparing subdomain {:s}".format(subdomain_name))
+            if not subdomain_name in self.regions[region_name]["verification_subdomains"].keys():
+                logger.critical(f"Region {region_name} does not have a subdomain named {subdomain_name} defined in regions.py!\n"
+                                f"Available subdomains are: {list(self.regions[region_name]['verification_subdomains'].keys())}")
+                exit(1)
             k = self.__get_scale_factor(self.regions[region_name]["verification_subdomains"][subdomain_name])
             lon, lat = self.__make_grid(self.regions[region_name]["verification_subdomains"][subdomain_name], k=k)
             if "thresholds" in self.regions[region_name]["verification_subdomains"][subdomain_name].keys():

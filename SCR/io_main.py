@@ -288,7 +288,8 @@ class ModelConfiguration:
                     return ftype
         else:
             logger.error(f"file types found: {file_type_list}\n"
-                         f"Not all files have the same type in experiment {self.experiment_name} with init {self.init}!")
+                         f"Not all files have the same type in experiment {self.experiment_name} with init {self.init}!\n"
+                         f"Experiment {self.experiment_name} with init {self.init} will not be verified!")
             return None
 
 
