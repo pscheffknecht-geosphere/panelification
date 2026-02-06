@@ -39,11 +39,57 @@ start_date = datetime(2019,8,12,15,0,0)
 end_date = datetime(2019,8,12,18,0,0)
 
 
+
+
+class CustomLoggingFormatter(logging.Formatter):
+    grey = "\x1b[38;20m"
+    yellow = "\x1b[93;20m"
+    red = "\x1b[91;20m"
+    bold_red = "\x1b[31;1m"
+    reset = "\x1b[0m"
+
+    base_format = (
+        "%(asctime)s - %(name)s - %(levelname)s - "
+        "%(message)s (%(filename)s:%(lineno)d)"
+    )
+
+    FORMATS = {
+        logging.DEBUG: grey + base_format + reset,
+        logging.INFO: grey + base_format + reset,
+        logging.WARNING: yellow + base_format + reset,
+        logging.ERROR: red + base_format + reset,
+        logging.CRITICAL: bold_red + base_format + reset,
+    }
+
+    def format(self, record):
+        log_fmt = self.FORMATS.get(record.levelno, self.base_format)
+        return logging.Formatter(log_fmt).format(record)
+    
+
 def init_logging(args):
+    root = logging.getLogger()
+    root.setLevel(translate_logging_levels(args.loglevel))
+
+    # Remove any pre-existing handlers (important!)
+    root.handlers.clear()
+
+    # Console handler (colored)
+    console = logging.StreamHandler(sys.stdout)
+    console.setLevel(root.level)
+    console.setFormatter(CustomLoggingFormatter())
+    root.addHandler(console)
+
+    # Optional file handler (no colors!)
     if args.logfile:
-        logging.basicConfig(filename=args.logfile, level=translate_logging_levels(args.loglevel))
-    else:
-        logging.basicConfig(level=translate_logging_levels(args.loglevel))
+        file_handler = logging.FileHandler(args.logfile)
+        file_handler.setLevel(root.level)
+        file_handler.setFormatter(
+            logging.Formatter(
+                "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+            )
+        )
+        root.addHandler(file_handler)
+    logging.info("Logging initialized.\n")
 
 
 def translate_logging_levels(lvlstr):
