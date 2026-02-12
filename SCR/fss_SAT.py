@@ -49,35 +49,6 @@ def integral_filter(field, n):
     
     return integral_table
 
-def integral_filter_old(field, n):
-    """
-    Fast summed area table version of the sliding accumulator.
-    :param field: nd-array of binary hits/misses.
-    :param n: window size.
-    """
-    w = n // 2
-    if w < 1.:
-        return field
-    
-    r, c = np.mgrid[0:field.shape[0], 0:field.shape[1]]
-
-    r = r.astype(int)
-    c = c.astype(int)
-    w = int(w)
-
-    r0, c0 = (np.clip(r - w, 0, field.shape[0] - 1),
-              np.clip(c - w, 0, field.shape[1] - 1))
-    r1, c1 = (np.clip(r + w, 0, field.shape[0] - 1),
-              np.clip(c + w, 0, field.shape[1] - 1))
-
-    integral_table = np.zeros(field.shape).astype(np.int64)
-    integral_table += np.take(field, np.ravel_multi_index((r1, c1), field.shape))
-    integral_table += np.take(field, np.ravel_multi_index((r0, c0), field.shape))
-    integral_table -= np.take(field, np.ravel_multi_index((r0, c1), field.shape))
-    integral_table -= np.take(field, np.ravel_multi_index((r1, c0), field.shape))
-    return integral_table
-
-
 
 def fss(fcst, obs, window, fcst_cache, obs_cache, threshold_mode="over"):
     """
