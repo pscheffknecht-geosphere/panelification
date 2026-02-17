@@ -192,9 +192,11 @@ def check_paths(date, args):
     if args.parameter =='cma':
         obs_file_templates = [
             f"/ment_arch/aladin/ASSIM/OPLACE_archive/{date_str_short}/S_NWC_CMA_MTI1_Europe-NR_{date_str}0000Z.nc.gz",
-            f"/mnt/d/Users/lovasz_v/cma_panelification/bMma{date_str_m5m}.nc",
+            f"/mnt/CDS6/satellite/bMma/bMma{date_str_m5m}.nc",
             f"/ment_arch2/pscheff/DEV_PAN/flowermapping-panelification/TEST_DATA/SAF/S_NWC_CMA_MTI1_Europe-NR_{date_str}0000Z.nc",
-            f"/ment_arch2/pscheff/DEV_PAN/flowermapping-panelification/TEST_DATA/SAF/S_NWC_CMA_MSG3_Europe-VISIR_{date_str}0000Z.nc"
+            f"/ment_arch2/pscheff/DEV_PAN/flowermapping-panelification/TEST_DATA/SAF/S_NWC_CMA_MSG3_Europe-VISIR_{date_str}0000Z.nc",
+
+            
         ]
     else:
         raise ValueError(f"SAF parameter {args.parameter} not supported.")
