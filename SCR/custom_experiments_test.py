@@ -34,13 +34,13 @@ experiment_configurations = {
 
     
     "arome_hun_test": {
-        "init_interval"    : 24, # to get only 00 UTC init
+        "init_interval"    : 3, # 
         "output_interval"  : 1, # 
         "max_leadtime"     : 60, 
         "accumulated"      : {'cma' : False,
                               'else': True},
         "path_template"    : {'cma': ["../TEST_DATA/arome/%Y%m%d/%H/AROMEaut_clouds_+%LLLL.grb",
-                                      r"/mnt/d/Users/lovasz_v/arome_panelification/20251224/chra%Y%m%d_%H%M+%LLL00"],
+                                      r"/mnt/CDS6/NWP/chra/chra%Y%m%d_%H%M+%LLL00"],
                               'else': None},
         "unit_factor"      : 1.,
         "color"            : 'blue',
@@ -48,13 +48,58 @@ experiment_configurations = {
         "netcdf_variable_name"  : 'CloudTot'
         },
 
-    "ecmwf_hun_test": {
-        "init_interval"    : 24, # to get only 00 UTC init
+
+    "wrf_hun_test": {
+        "init_interval"    : 3, # ez 3 vagy 6 a wrf esetében? 
         "output_interval"  : 1, # 
         "max_leadtime"     : 60, 
         "accumulated"      : {'cma' : False,
                               'else': True},
-        "path_template"    : {'cma': [r"/mnt/d/Users/lovasz_v/ecmwf_panelification/20251224/cedh%Y%m%d_%H%M+%LLL00"],
+        "path_template"    : {'cma': ["../TEST_DATA/arome/%Y%m%d/%H/AROMEaut_clouds_+%LLLL.grb",
+                                      r"/mnt/CDS6/NWP/cwda/cwda%Y%m%d_%H%M+%LLL00"],
+                              'else': None},
+        "unit_factor"      : 1.,
+        "color"            : 'blue',
+        "file_type"        : 'NetCDF',
+        "netcdf_variable_name"  : 'CLOUD_TOTAL'
+        },
+
+    "arome_ruc_test": {
+        "init_interval"    : 3, # t
+        "output_interval"  : 1, # 
+        "max_leadtime"     : 60, 
+        "accumulated"      : {'cma' : False,
+                              'else': True},
+        "path_template"    : {'cma': ["../TEST_DATA/arome/%Y%m%d/%H/AROMEaut_clouds_+%LLLL.grb",
+                                      r"/mnt/CDS6/NWP/chrR/chrR%Y%m%d_%H%M+%LLL00"], # elkell kérni a betűkódot Bogitól 
+                              'else': None},
+        "unit_factor"      : 1.,
+        "color"            : 'blue',
+        "file_type"        : 'NetCDF',
+        "netcdf_variable_name"  : 'CloudTot'
+        },
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    "ecmwf_hun_test": {
+        "init_interval"    : 6, # to get only 00 UTC init
+        "output_interval"  : 1, # 
+        "max_leadtime"     : 60, 
+        "accumulated"      : {'cma' : False,
+                              'else': True},
+        "path_template"    : {'cma': [r"/mnt/CDS6/NWP/cedh/cedh%Y%m%d_%H%M+%LLL00"],
                               'else': None},
         "unit_factor"      : 1.,
         "color"            : 'blue',

@@ -42,6 +42,15 @@ experiment_configurations = {
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/aromeruc_%H+%LLLL.00.grb",
         "color"            : "navy"
         },
+    "deode500": {
+        "base_experiment"  : "arome",
+        "init_interval"    : 24,
+        "output_interval"  : 1,
+        "max_leadtime"     : 48, 
+        "accumulated"      : True,
+        "path_template"    : "/ment_arch2/pscheff/WEB_PAN/panelification/MODEL/DEODE/%Y/%m/%d/GRIBPFDEOD+%LLLLh00m00s.grb",
+        "color"            : "darkmagenta"
+        },
     "inca-opt-grib": {
         "init_interval"    : 1,
         "output_interval"  : 1,
@@ -189,7 +198,17 @@ experiment_configurations = {
         "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_%H+%LLLL.grb",
                               "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_00_%H+%LLLL.grb2",
                               "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_%H+%LLLL.grb2"],
-        "color"            : "dodgerblue",
+        "color"            : "dodgerblue"
+    },
+    "claef1k-esuite": {
+        "base_experiment"  : "claef1k-control",
+        "path_template"    : ["/ment_arch2/pscheff/arch_precip_test/%Y%m%d/claef_1k_esuite_%H+%LLLL.grb2",
+                              "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_esuite_%H+%LLLL.grb2"],
+    },
+    "claef1k-esuite": {
+        "base_experiment"  : "claef1k-control",
+        "path_template"    : ["/ment_arch2/pscheff/arch_precip_test/%Y%m%d/claef_1k_esuite_%H+%LLLL.grb2",
+                              "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_esuite_%H+%LLLL.grb2"],
     },
     "claef1k-mean": {
         "base_experiment"  : "claef1k-control",
@@ -341,8 +360,25 @@ experiment_configurations = {
     },
     "claef1k-enVar": {
         "base_experiment"  : "claef1k-control",
+        "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_01_%H+%LLLL.grb2",
+                              "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_envar_%H+%LLLL.grb2",
+                              "/ment_arch2/pscheff/arch_precip_test/%Y%m%d/claef_1k_envar_%H+%LLLL:00.grb2"],
+        "color"            : "steelblue"
+    },
+    "claef1k-enVar_old17": {
+        "base_experiment"  : "claef1k-control",
         "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_17_%H+%LLLL.grb",
                               "/ment_arch2/aneduncheran/%Y%m%d_%H/MEM_17/CLAEF17+%LLLL.grb"]
+    },
+    "dt_45": {
+        "base_experiment"  : "claef1k-control",
+        "path_template"    : "/ment_arch2/pscheff/WEB_PAN/panelification/MODEL/ADDGRIB_45/%Y%m%d/%H/CLAEF00+%LLLL:00.grb2",
+        "color"            : "mediumvioletred"
+    },
+    "dt_45_comad": {
+        "base_experiment"  : "claef1k-control",
+        "path_template"    : "/ment_arch2/pscheff/WEB_PAN/panelification/MODEL/ADDGRIB_45_COMAD/%Y%m%d/%H/CLAEF00+%LLLL:00.grb2",
+        "color"            : "hotpink"
     },
 }
 
