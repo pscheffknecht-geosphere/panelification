@@ -46,8 +46,8 @@ def convert_date_to_dat_tim(date, table='hagelw'):
             dat = str(y) + date.strftime("%m%d")
         tim = date.strftime("%H%M")
     else:
-        logging.error("convert_date_to_dat_tim in sybase.py: not a valid datetime, got "+str(date)+" ("+str(type(date))+") instead")
-        exit()
+        logging.critical(f"Received invalid date: {str(date)} ({str(type(date))}), expected datetime.datetime")
+        raise ValueError(f"convert_date_to_dat_tim in sybase.py: {str(date)} is not a valid datetime")
     return str(dat), str(tim)
 
 

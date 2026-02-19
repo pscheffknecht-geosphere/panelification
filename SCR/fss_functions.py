@@ -3,6 +3,9 @@ import numpy as np
 import pandas as pd
 from scipy import signal
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 def fourier_filter(field, window, mode):
     return signal.fftconvolve(field, np.ones(window), mode=mode)
@@ -23,16 +26,16 @@ def fourier_fss(fcst, obs, threshold, window, percentiles, mode):
     """
     ny, nx = fcst.shape
     if mode=='valid' and any(np.array(window) > np.array(fcst.shape)):
-      return np.nan, np.nan, np.nan, np.nan
+        return np.nan, np.nan, np.nan, np.nan
     if percentiles:
-      fhat = fourier_filter(fcst > np.percentile(fcst, threshold), window, mode)
-      ohat = fourier_filter(obs > np.percentile(obs, threshold), window, mode)
+      fhat = fourier_filter(fcst >= np.percentile(fcst, threshold), window, mode)
+      ohat = fourier_filter(obs >= np.percentile(obs, threshold), window, mode)
     else:
-      fhat = fourier_filter(fcst > threshold, window, mode)
-      ohat = fourier_filter(obs > threshold, window, mode)
+        fhat = fourier_filter(fcst > threshold, window, mode)
+        ohat = fourier_filter(obs > threshold, window, mode)
     num = np.nanmean(np.power(fhat - ohat, 2))
     denom = np.nanmean(np.power(fhat,2) + np.power(ohat,2))
-    ovest = (np.sum(fcst > threshold) - np.sum(obs > threshold)) / fcst.size
+    ovest = (np.sum(fcst > threshold) - np.sum(obs >= threshold)) / fcst.size
     with np.errstate(divide='ignore', invalid='ignore'):
        fss_ret = 1.-num/denom
     return num, denom, fss_ret, ovest
@@ -79,10 +82,11 @@ def fss_frame(fcst, obs, windows, levels, percentiles=False, mode='same'):
         den_data_fft.append([x[1] for x in _data_fft])
         fss_data_fft.append([x[2] for x in _data_fft])
         overestimated.append([x[3] for x in _data_fft])
-    return (pd.DataFrame(num_data_fft,  index=levels), #, columns=["{:d}x{:d}".format([*window for window in windows]),
-            pd.DataFrame(den_data_fft,  index=levels), #, columns=windows),
-            pd.DataFrame(fss_data_fft,  index=levels), #, columns=windows),
-            pd.DataFrame(overestimated, index=levels)) #, columns=windows))
+    col_windows = [w[0] for w in windows]
+    return (pd.DataFrame(num_data_fft,  index=levels, columns=col_windows),
+            pd.DataFrame(den_data_fft,  index=levels, columns=col_windows),
+            pd.DataFrame(fss_data_fft,  index=levels, columns=col_windows),
+            pd.DataFrame(overestimated, index=levels, columns=col_windows))
 
 def fss_raw(fcst, obs, windows, levels, percentiles=False, mode='same'):
     """
@@ -118,7 +122,8 @@ def fss_frame_eps(fcst, obs, windows, levels, percentiles=False, mode='same'):
         den_data_fft.append([x[1] for x in _data_fft])
         fss_data_fft.append([x[2] for x in _data_fft])
         overestimated.append([x[3] for x in _data_fft])
-    return (pd.DataFrame(num_data_fft,  index=levels), #, columns=["{:d}x{:d}".format([*window for window in windows]),
-            pd.DataFrame(den_data_fft,  index=levels), #, columns=windows),
-            pd.DataFrame(fss_data_fft,  index=levels), #, columns=windows),
-            pd.DataFrame(overestimated, index=levels)) #, columns=windows))
+    col_windows = [w[0] for w in windows]
+    return (pd.DataFrame(num_data_fft,  index=levels, columns=col_windows),
+            pd.DataFrame(den_data_fft,  index=levels, columns=col_windows),
+            pd.DataFrame(fss_data_fft,  index=levels, columns=col_windows),
+            pd.DataFrame(overestimated, index=levels, columns=col_windows))

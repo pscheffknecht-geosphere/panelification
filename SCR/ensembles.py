@@ -1,5 +1,6 @@
 import numpy as np
 import fss_functions
+import fss_cumsum
 import parameter_settings
 from itertools import combinations
 from joblib import Parallel, delayed
@@ -55,14 +56,21 @@ class Ensemble:
         self.thresholds = parameter_settings.get_fss_thresholds(args)
         ww = [10,20,30,40,60,80,100,120,140,160,180,200]
         self.windows = prep_windows(ww, args.fss_calc_mode, nx, ny)
+        self.fss_method = args.fss_method
         self.calc_scores()
         self.save()
         
     def calc_scores(self):
         logger.info(f"  Calculating pFSS for {self.name}")
-        self.pFSS = fss_functions.fss_frame_eps(self.precip_data_resampled, self.obs_data_resampled, self.windows, self.thresholds)
+        if self.fss_method == "legacy":
+            self.pFSS = fss_functions.fss_frame_eps(self.precip_data_resampled, self.obs_data_resampled, self.windows, self.thresholds)
+        else:
+            self.pFSS = fss_cumsum.fss_cumsum_frame(self.precip_data_resampled, self.obs_data_resampled, self.windows, self.thresholds, eps=True)
         logger.info(f"  Calculating emFSS for {self.name}")
-        self.emFSS = fss_functions.fss_frame(np.mean(self.precip_data_resampled, axis=0), self.obs_data_resampled, self.windows, self.thresholds)
+        if self.fss_method == "legacy":
+            self.emFSS = fss_functions.fss_frame(np.mean(self.precip_data_resampled, axis=0), self.obs_data_resampled, self.windows, self.thresholds)
+        else:
+            self.emFSS = fss_cumsum.fss_cumsum_frame(np.mean(self.precip_data_resampled, axis=0), self.obs_data_resampled, self.windows, self.thresholds)
         logger.info(f"  Calculating dFSS for {self.name}")
         self.calc_dFSS()
         logger.info(f"  Calculating CRPS for {self.name}")
@@ -71,7 +79,20 @@ class Ensemble:
 
     def calc_dFSS(self):
         combos = list(combinations([x for x in range(self.member_count)], 2))
-        self.dFSS = Parallel(n_jobs=16, backend='threading')(delayed(fss_functions.fss_raw)(self.precip_data_resampled[combo[0]], self.precip_data_resampled[combo[1]], self.windows, self.thresholds) for combo   in combos)
+        if self.fss_method == "legacy":
+            self.dFSS = Parallel(n_jobs=16, backend='threading')(delayed(fss_functions.fss_raw)(
+            self.precip_data_resampled[combo[0]], 
+            self.precip_data_resampled[combo[1]], 
+            self.windows, 
+            self.thresholds
+            ) for combo in combos)
+        else:
+            self.dFSS = Parallel(n_jobs=16, backend='threading')(delayed(fss_cumsum.fss_cumsum_frame)(
+            self.precip_data_resampled[combo[0]], 
+            self.precip_data_resampled[combo[1]], 
+            self.windows, 
+            self.thresholds, 
+            raw=True) for combo in combos)
         self.dFSSmean = np.nanmean(self.dFSS, axis=0)
         self.dFSSstdev = np.nanstd(self.dFSS, axis=0)
 

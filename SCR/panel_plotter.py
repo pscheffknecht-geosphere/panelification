@@ -154,7 +154,11 @@ def add_fss_plot_new(ax, sim, rank_vmax, jj, args):
     rb_norm = bnorm(np.arange(-.22, .221, .04), ncolors=mpl.colormaps['RdBu'].N)
     cmapG = mpl.colormaps['Greens']
     cmapBR = mpl.colormaps['RdBu']
+    doing_percentile = False
     for yy in range(ny):
+        yaxis_value = sim["fssf"].index[yy]
+        if yaxis_value > 90000:
+            doing_percentile = True
         for xx in range(nx):
             xedge = -0.5 + np.array([xx+pad, xx+pad, xx+1-pad, xx+1-pad, xx+pad])
             yedge = -0.5 + np.array([yy+pad, yy+1-pad, yy+1-pad, yy+pad, yy+pad])
@@ -176,17 +180,17 @@ def add_fss_plot_new(ax, sim, rank_vmax, jj, args):
                 # ax.add_patch(circle)
             if sim['fss_ranks'][yy, xx] == 1: # and yy < 9: #only for bad but not nan
                 bias = sim['fss_overestimated'].to_numpy()[yy, xx]
-                if yy > 9:
+                if doing_percentile:
                     bias = 0 # workaround for bug
                 xedget, yedget = make_triangle(xx, yy, np.clip(-bias / 0.22, -1., 1.)) # <-- needs scaled bias to have .22 mapped to 1. for max triangle
                 col = cmapBR(rb_norm(bias)) # <-- needs no scaled bias because norm scales the interval to [-1, 1]
-            if yy == 9 or sim['fss_ranks'][yy, xx] == 0:
+            if yaxis_value > 90000 or sim['fss_ranks'][yy, xx] == 0:
                 ax.plot(xedge[[0, 2]], yedge[[0, 2]], 'gray', lw=0.5, zorder=999)
                 ax.plot(xedge[[1, 3]], yedge[[1, 3]], 'gray', lw=0.5, zorder=999)
                 # col = 'black' # fix red separation line for fiels that contain nans
             else:
                 ax.fill(xedge, yedge, facecolor=col, zorder=777)
-            if sim['fss_ranks'][yy, xx] == 1 and yy < 9: #only for bad but not nan
+            if sim['fss_ranks'][yy, xx] == 1 and not doing_percentile: #only for bad but not nan
                 ax.fill(xedget, yedget, facecolor='white', zorder=999)
 
 
@@ -258,7 +262,7 @@ def draw_solo_colorbar(levels, cmap, norm, tmp_string, args):
     cb = mpl.colorbar.ColorbarBase(ax_rr, cmap=cmap, norm=norm, 
         orientation='horizontal', ticks=levels, extend='max')
     cb.cmap.set_bad('gray')
-    cb.set_label(parameter_settings.colorbar_label[args.parameter])
+    cb.set_label(parameter_settings.colorbar_label(args))
     plt.savefig(f"{PAN_DIR_TMP}/{tmp_string}/cbar.png")
 
 def draw_RGB_colorbars(tmp_string, args):
@@ -370,7 +374,7 @@ def draw_single_figure(sim, obs, r, jj, levels, cmap, norm, verification_subdoma
     if args.hidden:
         panel_title = str(jj) if jj > 0 else sim['name']
         panel_title_fc = 'white'
-    elif args.clean or sim["conf"] == "INCA" or sim["conf"] == "OPERA":
+    elif args.clean or sim["type"] == "obs":
         panel_title = sim['name']
         panel_title_fc = 'white'
     else:
@@ -502,11 +506,10 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
         cols, lins = cols_new, lins_new
     logger.info("generating a panel plot with {} lines and {} columns".format(lins, cols))
     levels, cmap, norm = parameter_settings.get_cmap_and_levels(args)
-    cmap.set_over('orange')
     rank_colors = 500*['white']
     rank_colors[1:3] = ['gold', 'silver', 'darkorange']
     # init projections
-    suptit = "'"+parameter_settings.title_part[args.parameter] + " from "+start_date.strftime("%Y%m%d %H")+" to "+end_date.strftime("%Y%m%d %H UTC")+"'"
+    suptit = "'"+parameter_settings.title_part(args) + " from "+start_date.strftime("%Y%m%d %H")+" to "+end_date.strftime("%Y%m%d %H UTC")+"'"
     name_part = '' #if args.mode == 'None' else args.mode+'_'
     start_date_str = start_date.strftime("%Y%m%d_%H")
     outfilename = f"{PAN_DIR_PLOTS}/{args.name}_{args.parameter}_{name_part}panel_{start_date_str}UTC_{args.duration:02d}h_acc_{verification_subdomain}.png"
@@ -519,11 +522,13 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
     # dump data for each model into a single pickle file
     if args.rank_score_time_series:
         score_time_series(data_list, r, tmp_string, args)
+    logger.info("Saving pickle files for panels...")
     for jj, sim in enumerate(data_list):
         pickle.dump([sim, data_list[0], r, jj, levels, cmap,
             norm, verification_subdomain, rank_colors, data_list[0]['max_rank'], args, tmp_string], 
             open(f"{PAN_DIR_TMP}/{tmp_string}/{str(jj).zfill(3)}.p", 'wb'))
-        print(f"saving pickle to {PAN_DIR_TMP}/{tmp_string}/{str(jj).zfill(3)}.p")
+        logger.debug(f"saving pickle to {PAN_DIR_TMP}/{tmp_string}/{str(jj).zfill(3)}.p")
+    logger.info("Done.")
     # generate a list of commands, one for each model, these will call panel_plotter.py to draw a single model
     cmd_list = [f"{sys.executable} {PAN_DIR_SCR}/panel_plotter.py -p {pickle_file}" for pickle_file in glob.glob(f"{PAN_DIR_TMP}/{tmp_string}/???.p")]
     # execute the commands in parallel
@@ -553,8 +558,6 @@ def get_value_range(ens_fss_data):
     for jj in range(1, n_members):
         for ii in range(0, n_members-1):
             if ii < jj:
-                print(ens_fss_data[ii].pFSS[2])
-                print(ens_fss_data[jj].pFSS[2])
                 v_ = np.nanmax(np.abs(ens_fss_data[ii].pFSS[2] - ens_fss_data[jj].pFSS[2]))
                 if v_ > val:
                     val = v_
@@ -564,7 +567,10 @@ def get_value_range(ens_fss_data):
 def ens_fss_plot(ens_data, windows, levels, verification_subdomain, args):
     n_members = len(ens_data)
     fig, ax = plt.subplots(n_members+1, n_members+1, figsize=(4 * n_members, 4 * n_members), sharex=True, sharey=True, dpi=args.dpi)
-    vmax = get_value_range(ens_data)
+    #if n_members < 2:
+    #    logger.warning("Ensemble data has fewer than 2 entris, no comparison plot will be generated.")
+    #    return None
+    vmax = 1. if n_members < 2 else get_value_range(ens_data)
 
     levels1 = np.arange(0., 1.01, 0.05)
     step = 0.001
@@ -617,12 +623,13 @@ def ens_fss_plot(ens_data, windows, levels, verification_subdomain, args):
     cax2 = fig.add_axes([0.55, 0.05, 0.35, 0.01])
 
     cbar1 = plt.colorbar(c1, cax=cax1, orientation="horizontal", label="pFSS") #, extend="min")
-    cbar2 = plt.colorbar(c2, cax=cax2, orientation="horizontal", label="pFSS difference") #, extend='both')
-    plt.draw()  # Force rendering so labels exist
-    tick_labels = [label.get_text() for label in cbar2.ax.get_xticklabels()]
-    tick_positions = cbar2.ax.get_xticks()
-    cbar2.ax.set_xticks(tick_positions)
-    cbar2.ax.set_xticklabels(tick_labels, rotation=30)
+    if n_members > 1:
+        cbar2 = plt.colorbar(c2, cax=cax2, orientation="horizontal", label="pFSS difference") #, extend='both')
+        plt.draw()  # Force rendering so labels exist
+        tick_labels = [label.get_text() for label in cbar2.ax.get_xticklabels()]
+        tick_positions = cbar2.ax.get_xticks()
+        cbar2.ax.set_xticks(tick_positions)
+        cbar2.ax.set_xticklabels(tick_labels, rotation=30)
     
     start_date_str = dt.datetime.strptime(args.start, "%Y%m%d%H").strftime("%Y%m%d_%H")
     outfilename = f"{PAN_DIR_PLOTS}/{args.name}_{args.parameter}_pFSS_{start_date_str}UTC_acc_{args.duration}_{verification_subdomain}.png"

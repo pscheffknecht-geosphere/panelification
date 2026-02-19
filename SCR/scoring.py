@@ -3,6 +3,7 @@ import copy
 import os
 import pandas as pd
 import fss_functions
+import fss_cumsum
 import parameter_settings
 import csv
 
@@ -215,7 +216,7 @@ def rank_scores(data_list):
 def write_scores_to_csv(data_list, start_date, end_date, args, verification_subdomain, windows, thresholds):
     name_part = '' # if args.mode == 'None' else args.mode+'_'
     csv_file = "../SCORES/"+args.name+"RR_"+name_part+"score_"+start_date.strftime("%Y%m%d_%HUTC_")+'{:02d}h_acc_'.format(args.duration)+verification_subdomain+'.csv'
-    print(csv_file)
+    logging.info("Saving {csv_file}")
     start_date_str = start_date.strftime("%Y%m%d_%H")
     end_date_str = end_date.strftime("%Y%m%d_%H")
     csv_file = f"{PAN_DIR_SCORES}/{args.name}RR_{name_part}score_{start_date_str}UTC_{args.duration:02d}h_acc_{verification_subdomain}.csv"
@@ -238,6 +239,7 @@ def write_scores_to_csv(data_list, start_date, end_date, args, verification_subd
                 sim['rank_fss_condensed'], sim['rank_fss_condensed_weighted']])
     if args.save_percentiles:
         csv_file = f"{PAN_DIR_SCORES}/{args.name}RR_percentiles_{name_part}score_{start_date_str}UTC_{args.duration:02d}h_acc_{verification_subdomain}.csv"
+        logging.info("Saving percentiles to {csv_file}")
         with open(csv_file, 'w') as f:
             score_writer = csv.writer(f, delimiter=';')
             col_labels = ["conf", "init", "lead", "name"]
@@ -270,9 +272,15 @@ def calc_scores(sim, obs, args):
     logger.info('Calculating scores for '+sim['name'])
     percs=[25, 50, 75, 90, 95]
     levels = parameter_settings.get_fss_thresholds(args)
-    windows=[10,20,30,40,60,80,100,120,140,160,180,200]
+    #windows=[10,20,30,40,60,80,100,120,140,160,180,200] # itt inkább térjen vissza egy függvénnyel 
+    windows = parameter_settings.get_windows(args)
+
     ny, nx = sim["precip_data_resampled"].shape
     windows = prep_windows(windows, args.fss_calc_mode, nx, ny)
+    fss_calc_func = fss_cumsum.fss_cumsum_frame
+    if args.fss_method == 'legacy':
+        logger.info("FSS method is set to legacy, using old FFT approximation!")
+        fss_calc_func = fss_functions.fss_frame
     if sim['type'] == 'obs':
         sim['bias'] = 999
         sim['bias_real'] = 999
@@ -311,11 +319,11 @@ def calc_scores(sim, obs, args):
         mae = np.mean(np.abs(sim["precip_data_resampled"]-obs["precip_data_resampled"]))
         rms = np.sqrt(np.mean(np.square(sim["precip_data_resampled"]-obs["precip_data_resampled"])))
         corr = np.corrcoef(sim["precip_data_resampled"].flatten(),obs["precip_data_resampled"].flatten())[0,1]
-        fss_num, fss_den, fss, ovest = fss_functions.fss_frame(
+        fss_num, fss_den, fss, ovest = fss_calc_func(
             sim["precip_data_resampled"],
             obs["precip_data_resampled"],
             windows,levels,percentiles=False, mode=args.fss_calc_mode.replace("_adaptive", ""))
-        fssp_num, fssp_den, fssp, ovestp = fss_functions.fss_frame(
+        fssp_num, fssp_den, fssp, ovestp = fss_calc_func(
             np.copy(sim["precip_data_resampled"]), # circumvent numpy issue #21524
             np.copy(obs["precip_data_resampled"]), # circumvent numpy issue #21524
             windows,percs,percentiles=True, mode=args.fss_calc_mode.replace("_adaptive", "")) 
@@ -349,12 +357,16 @@ def fss_d90(rrm, rro, args):
     equals 0.5. Values are linearly interpolated between array entries.
     Missing Values / Fails return 9999.
     """
+    fss_calc_func = fss_cumsum.fss_cumsum_frame
+    if args.fss_method == 'legacy':
+        logger.info("FSS method is set to legacy, using old FFT approximation for D90!")
+        fss_calc_func = fss_functions.fss_frame
     # consistency check
-    windows = [1, 3, 5, 7, 11, 21, 31, 41, 51, 61, 81, 101, 121, 141, 181, 251, 351, 501, 701]
+    windows = [3, 5, 7, 11, 21, 31, 41, 51, 61, 81, 101, 121, 141, 181, 251, 351, 501, 701]
     windows_2d = prep_windows(windows, args.mode, *rrm.shape)
     levels = [0.5]
-    _rro = np.where(rro > np.percentile(np.copy(rro), 90), 1, 0)
-    rrm = np.where(rrm > np.percentile(np.copy(rrm), 90), 1, 0) # circumvent numpy issue #21524
+    _rro = np.where(rro >= np.percentile(np.copy(rro), 90), 1, 0)
+    rrm = np.where(rrm >= np.percentile(np.copy(rrm), 90), 1, 0) # circumvent numpy issue #21524
     #rrm = np.where(rrm > np.percentile(rrm, 90), 1, 0)
     rro_s = np.maximum(_rro-rrm, 0)
     rrm_s = np.maximum(rrm-_rro, 0)
@@ -362,8 +374,10 @@ def fss_d90(rrm, rro, args):
         logger.warning("No precipitation in model array, returning no d90!")
         return np.nan
     overlap = float(np.sum(_rro*rrm))/float(np.sum(rrm))
-    _, _, _arr, _ = fss_functions.fss_frame(rro_s, rrm_s, windows_2d, levels, args.fss_calc_mode)
+    _, _, _arr, _ = fss_calc_func(rro_s, rrm_s, windows_2d, levels, mode=args.fss_calc_mode)
     arr = _arr.values.flatten()
+    logger.debug("FSS array for D90 calculation:")
+    logger.debug(arr)
     for ii in range(1,len(arr)):
         if arr[ii] - arr[ii-1] < 0:
             logger.info("non-monotonous array in argument, returning no d90!")
