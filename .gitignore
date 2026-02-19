@@ -46,3 +46,10 @@ TMP/*
 nohup.out
 panelification_web.yml
 panelification_web_withbuilds.yml
+TEST_DATA/arome/*/*/AROMEaut_clouds*.grb
+TEST_DATA/SAF/S_NWC_CMA_MSG3*.nc
+SCR/optandsamos.py
+OBS/*
+MODEL/*
+OBS
+MODEL

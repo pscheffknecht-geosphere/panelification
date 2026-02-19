@@ -6,17 +6,34 @@ import urllib.request
 from pathlib import Path
 
 from grib_handle_check import find_grib_handles
-from data_from_dcmdb import fill_path_file_template
 from mars_request_templates import mars_request_templates
 
 from io_grib import read_data_grib, get_inca_rain_accumulated, get_icon_unstructured
 from io_gdal import read_data_gdal
 from io_netcdf import read_data_netcdf, read_inca_plus_netcdf
+from io_netcdf import read_HungaroMet_netcdf
 
 from paths import PAN_DIR_TMP, PAN_DIR_MODEL, PAN_DIR_MODEL2, PAN_DIR_DATA
 
 import logging
 logger = logging.getLogger(__name__)
+
+def fill_path_file_template(pft, exp_init_date, exp_lead):
+    """ Replace placeholders in the path and file pattern, code snipped from cases.py of DCMDB"""
+    re_map = { '%Y': '{:04d}'.format(exp_init_date.year),
+               '%m': '{:02d}'.format(exp_init_date.month),
+               '%d': '{:02d}'.format(exp_init_date.day),
+               '%H': '{:02d}'.format(exp_init_date.hour),
+               '%M': '{:02d}'.format(exp_init_date.minute),
+               '%S': '{:02d}'.format(exp_init_date.second),
+               '%LLLL': '{:04d}'.format(exp_lead),
+               '%LLL': '{:03d}'.format(exp_lead),
+               '%LL': '{:02d}'.format(exp_lead),
+               '%LM': '00' # NO MINUTE SUPPORT YET {:02d}'.format(int(exp_lead)),
+         }
+    for k,v in re_map.items():
+        pft = pft.replace(k,str(v))
+    return pft
 
 
 def mars_request(exp_name, init, step,path=None):
@@ -69,6 +86,12 @@ def scale_hail(data_list):
             sim['precip_data'] = new_arr
     return data_list
 
+def cloud_fraction_to_cma(data_list, threshold=0.2): # is this datalist in the argumentum the return of read_HungaroMet_netcdf? 
+    for sim in data_list:
+        new_arr = np.array(sim['precip_data'], copy=False)
+        sim['precip_data'] = np.where(new_arr >= threshold, 1, 0)
+    return data_list
+
 
 file_type_indicators = {
     "NetCDF": ["nc", "ncf", "ncd"],
@@ -87,6 +110,7 @@ DEFAULTS = {
     "grib_handles": None,
     "lagged_ensemble": False,
     "color": None,
+    "file_type": None,
     "netcdf_variable": None,
     "netcdf_one_file": False
 }
@@ -98,7 +122,13 @@ class ModelConfiguration:
         Every model and run in the verification is handled here. It contains some
         basic sanity checks, handles locating the files and reading them etc."""
         # grab information from custom_experiments file
-        cmc = args.custom_experiment_data[custom_experiment_name]
+        if custom_experiment_name in args.custom_experiment_data:
+            cmc = args.custom_experiment_data[custom_experiment_name]
+            logger.debug(cmc)
+        else:
+            logger.error(f"Could not find configuration {custom_experiment_name} in the custom_experiments_file!!!")
+            self.valid = False
+            return
         # grab information from base experiment if provided
         self.valid = False
         self.init = init #datetime
@@ -107,7 +137,7 @@ class ModelConfiguration:
         self.experiment_name = custom_experiment_name
         self.parameter = args.parameter
         self.check_ecfs = args.check_ecfs
-        self.path_template   = self.__pick_value_by_parameter(cmc["path_template"])
+        self.path_template   = self.__pick_value_by_parameter(cmc["path_template"], "path_template")
         if "base_experiment" in cmc.keys(): 
             self.__fill_cmc_with_base_values(cmc, args)
         if not isinstance(self.path_template, list) and isinstance(self.path_template, str):
@@ -116,21 +146,36 @@ class ModelConfiguration:
         for tmpl in self.path_template:
             logger.debug(f"   {tmpl}")
         for anam in ["init_interval", "max_leadtime", "output_interval", "accumulated", "unit_factor"]:
-            setattr(self, anam, self.__pick_value_by_parameter(cmc[anam]))
-        for anam in ["ensemble", "grib_handles", "lagged_ensemble", "color"]:
-            setattr(self, anam, self.__pick_value_by_parameter(cmc[anam]) if anam in cmc else None)
+            setattr(self, anam, self.__pick_value_by_parameter(cmc[anam], anam))
+        for anam in ["ensemble", "grib_handles", "lagged_ensemble", "color", "file_type", "netcdf_variable_name"]:
+            setattr(self, anam, self.__pick_value_by_parameter(cmc[anam], anam) if anam in cmc else None)
+            if anam in cmc:
+                logger.debug(f" found {anam}, setting it to {self.__pick_value_by_parameter(cmc[anam], anam)}")
         for anam, default_value in DEFAULTS.items():
-            setattr(self, anam, cmc.get(anam, default_value))
-            logger.debug(f"{self.experiment_name}: Setting {anam} to {getattr(self, anam)}")
+            if not hasattr(self, anam):
+                setattr(self, anam, cmc.get(anam, default_value))
+                logger.debug(f"{self.experiment_name}: Setting {anam} to {getattr(self, anam)}")
         # is the simulation part of an ensemble or lagged ensemble?
-        if self.ensemble and not (args.merge_ens_init_times or self.lagged_ensemble):
+        if self.ensemble and not (args.merge_ens_init_times):
             init_str = self.init.strftime("%Y%m%d_%H")
             self.ensemble += f"_{init_str}"
             logger.debug(f"Treating different init times as different ensembles, changed to {self.ensemble}")
+        if self.lagged_ensemble:
+            self.ensemble = self.experiment_name + "_lagged"
+            logger.debug(f"{self.experiment_name} {self.init} is part of ensemble {self.ensemble}")
         # are we on ATOS and using MARS?
-        self.on_mars = self.__pick_value_by_parameter(cmc["on_mars"]) if "on_mars" in cmc.keys() else False
-        self.ecfs_path_template = self.__pick_value_by_parameter(cmc["ecfs_path_template"]) if "ecfs_path_template" in cmc else None
+        self.on_mars = self.__pick_value_by_parameter(cmc["on_mars"], "on_mars") if "on_mars" in cmc.keys() else False
+        self.ecfs_path_template = self.__pick_value_by_parameter(cmc["ecfs_path_template"], "ecfs_path_template") if "ecfs_path_template" in cmc else None
         self.url_template = cmc["url_template"] if "url_template" in cmc.keys() else None
+        self.__check_validity()
+        if self.valid:
+            self.read_data = read_func_dict[self.file_type]
+            self.__prep_read_kwargs()
+        else:
+            logger.debug("Model {:s} with init {:s} has no output for the requested time window.".format(
+                self.experiment_name, self.init.strftime("%Y-%m-%d %H")))
+
+    def __check_validity(self):
         if self.__times_valid():
             if self.netcdf_one_file:
                 self.one_file = self.get_file_path(self.lead_end)
@@ -141,12 +186,6 @@ class ModelConfiguration:
                 self.file_list = self.get_file_list()
             self.valid = self.__files_valid()
             self.print()
-        if self.valid:
-            self.read_data = read_func_dict[self.file_type]
-            self.__prep_read_kwargs()
-        else:
-            logger.debug("Model {:s} with init {:s} has no output for the requested time window.".format(
-                self.experiment_name, self.init.strftime("%Y-%m-%d %H")))
 
 
     def __prep_read_kwargs(self):
@@ -162,27 +201,27 @@ class ModelConfiguration:
             self.read_kwargs["netcdf_one_file"] = self.netcdf_one_file
 
 
-    def __pick_value_by_parameter(self, custom_experiment_item):
+    def __pick_value_by_parameter(self, custom_experiment_item, current_key):
         """ If path template is a dictionary, return the correct item for the given parameter
             if it is a string, return the string
             else raise a ValueError"""
-        ret = None
+        logger.debug(f"Picking value for key {current_key} in experiment {self.experiment_name} and parameter {self.parameter}")
         useparam = "precip" if "precip" in self.parameter else self.parameter
         if isinstance(custom_experiment_item, dict):
             for key, item in custom_experiment_item.items():
                 if useparam in key or useparam == key:
-                    ret = custom_experiment_item[useparam]
-            if ret == None and 'else' in custom_experiment_item.keys():
-                ret = custom_experiment_item['else']
-            elif not 'else' in custom_experiment_item.keys():
-                logger.debug("Found invalid entry in custom_experiments for experiment {self.experiment_name}")
-                for key, item in custom_experiment_item.items():
-                    logger.debug(f"{str(key)}: {str(item)}")
-                logger.critical(f"If parameter is not a dict key, dict needs an 'else': .... entry to fall back onto.")
+                    logger.debug(f"  Found match, using {item} for {useparam} in experiment {self.experiment_name}")   
+                    return custom_experiment_item[useparam]
+            if 'else' in custom_experiment_item.keys():
+                logger.debug(f"  No match found, using 'else' entry ({custom_experiment_item['else']}) for {self.experiment_name}")
+                return custom_experiment_item['else']
+            logger.warning(f"No match found for parameter {useparam} in experiment {self.experiment_name}[{current_key}]!\n"
+                            f"|    Add an 'else' entry to the dictionary to provide a fallback value or specify a value for the parameter {useparam}!")
+            for key, item in custom_experiment_item.items():
+                logger.debug(f"{self.experiment_name}[{current_key}][{str(key)}] = {str(item)}")
+            logger.warning(f"If parameter is not a dict key, dict needs an 'else': .... entry to fall back onto.")
         else:
-            ret = custom_experiment_item
-        # logger.debug(f"Picked {ret} for {self.parameter} in experiment {self.experiment_name}")
-        return ret
+            return custom_experiment_item
 
         
     def __fill_cmc_with_base_values(self, cmc, args):
@@ -223,11 +262,16 @@ class ModelConfiguration:
         """ Checks the requested init and lead time to see if they
         are availabled depending on the model configuration's init
         and lead time intervals"""
-        time_checks = [
-            self.lead%self.output_interval == 0,
-            self.init.hour%self.init_interval == 0,
-            self.lead_end%self.output_interval == 0]
-        return True if all(time_checks) else False
+        if not self.lead%self.output_interval == 0:
+            logging.warning(f"Discarding {self.experiment_name} {self.init} +{self.lead}h because first lead time is not a multiple of output interval {self.output_interval}h")
+            return False
+        if not self.init.hour%self.init_interval == 0:
+            logging.warning(f"Discarding {self.experiment_name} {self.init} +{self.lead}h because init hour is not a multiple of init interval {self.init_interval}h")
+            return False
+        if not self.lead_end%self.output_interval == 0:
+            logging.warning(f"Discarding {self.experiment_name} {self.init} +{self.lead}h because last lead time is not a multiple of output interval {self.output_interval}h")
+            return False
+        return True
 
 
     def __get_file_type(self, file_list):
@@ -242,7 +286,11 @@ class ModelConfiguration:
                 if first in suffixList:
                     logger.info(f" model uses {ftype} files")
                     return ftype
-        return None
+        else:
+            logger.error(f"file types found: {file_type_list}\n"
+                         f"Not all files have the same type in experiment {self.experiment_name} with init {self.init}!\n"
+                         f"Experiment {self.experiment_name} with init {self.init} will not be verified!")
+            return None
 
 
     def __file_check(self, files_to_check):
@@ -251,32 +299,37 @@ class ModelConfiguration:
             if fil is not None:
                 if os.path.isfile(fil):
                     if os.path.getsize(fil) == 0:
+                        logger.error(f"File {fil} has size 0!")
                         return False
                 else:
+                    logger.error(f"File {fil} not found!")
                     return False
             else:
+                logger.error(f"File to check is None!")
                 return False
-        self.file_type = self.__get_file_type(files_to_check)
+        if not self.file_type:
+            logger.debug(f"File type not set for {self.experiment_name}, detecting from files...")
+            self.file_type = self.__get_file_type(files_to_check)
         return True
 
     def __files_valid(self):        
         if self.netcdf_one_file:
-            ret_OK = self.__file_check([self.one_file])
+            return self.__file_check([self.one_file])
         elif self.accumulated and self.lead > 0:
-            ret_OK = self.__file_check([self.start_file, self.end_file])
-        elif self.accumulated and self.lead == 0:
-            ret_OK = self.__file_check([self.end_file])
+            return self.__file_check([self.start_file, self.end_file])
+        elif self.accumulated and self.lead == 0: # no start file to subtract
+            return self.__file_check([self.end_file])
         elif not self.accumulated:
-            ret_OK = self.__file_check(self.file_list)
+            return self.__file_check(self.file_list)
         else: # this should never happen
             logger.error(f"{self.experiment_name} with init {self.init} has no valid files to check!")
-        if ret_OK and self.file_type is not None:
-            self.read_data = read_func_dict[self.file_type]
-            return True
-        return False
+            return False
 
 
     def get_data(self, param):
+        if "_hun" in self.experiment_name:
+            #return read_HungaroMet_netcdf(fcs for fcs in self.file_list, self.netcdf_variable_name)
+            return read_HungaroMet_netcdf(self.file_list, self.netcdf_variable_name)
         if param == 'gusts' or param == 'hail':
             return self.__get_data_max()
         else:
@@ -295,7 +348,10 @@ class ModelConfiguration:
             if self.accumulated:
                 return self.__get_data_accumulated()
             else:
-                return self.__get_data_not_accumulated()
+                if param == "cma":
+                    return self.__get_data_3d()
+                else:
+                    return self.__get_data_not_accumulated()
 
 
     def __get_data_onefile(self):
@@ -303,6 +359,30 @@ class ModelConfiguration:
         tmp_data = np.where(tmp_data < 0., 0., tmp_data)
         return lon, lat, self.unit_factor * tmp_data
 
+    def __get_data_3d(self):
+        first = True
+        for ii, fil in enumerate(self.file_list):
+            logger.info("Reading file ({:d}): {:s}".format(ii, fil))
+            if first:
+                lon, lat, tmp_data = self.read_data(fil, self.parameter, 0, **self.read_kwargs, 
+                    grib_handles=self.grib_handles)
+                self.read_kwargs["get_lonlat_data"] = False
+                first = False
+            else:
+                td2 = self.read_data(fil, self.parameter, 0, **self.read_kwargs, 
+                    grib_handles=self.grib_handles)
+                tmp_data = np.dstack((tmp_data, td2))
+        if self.parameter == "cma":
+            tmp_data = np.where(tmp_data >= 0.2, 1, 0)
+            logger.debug(f"tmp_data has shape {tmp_data.shape} before summing cloud fraction")
+            if tmp_data.ndim == 2:
+                logger.debug(f"Array is 2D, contains only 1 time step, no summing needed")
+            else: 
+                tmp_data = np.sum(tmp_data, axis=2)
+                logger.debug(f"CMA data is between {tmp_data.min()} and {tmp_data.max()}")
+        return lon, lat, self.unit_factor * tmp_data
+        
+    
     def __get_data_not_accumulated(self):
         first = True
         for i, fil in enumerate(self.file_list):
@@ -481,9 +561,14 @@ class ModelConfiguration:
 
 
     def get_file_list(self):
-        lead = self.lead + self.output_interval
+        if self.parameter in ["cma"]:
+            logger.info("CMA is a SAF parameter, not hourly accumulated, adjusting lead times accordingly")
+            lead_offset = 0
+        else:
+            lead_offset = self.lead_interval
+        lead = self.lead + lead_offset
         file_list = []
-        while lead <= self.lead_end:
+        while lead < self.lead_end + lead_offset:
             file_list.append(self.get_file_path(lead))
             lead += self.output_interval
         return file_list

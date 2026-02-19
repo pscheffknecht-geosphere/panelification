@@ -1,3 +1,0 @@
-[submodule "SCR/dcmdb"]
-	path = SCR/dcmdb
-	url = https://github.com/DEODE-NWP/dcmdb.git

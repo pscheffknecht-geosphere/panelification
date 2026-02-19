@@ -44,6 +44,16 @@ regions = {
                 "x_size": 1500, "y_size": 1500}
         }
     },
+    "AROME-Aut": {
+        "central_longitude": 14.,
+        "central_latitude": 47.5,
+        "extent": [6.5 , 21.5, 43., 52.],
+        "verification_subdomains": {
+            "Default": {
+                "central_longitude": 14.0, "central_latitude": 47.5,
+                "x_size": 1050, "y_size":  850}
+        },
+    },
     "Alps": {
         "central_longitude": 9.,
         "central_latitude": 45.,
@@ -52,8 +62,28 @@ regions = {
             "Default": {
                 "central_longitude": 9., "central_latitude": 46.25,
                 "x_size": 1000, "y_size": 500}
+        },
+    },
+
+
+
+    "Hungary": {
+        "central_longitude": 19.5,
+        "central_latitude": 47.18,
+        "extent": [15.3, 24, 45.759, 49.1], # bb visualisation 
+        "verification_subdomains": {     # for calculations 
+            "Default": { # all of Hungary
+                "central_longitude": 19.5, "central_latitude": 47.18,
+                "x_size": 524., "y_size": 303.}   #kms
         }
     },
+
+    # depending on requests, adding  requested subregions for AVIATON etc. 
+
+
+
+
+
     "Austria": {
         "central_longitude": 13.,
         "central_latitude": 48.3,
@@ -350,6 +380,10 @@ class Region():
         self.subdomains = {}
         for subdomain_name in subdomain_name_list:
             logger.info("Preparing subdomain {:s}".format(subdomain_name))
+            if not subdomain_name in self.regions[region_name]["verification_subdomains"].keys():
+                logger.critical(f"Region {region_name} does not have a subdomain named {subdomain_name} defined in regions.py!\n"
+                                f"Available subdomains are: {list(self.regions[region_name]['verification_subdomains'].keys())}")
+                exit(1)
             k = self.__get_scale_factor(self.regions[region_name]["verification_subdomains"][subdomain_name])
             lon, lat = self.__make_grid(self.regions[region_name]["verification_subdomains"][subdomain_name], k=k)
             if "thresholds" in self.regions[region_name]["verification_subdomains"][subdomain_name].keys():
