@@ -1,6 +1,6 @@
 import numpy as np
-import fss_functions
-import fss_cumsum
+import fss_FFT
+import fss_SAT
 import parameter_settings
 from itertools import combinations
 from joblib import Parallel, delayed
@@ -63,14 +63,14 @@ class Ensemble:
     def calc_scores(self):
         logger.info(f"  Calculating pFSS for {self.name}")
         if self.fss_method == "legacy":
-            self.pFSS = fss_functions.fss_frame_eps(self.precip_data_resampled, self.obs_data_resampled, self.windows, self.thresholds)
+            self.pFSS = fss_FFT.fss_frame_eps(self.precip_data_resampled, self.obs_data_resampled, self.windows, self.thresholds)
         else:
-            self.pFSS = fss_cumsum.fss_cumsum_frame(self.precip_data_resampled, self.obs_data_resampled, self.windows, self.thresholds, eps=True)
+            self.pFSS = fss_SAT.fss_cumsum_frame(self.precip_data_resampled, self.obs_data_resampled, self.windows, self.thresholds, eps=True)
         logger.info(f"  Calculating emFSS for {self.name}")
         if self.fss_method == "legacy":
-            self.emFSS = fss_functions.fss_frame(np.mean(self.precip_data_resampled, axis=0), self.obs_data_resampled, self.windows, self.thresholds)
+            self.emFSS = fss_FFT.fss_frame(np.mean(self.precip_data_resampled, axis=0), self.obs_data_resampled, self.windows, self.thresholds)
         else:
-            self.emFSS = fss_cumsum.fss_cumsum_frame(np.mean(self.precip_data_resampled, axis=0), self.obs_data_resampled, self.windows, self.thresholds)
+            self.emFSS = fss_SAT.fss_cumsum_frame(np.mean(self.precip_data_resampled, axis=0), self.obs_data_resampled, self.windows, self.thresholds)
         logger.info(f"  Calculating dFSS for {self.name}")
         self.calc_dFSS()
         logger.info(f"  Calculating CRPS for {self.name}")
@@ -80,14 +80,14 @@ class Ensemble:
     def calc_dFSS(self):
         combos = list(combinations([x for x in range(self.member_count)], 2))
         if self.fss_method == "legacy":
-            self.dFSS = Parallel(n_jobs=16, backend='threading')(delayed(fss_functions.fss_raw)(
+            self.dFSS = Parallel(n_jobs=16, backend='threading')(delayed(fss_FFT.fss_raw)(
             self.precip_data_resampled[combo[0]], 
             self.precip_data_resampled[combo[1]], 
             self.windows, 
             self.thresholds
             ) for combo in combos)
         else:
-            self.dFSS = Parallel(n_jobs=16, backend='threading')(delayed(fss_cumsum.fss_cumsum_frame)(
+            self.dFSS = Parallel(n_jobs=16, backend='threading')(delayed(fss_SAT.fss_cumsum_frame)(
             self.precip_data_resampled[combo[0]], 
             self.precip_data_resampled[combo[1]], 
             self.windows, 

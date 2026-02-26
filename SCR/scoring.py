@@ -2,8 +2,8 @@ import numpy as np
 import copy
 import os
 import pandas as pd
-import fss_functions
-import fss_cumsum
+import fss_FFT
+import fss_SAT
 import parameter_settings
 import csv
 
@@ -277,10 +277,10 @@ def calc_scores(sim, obs, args):
 
     ny, nx = sim["precip_data_resampled"].shape
     windows = prep_windows(windows, args.fss_calc_mode, nx, ny)
-    fss_calc_func = fss_cumsum.fss_cumsum_frame
+    fss_calc_func = fss_SAT.fss_cumsum_frame
     if args.fss_method == 'legacy':
         logger.info("FSS method is set to legacy, using old FFT approximation!")
-        fss_calc_func = fss_functions.fss_frame
+        fss_calc_func = fss_FFT.fss_frame
     if sim['type'] == 'obs':
         sim['bias'] = 999
         sim['bias_real'] = 999
@@ -357,10 +357,10 @@ def fss_d90(rrm, rro, args):
     equals 0.5. Values are linearly interpolated between array entries.
     Missing Values / Fails return 9999.
     """
-    fss_calc_func = fss_cumsum.fss_cumsum_frame
+    fss_calc_func = fss_SAT.fss_cumsum_frame
     if args.fss_method == 'legacy':
         logger.info("FSS method is set to legacy, using old FFT approximation for D90!")
-        fss_calc_func = fss_functions.fss_frame
+        fss_calc_func = fss_FFT.fss_frame
     # consistency check
     windows = [3, 5, 7, 11, 21, 31, 41, 51, 61, 81, 101, 121, 141, 181, 251, 351, 501, 701]
     windows_2d = prep_windows(windows, args.mode, *rrm.shape)
