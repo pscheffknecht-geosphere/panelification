@@ -39,14 +39,18 @@ start_date = datetime(2019,8,12,15,0,0)
 end_date = datetime(2019,8,12,18,0,0)
 
 
-
+def supports_color(stream):
+    return hasattr(stream, "isatty") and stream.isatty()
 
 class CustomLoggingFormatter(logging.Formatter):
-    grey = "\x1b[38;20m"
-    yellow = "\x1b[93;20m"
-    red = "\x1b[91;20m"
-    bold_red = "\x1b[31;1m"
-    reset = "\x1b[0m"
+    if not supports_color(sys.stdout):
+        grey, yellow, red, bold_red, reset = [""] * 5
+    else:
+        grey = "\x1b[38;20m"
+        yellow = "\x1b[93;20m"
+        red = "\x1b[91;20m"
+        bold_red = "\x1b[31;1m"
+        reset = "\x1b[0m"
 
     base_format = (
         "%(asctime)s - %(name)s - %(levelname)s - "
