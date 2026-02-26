@@ -565,7 +565,7 @@ class ModelConfiguration:
             logger.info("CMA is a SAF parameter, not hourly accumulated, adjusting lead times accordingly")
             lead_offset = 0
         else:
-            lead_offset = self.lead_interval
+            lead_offset = self.output_interval
         lead = self.lead + lead_offset
         file_list = []
         while lead < self.lead_end + lead_offset:
