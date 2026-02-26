@@ -4,7 +4,7 @@ import datetime as dt
 import matplotlib as mpl
 import matplotlib.colors as colors
 from joblib import Parallel, delayed
-import fss_cumsum as fss
+import fss_SAT as fss
 
 from paths import PAN_DIR_PLOTS
 
