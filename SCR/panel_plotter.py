@@ -305,7 +305,7 @@ def arrange_subplots(r, clean=False):
     Returns: 4 lists with the positions and sizes of the subplots"""
     total_height = 3.5 #4.80
     pad = total_height / 12.
-    height = total_height - 2. * pad
+    height = total_height - 2.5 * pad # change from 2 to 2.5 to make space for 2 line titles
     if clean:
         total_width = (total_height - 2 * pad) / r + 2 * pad
         map_left = pad / total_width
@@ -320,10 +320,16 @@ def arrange_subplots(r, clean=False):
     small_height = 0.5 * height / total_height
     score_bottom = (0.5 * height + pad) / total_height
     fss_bottom = map_bottom
+    title_bottom = 1 - 1.4 / 12.
+    title_height = 1.4 / 12. 
+    title_left = 0.
+    title_width = 1.
     map_coords = [map_left, map_bottom, map_width, map_height]
     score_coords = [small_left, score_bottom, small_width, small_height]
     fss_coords = [small_left+0.05*pad, fss_bottom, small_width*0.9, small_height]
-    return total_width, total_height, map_coords, score_coords, fss_coords
+    title_coords = [title_left, title_bottom, title_width, title_height]
+    return total_width, total_height, map_coords, score_coords, fss_coords, title_coords
+
 
 def draw_single_figure(sim, obs, r, jj, levels, cmap, norm, verification_subdomain, rank_colors, max_rank, args, tmp_string):
     """ Draw a panel plot with the contours of precipitation, scores, and FSS ranks
@@ -343,9 +349,12 @@ def draw_single_figure(sim, obs, r, jj, levels, cmap, norm, verification_subdoma
     Draws a plt.subplot with 3 panels (scores, FSS, map) with constant height and saves it
     into ../TMP/tmp_string/*.png for later use"""
     logger.info("Plotting "+sim['name'])
-    total_width, total_height, map_coords, score_coords, fss_coords = arrange_subplots(r, clean=args.clean)
+    total_width, total_height, map_coords, score_coords, fss_coords, title_coords = arrange_subplots(r, clean=args.clean)
     fig = plt.figure(dpi=args.dpi, figsize=(total_width, total_height))
     ax = fig.add_axes(map_coords, projection=args.region.plot_projection)
+    ax_title = fig.add_axes(title_coords)
+    ax_title.axis('off')
+
     if args.clean:
         ax_scores = ax_fss = None
     else:
@@ -377,19 +386,32 @@ def draw_single_figure(sim, obs, r, jj, levels, cmap, norm, verification_subdoma
     if args.draw_subdomain:
         ax.plot(get_array_edge(sim['lon_resampled']), get_array_edge(sim['lat_resampled']), 'k',
                 transform = args.region.data_projection)
+    part2 = None
     if args.hidden:
-        panel_title = str(jj) if jj > 0 else sim['name']
+        part1 = str(jj) if jj > 0 else sim['name']
         panel_title_fc = 'white'
     elif args.clean or sim["type"] == "obs":
-        panel_title = sim['name']
+        part1 = sim['name']
         panel_title_fc = 'white'
     else:
-        panel_title = sim['name'].replace("finland_2017", "")+' ({:d})'.format(int(sim['rank_'+args.rank_by_fss_metric]))
+        part1 = sim['name'].split(' ')[0]
+        part2 = sim['init'].strftime("%Y-%m-%d %H") + f" UTC ({int(sim['rank_'+args.rank_by_fss_metric])})"
         panel_title_fc = rank_colors[sim['rank_'+args.rank_by_fss_metric]]
-    ax.text(0.0, 1.03, panel_title, va='top', ha='left',
+    part1_y_pos = 0.7 if part2 else 0.5
+    if part2:
+        txt1 = ax_title.text(0.5, 0.25, part2, va='center', ha='center',
+            rotation='horizontal', rotation_mode='anchor',
+            transform=ax_title.transAxes,size='10', zorder=6)
+
+    txt2 = ax_title.text(0.5, part1_y_pos, part1, va='center', ha='center',
         rotation='horizontal', rotation_mode='anchor',
-        transform=ax.transAxes,size='large',
-        bbox=dict(boxstyle='round', fc=panel_title_fc, ec='black', pad=0.2))
+        transform=ax_title.transAxes,size='14', zorder=6)
+
+    r = ax_title.get_data_ratio()
+    ax_title.fill([0.03, 0.97, 0.97, 0.03], [0.03/r, 0.03/r, 1. - 0.06/r, 1. - 0.06/r], color=panel_title_fc, zorder=5)
+    ax_title.set_xlim([0., 1.])
+    ax_title.set_ylim([0., 1.])
+
     if jj > 0 and not args.clean:
         add_fss_plot_new(ax_fss, sim, max_rank, jj, args)
         add_scores(ax_scores, sim, rank_colors)
