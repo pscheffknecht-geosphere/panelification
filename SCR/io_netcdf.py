@@ -83,7 +83,7 @@ def read_inca_plus_netcdf(nc_file_path, lead_start, lead_end):
         t1 = dt.datetime(1961, 1, 1) + dt.timedelta(seconds=time[idx_start])
         t2 = dt.datetime(1961, 1, 1) + dt.timedelta(seconds=time[idx_end-1]) # prevent off-by-one error, because indexing start:end will give start, ..., end-1
         logger.info(f"Reading {nc_file_path}, indices [{idx_start}:{idx_end}, :, :], corresponding to {t1} and {t2}")
-        tpm_rr = ds.variables["RR"][idx_start:idx_end, :, :].sum(axis=0)
+        tmp_rr = ds.variables["RR"][idx_start:idx_end, :, :].sum(axis=0)
         lon = ds.variables['lon'][:]
         lat = ds.variables['lat'][:]
     return lon, lat, tmp_rr
