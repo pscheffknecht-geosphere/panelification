@@ -476,7 +476,16 @@ def score_time_series(data_list, r, tmp_string, args):
         plt.tight_layout()
         plt.savefig(f"{PAN_DIR_TMP}/{tmp_string}/{str(990 + sidx)}.png")
         # exit()
-        
+
+
+def make_panel_title(title_tuple, args, PAN_DIR_TMP):
+    """ Make a title image for the panel"""
+    fig, ax = plt.subplots(1, 1, figsize=(10, 1), dpi=args.dpi)
+    ax.text(0.5, 0.7, title_tuple[0], va='center', ha='center', size=20)
+    ax.text(0.5, 0.4, title_tuple[1], va='center', ha='center', size=14)
+    ax.axis('off')
+    plt.savefig(f"{PAN_DIR_TMP}/panel_title.png")
+
 
 def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
     """ Draw all data onto panels. This function separates the data into pickle files,
@@ -509,7 +518,10 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
     rank_colors = 500*['white']
     rank_colors[1:3] = ['gold', 'silver', 'darkorange']
     # init projections
-    suptit = "'"+parameter_settings.title_part(args) + " from "+start_date.strftime("%Y%m%d %H")+" to "+end_date.strftime("%Y%m%d %H UTC")+"'"
+    start_str = start_date.strftime("%Y%m%d %H")
+    end_str = end_date.strftime("%Y%m%d %H")
+    suptit = (f"{parameter_settings.title_part(args)} over {args.region.name} ({verification_subdomain})", 
+              f"{start_str} - {end_str} UTC ({args.duration} hours)")
     name_part = '' #if args.mode == 'None' else args.mode+'_'
     start_date_str = start_date.strftime("%Y%m%d_%H")
     outfilename = f"{PAN_DIR_PLOTS}/{args.name}_{args.parameter}_{name_part}panel_{start_date_str}UTC_{args.duration:02d}h_acc_{verification_subdomain}.png"
@@ -522,6 +534,7 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
     # dump data for each model into a single pickle file
     if args.rank_score_time_series:
         score_time_series(data_list, r, tmp_string, args)
+    make_panel_title(suptit, args, f"{PAN_DIR_TMP}/{tmp_string}")
     logger.info("Saving pickle files for panels...")
     for jj, sim in enumerate(data_list):
         pickle.dump([sim, data_list[0], r, jj, levels, cmap,
@@ -533,12 +546,12 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
     cmd_list = [f"{sys.executable} {PAN_DIR_SCR}/panel_plotter.py -p {pickle_file}" for pickle_file in glob.glob(f"{PAN_DIR_TMP}/{tmp_string}/???.p")]
     # execute the commands in parallel
     Parallel(n_jobs=2)(delayed(os.system)(cmd) for cmd in cmd_list)
-    logger.debug(f"montage {PAN_DIR_TMP}/{tmp_string}/???.png -geometry +0+0 -tile {lins}x{cols} -title {suptit} {PAN_DIR_TMP}/{tmp_string}/999.png")
+    logger.debug(f"montage {PAN_DIR_TMP}/{tmp_string}/???.png -geometry +0+0 -tile {lins}x{cols} {PAN_DIR_TMP}/{tmp_string}/999.png")
     # use the individual panels and combine them into one large plot using imagemagick
-    os.system(f"montage {PAN_DIR_TMP}/{tmp_string}/???.png -geometry +0+0 -tile {lins}x{cols} -title {suptit} {PAN_DIR_TMP}/{tmp_string}/999.png")
+    os.system(f"montage {PAN_DIR_TMP}/{tmp_string}/???.png -geometry +0+0 -tile {lins}x{cols} {PAN_DIR_TMP}/{tmp_string}/999.png")
     # add the color bar using imagemagick
     os.system(f"convert {PAN_DIR_TMP}/{tmp_string}/999.png {PAN_DIR_TMP}/{tmp_string}/cbar.png -gravity center -append {PAN_DIR_TMP}/{tmp_string}/999A.png")
-    os.system(f"convert {PAN_DIR_TMP}/{tmp_string}/999A.png {PAN_DIR_TMP}/{tmp_string}/cbar2.png -gravity center -append {outfilename}")
+    os.system(f"convert {PAN_DIR_TMP}/{tmp_string}/panel_title.png {PAN_DIR_TMP}/{tmp_string}/999A.png {PAN_DIR_TMP}/{tmp_string}/cbar2.png -gravity center -append {outfilename}")
     # clear temporary data directory
     os.system(f"rm -R {PAN_DIR_TMP}/{tmp_string}")
     return outfilename
