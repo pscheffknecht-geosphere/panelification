@@ -53,25 +53,31 @@ def add_scores(ax, sim, rank_colors):
     sim ........ dictionary for the corresponding model
     color ...... list of colors for each rank"""
     ax.text(0.1, 0.9, "BIAS: {:.3f} ({})".format(sim['bias_real'], sim['rank_bias']), va='top', ha='left',
-            rotation='horizontal', rotation_mode='anchor',
-            transform=ax.transAxes,size=8, backgroundcolor=rank_colors[sim['rank_bias']])
+            rotation='horizontal', rotation_mode='anchor', zorder=6, transform=ax.transAxes, size=8)
+    ax.fill([0.07, 0.85, 0.85, 0.07], [0.93, 0.93, 0.8, 0.8], color=rank_colors[sim['rank_bias']], 
+            transform=ax.transAxes, zorder=5)
+    
     ax.text(0.1, 0.75, "MAE: {:.3f} ({})".format(sim['mae'], sim['rank_mae']), va='top', ha='left',
-            rotation='horizontal', rotation_mode='anchor',
-            transform=ax.transAxes,size=8, backgroundcolor=rank_colors[sim['rank_mae']])
+            rotation='horizontal', rotation_mode='anchor', zorder=6, transform=ax.transAxes, size=8)
+    ax.fill([0.07, 0.85, 0.85, 0.07], [0.78, 0.78, 0.65, 0.65], color=rank_colors[sim['rank_mae']],
+            transform=ax.transAxes, zorder=5)
+
     ax.text(0.1, 0.60, "RMSE: {:.3f} ({})".format(sim['rms'], sim['rank_rms']), va='top', ha='left',
-            rotation='horizontal', rotation_mode='anchor',
-            transform=ax.transAxes,size=8, backgroundcolor=rank_colors[sim['rank_rms']])
+            rotation='horizontal', rotation_mode='anchor', zorder=6, transform=ax.transAxes, size=8)
+    ax.fill([0.07, 0.85, 0.85, 0.07], [0.63, 0.63, 0.5, 0.5], color=rank_colors[sim['rank_rms']],
+            transform=ax.transAxes, zorder=5)
+
     ax.text(0.1, 0.45, "R$_{{pearson}}$: {:.3f} ({})".format(sim['corr'], sim['rank_corr']), va='top', ha='left',
-            rotation='horizontal', rotation_mode='anchor',
-            transform=ax.transAxes,size=8, backgroundcolor=rank_colors[sim['rank_corr']])
+            rotation='horizontal', rotation_mode='anchor', zorder=6, transform=ax.transAxes, size=8)
+    ax.fill([0.07, 0.85, 0.85, 0.07], [0.48, 0.48, 0.35, 0.35], color=rank_colors[sim['rank_corr']],
+            transform=ax.transAxes, zorder=5)
+    
     if sim['d90'] < 9999.:
         ax.text(0.1, 0.30, "D$_{{90}}$: {:.1f} km ({})".format(sim['d90'], sim['rank_d90']), va='top', ha='left',
-                rotation='horizontal', rotation_mode='anchor',
-                transform=ax.transAxes,size=8, backgroundcolor=rank_colors[sim['rank_d90']])
-    # ax.text(1.00, 1.03, "AVG Rank: {:.2f} ({})".format(sim['average_rank'], sim['rank_average_rank']), va='top', ha='right',
-    #         rotation='horizontal', rotation_mode='anchor',
-    #         transform=ax.transAxes,size='large', 
-    #         bbox=dict(boxstyle='round', fc=rank_colors[sim['rank_average_rank']], ec='black', pad=0.2))
+                rotation='horizontal', rotation_mode='anchor', zorder=6, transform=ax.transAxes, size=8)
+        ax.fill([0.07, 0.85, 0.85, 0.07], [0.33, 0.33, 0.2, 0.2], color=rank_colors[sim['rank_d90']],
+                    transform=ax.transAxes, zorder=5)
+
     return ax
 
 
