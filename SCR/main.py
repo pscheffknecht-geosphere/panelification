@@ -151,7 +151,7 @@ def parse_arguments():
             LonMin, LonMax, LatMin, LatMax)""")
     parser.add_argument('--draw', nargs='?', default=False, const=True, type=str2bool,
         help = 'draw panels if average rain is above 5 mm or maximum rain is above 100 mm')
-    parser.add_argument('--forcedraw', nargs='?', default=True, const=True, type=str2bool,
+    parser.add_argument('--forcedraw', nargs='?', default=False, const=True, type=str2bool,
         help = 'draw panels for all subdomains, no matter how much rain was observed')
     parser.add_argument('--cmap', type=str, default="mycolors",
         help = 'color map selection')
