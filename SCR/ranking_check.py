@@ -18,9 +18,9 @@ def add_rank_robustness_info(data_list, args):
         sim["precip_data_resampled"], data_list[0]['precip_data_resampled'], 
         nsamples=1250, threshold_limiting="relative", 
         window_limits=[10., 200.]) for sim in data_list[1::])
-    logger.info("Done.")
+    logger.info("Done. Bootstrapping results")
     for cwfss, sim in zip(cwfss_tmp, data_list[1::]):
-        logging.debug(f"Bootstraping {sim['name']}, N = {10000}")
+        logger.debug(f"Bootstraping {sim['name']}, N = {10000}")
         cwfss.bootstrap(N=10000)
         sim[f"cwfss"] = cwfss
         sim[f"cwfss_robust"] = cwfss.cwfss
