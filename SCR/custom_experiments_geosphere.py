@@ -168,6 +168,8 @@ experiment_configurations = {
         "base_experiment"  : "arome",
         "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/icond1e_%H+%LLLL.grb",
                               "/ment_arch2/pscheff/arch_precip_test/%Y%m%d/icon1e_%H+%LLLL.grb2"], # archive testing path
+        "unit_factor"      : {"precip": 1000.,
+                              "else": 1.},
         "color"            : "orange"
     },
     "icon-eu": {
@@ -204,11 +206,7 @@ experiment_configurations = {
         "base_experiment"  : "claef1k-control",
         "path_template"    : ["/ment_arch2/pscheff/arch_precip_test/%Y%m%d/claef_1k_esuite_%H+%LLLL.grb2",
                               "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_esuite_%H+%LLLL.grb2"],
-    },
-    "claef1k-esuite": {
-        "base_experiment"  : "claef1k-control",
-        "path_template"    : ["/ment_arch2/pscheff/arch_precip_test/%Y%m%d/claef_1k_esuite_%H+%LLLL.grb2",
-                              "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_esuite_%H+%LLLL.grb2"],
+        "color"            : "royalblue"
     },
     "claef1k-mean": {
         "base_experiment"  : "claef1k-control",
@@ -288,7 +286,7 @@ experiment_configurations = {
         "base_experiment"  : "claef1k-control",
         "ensemble"         : "claef1k",
         "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_10_%H+%LLLL.grb",
-                              "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_10_%H+%LLLL.grb2",
+                              "/ment_arch3/aladsteelin/PRECIP_ARCH/%Y%m%d/claef_1k_10_%H+%LLLL.grb2",
                               "/ment_arch2/aneduncheran/%Y%m%d_%H/MEM_10/CLAEF10+%LLLL.grb"]
     },
     "claef1k-m11": {
