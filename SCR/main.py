@@ -343,6 +343,8 @@ def main():
                 sim["lon_resampled"] = _lon
                 sim["lat_resampled"] = _lat
                 sim["precip_data_resampled"] = _data
+            if args.fss_calc_mode and args.fss_method != "legacy":
+                logging.warning(f"fss_mode was set to {args.fss_calc_mode}, this is ignored unless fss_method is set to legacy!")
             Parallel(n_jobs=2,backend='threading')(delayed(scoring.calc_scores)(sim, data_list[0], args) for ii, sim in enumerate(data_list))
             scoring.rank_scores(data_list)
             if args.check_ranking:

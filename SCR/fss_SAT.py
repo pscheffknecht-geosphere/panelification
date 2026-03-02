@@ -172,8 +172,6 @@ def fss_cumsum_parallel(fcst, obs, thresholds, windows, percentiles=False, thres
 
 def fss_cumsum_frame(fcst, obs, windows, thresholds, percentiles=False, threshold_mode="over", tolerance=0.1,
                     mode=None, eps=False, raw=False):
-    if mode:
-        logger.warning(f"fss_mode was set to {mode}, this is ignored unless fss_method is set to legacy!")
     # adjust windows from legacy format:
     windows = [w[0] for w in windows]
     ret_arr = fss_cumsum_parallel(fcst, obs, thresholds, windows, percentiles=percentiles, 
