@@ -168,8 +168,6 @@ experiment_configurations = {
         "base_experiment"  : "arome",
         "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/icond1e_%H+%LLLL.grb",
                               "/ment_arch2/pscheff/arch_precip_test/%Y%m%d/icon1e_%H+%LLLL.grb2"], # archive testing path
-        "unit_factor"      : {"precip": 1000.,
-                              "else": 1.},
         "color"            : "orange"
     },
     "icon-eu": {
