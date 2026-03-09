@@ -294,6 +294,7 @@ def write_scores_to_sqlite(data_list, start_date, end_date, args, verification_s
                 experiment_name=args.name.rstrip('_'),
                 subdomain=verification_subdomain,
                 sim_data=sim_data_for_db,
+                args=args,
                 fss_netcdf_ref=fss_netcdf_ref
             )
         except ValueError as e:

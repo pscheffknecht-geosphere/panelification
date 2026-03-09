@@ -223,6 +223,8 @@ def parse_arguments():
         help = 'Adapt color map for printing')
     parser.add_argument('--save_percentiles', nargs='?', default=False, const=True, type=str2bool,
         help = 'Save all percentiles to CSV')
+    parser.add_argument('--force_overwrite_scores', nargs='?', default=False, const=True, type=str2bool,
+        help = 'Force overwriting scores in the database, if an entry already exists for the given model configuration, initialization, accumulation duration, accumulation period, experiment name and subdomain. Use with caution, as this will lead to data loss!')
 
     args = parser.parse_args()
     init_logging(args)
