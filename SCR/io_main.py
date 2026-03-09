@@ -4,6 +4,7 @@ import datetime as dt
 import numpy as np
 import urllib.request
 from pathlib import Path
+from datetime import datetime
 
 from grib_handle_check import find_grib_handles
 from mars_request_templates import mars_request_templates
@@ -12,8 +13,10 @@ from io_grib import read_data_grib, get_inca_rain_accumulated, get_icon_unstruct
 from io_gdal import read_data_gdal
 from io_netcdf import read_data_netcdf, read_inca_plus_netcdf
 from io_netcdf import read_HungaroMet_netcdf
+import io_fss_netcdf
+import io_sqlite
 
-from paths import PAN_DIR_TMP, PAN_DIR_MODEL, PAN_DIR_MODEL2, PAN_DIR_DATA
+from paths import PAN_DIR_TMP, PAN_DIR_MODEL, PAN_DIR_MODEL2, PAN_DIR_DATA, PAN_DIR_SCORES
 
 import logging
 logger = logging.getLogger(__name__)
@@ -630,20 +633,67 @@ def save_data(data_list, verification_subdomain, start_date, end_date, args):
     logger.info(outfilename+" written sucessfully.")
 
 
-def save_fss(data_list, verification_subdomain, start_date, end_date, args):
-    """ write all data to a pickle file """
-    start_date_str = start_date.strftime("%Y%m%d_%HUTC_")
-    outfilename = f"{PAN_DIR_DATA}/{args.name}FSS_data_{start_date_str}{args.duration:02d}h_acc_{verification_subdomain}.p"
-    fss_dict = {}
-    for sim in data_list[1::]:
-        sim_dict = {
-            'fss'      : sim['fss'],
-            'fssp'     : sim['fssp'],
-            'fss_num'  : sim['fss_num'],
-            'fssp_num' : sim['fssp_num'],
-            'fss_den'  : sim['fss_den'],
-            'fssp_den' : sim['fssp_den']}
-        fss_dict[sim['name']] = sim_dict
-    with open(outfilename, 'wb') as f:
-        pickle.dump(fss_dict, f)
-    logger.info(outfilename+" written sucessfully.")
+def save_fss(data_list, verification_subdomain, start_date, end_date, args, windows=None, thresholds=None):
+    """Save FSS data to netCDF files with comprehensive metadata
+    
+    For each simulation (except observations), saves FSS data to a separate netCDF file
+    with metadata including thresholds, window sizes, model configuration, and timing information.
+    
+    Returns a dictionary mapping simulation names to their netCDF file paths.
+    """
+    from parameter_settings import get_fss_thresholds, get_windows
+    
+    # Get windows and thresholds if not provided
+    if windows is None:
+        windows = get_windows(args)
+    if thresholds is None:
+        thresholds = get_fss_thresholds(args)
+    
+    # Create SCORES directory with experiment subdirectory
+    scores_dir = f"{PAN_DIR_SCORES}/{args.name}"
+    if not os.path.exists(scores_dir):
+        os.makedirs(scores_dir, exist_ok=True)
+    
+    start_date_str = start_date.strftime("%Y%m%d_%H")
+    fss_file_references = {}
+    
+    # Save FSS data for each simulation
+    for sim in data_list[1::]:  # Skip observations (first entry)
+        if sim['fss'] is not None:
+            # Create netCDF filename
+            nc_filename = f"{scores_dir}/FSS_{start_date_str}UTC_{args.duration:02d}h_acc_{verification_subdomain}_{sim['name']}.nc"
+            
+            # Prepare FSS data dictionary
+            sim_fss_data = {
+                'fss': sim['fss'].values if hasattr(sim['fss'], 'values') else sim['fss'],
+                'fssp': sim['fssp'].values if hasattr(sim['fssp'], 'values') else sim['fssp'],
+                'fss_num': sim.get('fss_num'),
+                'fssp_num': sim.get('fssp_num'),
+                'fss_den': sim.get('fss_den'),
+                'fssp_den': sim.get('fssp_den'),
+            }
+            
+            # Save to netCDF
+            try:
+                io_fss_netcdf.save_fss_to_netcdf(
+                    output_file=nc_filename,
+                    sim_data=sim_fss_data,
+                    start_date=start_date,
+                    end_date=end_date,
+                    subdomain=verification_subdomain,
+                    windows=sim.get('fss_windows', windows),
+                    thresholds=thresholds,
+                    fss_thresholds=sim.get('fss_thresholds'),
+                    model_conf=str(sim['conf']),
+                    model_init=str(sim['init']),
+                    accumulation_duration=args.duration
+                )
+                fss_file_references[sim['name']] = nc_filename
+                logger.info(f"FSS data saved to netCDF: {nc_filename}")
+            except Exception as e:
+                logger.error(f"Failed to save FSS data for {sim['name']}: {e}")
+                raise
+        else:
+            logger.warning(f"No FSS data available for {sim['name']}, skipping netCDF save")
+    
+    return fss_file_references

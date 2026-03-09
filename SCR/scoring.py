@@ -6,12 +6,13 @@ import fss_FFT
 import fss_SAT
 import parameter_settings
 import csv
-
+from datetime import datetime
 
 import logging
 logger = logging.getLogger(__name__)
 
 from paths import PAN_DIR_SCORES
+import io_sqlite
 
 def array_minus_avg(a, t):
     """
@@ -213,45 +214,113 @@ def rank_scores(data_list):
     return data_list
 
 
-def write_scores_to_csv(data_list, start_date, end_date, args, verification_subdomain, windows, thresholds):
-    name_part = '' # if args.mode == 'None' else args.mode+'_'
-    csv_file = "../SCORES/"+args.name+"RR_"+name_part+"score_"+start_date.strftime("%Y%m%d_%HUTC_")+'{:02d}h_acc_'.format(args.duration)+verification_subdomain+'.csv'
-    logging.info("Saving {csv_file}")
+def write_scores_to_sqlite(data_list, start_date, end_date, args, verification_subdomain, windows, thresholds, fss_file_refs=None):
+    """Write scores to SQLite database instead of CSV
+    
+    Creates a database with a unique identifier of:
+    (model configuration, model init, accumulation duration, start of accumulation period, experiment name)
+    
+    Args:
+        fss_file_refs: Optional dictionary mapping simulation names to their FSS netCDF file paths
+    """
+    if fss_file_refs is None:
+        fss_file_refs = {}
+    
     start_date_str = start_date.strftime("%Y%m%d_%H")
-    end_date_str = end_date.strftime("%Y%m%d_%H")
-    csv_file = f"{PAN_DIR_SCORES}/{args.name}RR_{name_part}score_{start_date_str}UTC_{args.duration:02d}h_acc_{verification_subdomain}.csv"
-    with open(csv_file, 'w') as f:
-        score_writer = csv.writer(f, delimiter=';')
-        col_labels = ["conf", "init", "lead", "name", "maximum", "average", "99th", "95th", "90th", "75th", "50th",
-                      "bias", "mae", "rms", "corr", "d90", "fss_condensed", "fss_condensed_weighted",
-                      "rank_mae", "rank_bias", "rank_rms", "rank_corr", "rank_d90", "rank_fss_condensed", "rank_fss_condensed_weighted"]
-        score_writer.writerow(col_labels)
-        for sim in data_list:
-            percs = [sim["precip_data_resampled"].max(), sim["precip_data_resampled"].mean()]
-            for p in [99., 95., 90., 75., 50.]:
-                percs.append(np.percentile(sim["precip_data_resampled"], p))
-            score_writer.writerow([
-                sim['conf'], sim['init'], sim['lead'], sim['name'], 
-                percs[0], percs[1], percs[2], percs[3], percs[4], percs[5], percs[6],
-                sim['bias_real'], sim['mae'], sim['rms'], sim['corr'], sim['d90'], 
-                sim['fss_condensed'], sim['fss_condensed_weighted'], 
-                sim['rank_mae'], sim['rank_bias'], sim['rank_rms'], sim['rank_corr'], sim['rank_d90'], 
-                sim['rank_fss_condensed'], sim['rank_fss_condensed_weighted']])
+    
+    # Create scores directory if it doesn't exist
+    scores_dir = f"{PAN_DIR_SCORES}/{args.name}"
+    if not os.path.exists(scores_dir):
+        os.makedirs(scores_dir, exist_ok=True)
+    
+    # Database file in the experiment-specific subdirectory
+    db_file = f"{scores_dir}/scores.db"
+    
+    # Check if database already exists and warn
+    io_sqlite.check_database_exists(db_file)
+    
+    # Create the table if it doesn't exist
+    io_sqlite.create_scores_table(db_file)
+    
+    logging.info(f"Saving scores to SQLite database: {db_file}")
+    
+    # Insert scores for each simulation
+    for sim in data_list:
+        if sim['type'] == 'obs':
+            # Skip observation data for database storage (but it's still used for scoring)
+            continue
+        
+        # Calculate percentiles
+        percs = {}
+        percs['maximum'] = sim["precip_data_resampled"].max()
+        percs['average'] = sim["precip_data_resampled"].mean()
+        percs['percentile_99'] = np.percentile(sim["precip_data_resampled"], 99.)
+        percs['percentile_95'] = np.percentile(sim["precip_data_resampled"], 95.)
+        percs['percentile_90'] = np.percentile(sim["precip_data_resampled"], 90.)
+        percs['percentile_75'] = np.percentile(sim["precip_data_resampled"], 75.)
+        percs['percentile_50'] = np.percentile(sim["precip_data_resampled"], 50.)
+        
+        # Prepare data dictionary for insertion
+        sim_data_for_db = {
+            'lead': sim.get('lead'),
+            'name': sim.get('name'),
+            **percs,
+            'bias_real': sim.get('bias_real'),
+            'mae': sim.get('mae'),
+            'rms': sim.get('rms'),
+            'corr': sim.get('corr'),
+            'd90': sim.get('d90'),
+            'fss_condensed': sim.get('fss_condensed'),
+            'fss_condensed_weighted': sim.get('fss_condensed_weighted'),
+            'rank_mae': sim.get('rank_mae'),
+            'rank_bias': sim.get('rank_bias'),
+            'rank_rms': sim.get('rank_rms'),
+            'rank_corr': sim.get('rank_corr'),
+            'rank_d90': sim.get('rank_d90'),
+            'rank_fss_condensed': sim.get('rank_fss_condensed'),
+            'rank_fss_condensed_weighted': sim.get('rank_fss_condensed_weighted'),
+        }
+        
+        # Get FSS netCDF reference if available
+        fss_netcdf_ref = fss_file_refs.get(sim['name']) if fss_file_refs else None
+        
+        try:
+            io_sqlite.insert_scores(
+                db_file,
+                model_conf=str(sim['conf']),
+                model_init=str(sim['init']),
+                accumulation_duration=args.duration,
+                start_accumulation_period=start_date_str,
+                experiment_name=args.name.rstrip('_'),
+                subdomain=verification_subdomain,
+                sim_data=sim_data_for_db,
+                fss_netcdf_ref=fss_netcdf_ref
+            )
+        except ValueError as e:
+            logging.critical(str(e))
+            raise
+    
+    # Save percentiles to a separate CSV file if requested
     if args.save_percentiles:
-        csv_file = f"{PAN_DIR_SCORES}/{args.name}RR_percentiles_{name_part}score_{start_date_str}UTC_{args.duration:02d}h_acc_{verification_subdomain}.csv"
-        logging.info("Saving percentiles to {csv_file}")
-        with open(csv_file, 'w') as f:
+        percentiles_file = f"{scores_dir}/percentiles_{start_date_str}UTC_{args.duration:02d}h_acc_{verification_subdomain}.csv"
+        logging.info(f"Saving percentiles to {percentiles_file}")
+        with open(percentiles_file, 'w') as f:
             score_writer = csv.writer(f, delimiter=';')
             col_labels = ["conf", "init", "lead", "name"]
             for p in range(0, 101):
                 col_labels.append(f"{p:d}th")
             score_writer.writerow(col_labels)
             for sim in data_list:
-                percs = []
-                for p in range(0, 101):
-                    percs.append(np.percentile(sim["precip_data_resampled"], p))
-                write_data = [sim['conf'], sim['init'], sim['lead'], sim['name'], *percs]
-                score_writer.writerow(write_data)
+                if sim['type'] != 'obs':
+                    percs = []
+                    for p in range(0, 101):
+                        percs.append(np.percentile(sim["precip_data_resampled"], p))
+                    write_data = [sim['conf'], sim['init'], sim['lead'], sim['name'], *percs]
+                    score_writer.writerow(write_data)
+
+
+# Keep the old function name as an alias for backward compatibility
+write_scores_to_csv = write_scores_to_sqlite
 
 
 def prep_windows(ww, mode, nx, ny):

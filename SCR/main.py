@@ -357,7 +357,12 @@ def main():
         else:
             logging.info("Skipping "+dom['name']+", nothing is requested.")
         if dom['score']:
-            scoring.write_scores_to_csv(data_list, start_date, end_date, args, subdomain_name, windows, thresholds)
+            # Save FSS data to netCDF first and collect file references
+            fss_file_refs = {}
+            if args.save_full_fss:
+                fss_file_refs = io.save_fss(data_list, subdomain_name, start_date, end_date, args, windows, thresholds)
+            # Then save scalar scores to sqlite database with FSS references
+            scoring.write_scores_to_csv(data_list, start_date, end_date, args, subdomain_name, windows, thresholds, fss_file_refs)
         if dom['draw']:
             if args.ensemble_scores:
                 logging.info("Plotting pFSS for ensembles")
@@ -372,8 +377,6 @@ def main():
         if dom['score']:
             if args.save:
                 io.save_data(data_list, subdomain_name, start_date, end_date, args)
-            if args.save_full_fss:
-                io.save_fss(data_list, subdomain_name, start_date, end_date, args)
 
 def read_obs(start_date, end_date, data_list, args):
     if "precip" in args.parameter:
