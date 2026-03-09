@@ -102,8 +102,9 @@ experiment_configurations = {
         "init_interval"    : 6,
         "output_interval"  : 3, # 6 for some lead times, but panelification can sort that out
         "max_leadtime"     : 192,
-        "url_template"     : "https://data.rda.ucar.edu/d084001/%Y/%Y%m%d/gfs.0p25.%Y%m%d%H.f%LLL.grib2",
-        "path_template"    : ["/ment_arch2/pscheff/event_archive/GFS/%Y/%m/%d/%H/GFS+%LLLL_rr.grb2",
+        # "url_template"     : "https://data.rda.ucar.edu/d084001/%Y/%Y%m%d/gfs.0p25.%Y%m%d%H.f%LLL.grib2",
+        "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/gfs_%H+%LLLL.grb2",
+                              "/ment_arch2/pscheff/event_archive/GFS/%Y/%m/%d/%H/GFS+%LLLL_rr.grb2",
                               "/ment_arch2/pscheff/event_archive/GFS/%Y/%m/%d/%H/GFS+%LLLL.grb2"],
         "accumulated"      : True,
         "unit_factor"      : 1.,
@@ -130,12 +131,12 @@ experiment_configurations = {
         "color"            : "purple"
     },
     "aifs": {
-        "init_interval"    : 24,
-        "output_interval"  : 6, # 3 for some lead times, but panelification can sort that out
+        "init_interval"    : 6,
+        "output_interval"  : 3, # 3 for some lead times, but panelification can sort that out
         "max_leadtime"     : 120,
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/aifs_%H+%LLLL.grb",
         "accumulated"      : True,
-        "unit_factor"      : 1000.,
+        "unit_factor"      : 1.,
         "color"            : "fuchsia"
     },
     "claef-control": {
@@ -155,6 +156,7 @@ experiment_configurations = {
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef-median_%H+%LLLL.grb",
     },
     "icon": {
+        "max_leadtime"     : 120,
         "base_experiment"  : "arome",
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/icon_%H+%LLLL.grb",
         "color"            : "darkgoldenrod"
@@ -176,6 +178,7 @@ experiment_configurations = {
         "color"            : "darkorange"
     },
     "arpege": {
+        "max_leadtime"     : 120,
         "base_experiment"  : "arome",
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/arpege_%H+%LLLL.grb",
         "color"            : "darkgreen"
