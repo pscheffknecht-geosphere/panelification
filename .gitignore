@@ -56,3 +56,5 @@ MODEL
 SCR/test.sh
 SCR/short.sh
 SCR/test.sh
+SCORES/*/*.db
+SCORES/*/*.nc
