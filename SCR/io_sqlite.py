@@ -74,7 +74,7 @@ def check_duplicate_entry(db_path, model_conf, model_init, accumulation_duration
 
 
 def insert_scores(db_path, model_conf, model_init, accumulation_duration, start_accumulation_period, 
-                  experiment_name, subdomain, sim_data, fss_netcdf_ref=None):
+                  experiment_name, subdomain, sim_data, args, fss_netcdf_ref=None):
     """Insert scores into the database
     
     Args:
@@ -91,13 +91,31 @@ def insert_scores(db_path, model_conf, model_init, accumulation_duration, start_
     
     # Check for duplicate entry
     if check_duplicate_entry(db_path, model_conf, model_init, accumulation_duration,
-                             start_accumulation_period, experiment_name, subdomain):
-        logger.critical(f"Entry already exists in database for model_conf={model_conf}, "
-                       f"model_init={model_init}, accumulation_duration={accumulation_duration}h, "
-                       f"start_accumulation_period={start_accumulation_period}, "
-                       f"experiment_name={experiment_name}, subdomain={subdomain}. "
-                       f"This would cause data to be overwritten. Aborting!")
-        raise ValueError("Duplicate entry detected - would cause data overwrite")
+                            start_accumulation_period, experiment_name, subdomain):
+        if args.force_overwrite_scores:
+            logger.warning(f"Removing existing entry for model_conf={model_conf}, "
+                        f"model_init={model_init}, accumulation_duration={accumulation_duration}h, "
+                        f"start_accumulation_period={start_accumulation_period}, "
+                        f"experiment_name={experiment_name}, subdomain={subdomain} "
+                        f"to overwrite with new data.")
+            # Delete the old entry
+            conn_delete = sqlite3.connect(db_path)
+            cursor_delete = conn_delete.cursor()
+            cursor_delete.execute('''
+                DELETE FROM scores
+                WHERE model_conf = ? AND model_init = ? AND accumulation_duration = ? 
+                AND start_accumulation_period = ? AND experiment_name = ? AND subdomain = ?
+            ''', (model_conf, model_init, accumulation_duration, start_accumulation_period, 
+                  experiment_name, subdomain))
+            conn_delete.commit()
+            conn_delete.close()
+        else:
+            logger.critical(f"Entry already exists in database for model_conf={model_conf}, "
+                        f"model_init={model_init}, accumulation_duration={accumulation_duration}h, "
+                        f"start_accumulation_period={start_accumulation_period}, "
+                        f"experiment_name={experiment_name}, subdomain={subdomain}. "
+                        f"This would cause data to be overwritten. Aborting!")
+            raise ValueError("Duplicate entry detected - would cause data overwrite")
     
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()

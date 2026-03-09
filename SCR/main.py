@@ -246,6 +246,8 @@ def parse_arguments():
     parser.add_argument('--opera_qi_threshold', type=float, default=0.8,
         help = 'Minimum OPERA quality index (0..1) to keep a pixel; lower-QI '
                'pixels are masked as NaN. Set to 0.0 to mask only QI==0 cells.')
+    parser.add_argument('--force_overwrite_scores', nargs='?', default=False, const=True, type=str2bool,
+        help = 'Force overwriting scores in the database, if an entry already exists for the given model configuration, initialization, accumulation duration, accumulation period, experiment name and subdomain. Use with caution, as this will lead to data loss!')
 
     args = parser.parse_args()
     init_logging(args)
