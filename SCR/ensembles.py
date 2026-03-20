@@ -57,6 +57,7 @@ class Ensemble:
         ww = [10,20,30,40,60,80,100,120,140,160,180,200]
         self.windows = prep_windows(ww, args.fss_calc_mode, nx, ny)
         self.fss_method = args.fss_method
+        self.threads = args.threads
         self.calc_scores()
         self.save()
         
@@ -80,14 +81,14 @@ class Ensemble:
     def calc_dFSS(self):
         combos = list(combinations([x for x in range(self.member_count)], 2))
         if self.fss_method == "legacy":
-            self.dFSS = Parallel(n_jobs=16, backend='threading')(delayed(fss_FFT.fss_raw)(
-            self.precip_data_resampled[combo[0]], 
-            self.precip_data_resampled[combo[1]], 
-            self.windows, 
+            self.dFSS = Parallel(n_jobs=self.threads, backend='threading')(delayed(fss_FFT.fss_raw)(
+            self.precip_data_resampled[combo[0]],
+            self.precip_data_resampled[combo[1]],
+            self.windows,
             self.thresholds
             ) for combo in combos)
         else:
-            self.dFSS = Parallel(n_jobs=16, backend='threading')(delayed(fss_SAT.fss_cumsum_frame)(
+            self.dFSS = Parallel(n_jobs=self.threads, backend='threading')(delayed(fss_SAT.fss_cumsum_frame)(
             self.precip_data_resampled[combo[0]], 
             self.precip_data_resampled[combo[1]], 
             self.windows, 

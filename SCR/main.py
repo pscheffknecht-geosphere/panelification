@@ -223,6 +223,8 @@ def parse_arguments():
         help = 'Adapt color map for printing')
     parser.add_argument('--save_percentiles', nargs='?', default=False, const=True, type=str2bool,
         help = 'Save all percentiles to CSV')
+    parser.add_argument('--threads', type=int, default=8,
+        help = 'Number of threads used for parallel processing (joblib)')
 
     args = parser.parse_args()
     init_logging(args)
@@ -345,7 +347,7 @@ def main():
                 sim["precip_data_resampled"] = _data
             if args.fss_calc_mode and args.fss_method != "legacy":
                 logging.warning(f"fss_mode was set to {args.fss_calc_mode}, this is ignored unless fss_method is set to legacy!")
-            Parallel(n_jobs=2,backend='threading')(delayed(scoring.calc_scores)(sim, data_list[0], args) for ii, sim in enumerate(data_list))
+            Parallel(n_jobs=args.threads,backend='threading')(delayed(scoring.calc_scores)(sim, data_list[0], args) for ii, sim in enumerate(data_list))
             scoring.rank_scores(data_list)
             if args.check_ranking:
                 ranking_check.add_rank_robustness_info(data_list, args)

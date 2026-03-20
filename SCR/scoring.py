@@ -322,7 +322,8 @@ def calc_scores(sim, obs, args):
         fss_num, fss_den, fss, ovest = fss_calc_func(
             sim["precip_data_resampled"],
             obs["precip_data_resampled"],
-            windows,levels,percentiles=False, mode=args.fss_calc_mode.replace("_adaptive", ""))
+            windows,levels,percentiles=False, mode=args.fss_calc_mode.replace("_adaptive", "")) #,
+			# threshold_mode="tolerance", tolerance=0.02)
         fssp_num, fssp_den, fssp, ovestp = fss_calc_func(
             np.copy(sim["precip_data_resampled"]), # circumvent numpy issue #21524
             np.copy(obs["precip_data_resampled"]), # circumvent numpy issue #21524

@@ -573,7 +573,7 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
     # generate a list of commands, one for each model, these will call panel_plotter.py to draw a single model
     cmd_list = [f"{sys.executable} {PAN_DIR_SCR}/panel_plotter.py -p {pickle_file}" for pickle_file in glob.glob(f"{PAN_DIR_TMP}/{tmp_string}/???.p")]
     # execute the commands in parallel
-    Parallel(n_jobs=2)(delayed(os.system)(cmd) for cmd in cmd_list)
+    Parallel(n_jobs=args.threads)(delayed(os.system)(cmd) for cmd in cmd_list)
     logger.debug(f"montage {PAN_DIR_TMP}/{tmp_string}/???.png -geometry +0+0 -tile {lins}x{cols} {PAN_DIR_TMP}/{tmp_string}/999.png")
     # use the individual panels and combine them into one large plot using imagemagick
     os.system(f"montage {PAN_DIR_TMP}/{tmp_string}/???.png -geometry +0+0 -tile {lins}x{cols} {PAN_DIR_TMP}/{tmp_string}/999.png")
