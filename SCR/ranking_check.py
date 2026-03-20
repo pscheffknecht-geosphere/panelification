@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 def add_rank_robustness_info(data_list, args):
     logger.info("Calculating FSS samples for ranking robustness check, this can take a few minutes...")
-    cwfss_tmp = Parallel(n_jobs=2, backend='threading')(
+    cwfss_tmp = Parallel(n_jobs=args.threads, backend='threading')(
         delayed(fss.CWFSS)(
         sim["precip_data_resampled"], data_list[0]['precip_data_resampled'], 
         nsamples=1250, threshold_limiting="relative", 
