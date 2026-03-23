@@ -97,7 +97,7 @@ def _build_binary_sat(fcst, obs, t1, t2, t1o, t1f, percentiles,
         obs_bin = compute_integral_table(
             ((obs > (1.-tolerance) * t1o) & (obs <= (1.+tolerance)*t1o)).astype(int))
         mod_bin = compute_integral_table(
-            ((fcst > (1.-tolerance) * t1f) & (fcst <= (1.+tolerance)*t1o)).astype(int))
+            ((fcst > (1.-tolerance) * t1f) & (fcst <= (1.+tolerance)*t1f)).astype(int))
     return mod_bin, obs_bin
 
 
@@ -146,7 +146,7 @@ def fss_threshold_eps(fcst, obs, t1, t2, windows, percentiles=False, threshold_m
         obs_bin = compute_integral_table(
             ((obs > (1.-tolerance) * t1o) & (obs <= (1.+tolerance)*t1o)).astype(int))
         mod_bin = compute_integral_table(
-            np.mean((fcst > (1.-tolerance) * t1f) & (fcst <= (1.+tolerance)*t1o), axis=0))
+            np.mean((fcst > (1.-tolerance) * t1f) & (fcst <= (1.+tolerance)*t1f), axis=0))
     for jj, window in enumerate(windows):
         num_t[jj], den_t[jj], fss_t[jj] = fss(fcst, obs, window,
                                                 fcst_cache=mod_bin, obs_cache=obs_bin,
@@ -189,7 +189,7 @@ def fss_cumsum_frame(fcst, obs, windows, thresholds, percentiles=False, threshol
     # adjust windows from legacy format:
     windows = [w[0] for w in windows]
     ret_arr = fss_cumsum_parallel(fcst, obs, thresholds, windows, percentiles=percentiles,
-                                  threshold_mode="over", tolerance=tolerance, eps=eps)
+                                  threshold_mode=threshold_mode, tolerance=tolerance, eps=eps)
     if raw:
         return ret_arr[2]
     else:
@@ -211,7 +211,8 @@ def R2(N):
 
 class CWFSS:
     def __init__(self, fcst, obs, nsamples=500, threshold_limits=(0.1, 100.), window_limits=(1, 601),
-                threshold_max_weight=2., window_max_weight=2., threshold_limiting="relative"):
+                threshold_max_weight=2., window_max_weight=2., threshold_limiting="relative",
+                threshold_mode="over", tolerance=0.1):
         self.wmin = int(window_limits[0])
         self.wmax = int(window_limits[1])
         if threshold_limiting == "relative":
@@ -224,6 +225,8 @@ class CWFSS:
             self.tmin = np.percentile(obs, threshold_limits[0])
             self.tmax = np.percentile(obs, threshold_limits[1])
         self.nsamples = nsamples
+        self.threshold_mode = threshold_mode
+        self.tolerance = tolerance
         self.denominators = np.zeros(nsamples)
         self.numerators = np.zeros(nsamples)
         self.values = np.zeros(nsamples)
@@ -232,6 +235,18 @@ class CWFSS:
         self.__calc__(fcst, obs)
         self.__calc_cwfss()
 
+    def _binarise(self, field, t):
+        """Binarise a field at threshold t using the configured threshold_mode."""
+        if self.threshold_mode == "over":
+            return (field > t).astype(int)
+        elif self.threshold_mode == "under":
+            return (field <= t).astype(int)
+        elif self.threshold_mode == "tolerance":
+            return ((field > (1. - self.tolerance) * t) &
+                    (field <= (1. + self.tolerance) * t)).astype(int)
+        else:
+            return (field > t).astype(int)
+
     def __calc__(self, fcst, obs):
         for N in range(self.nsamples):
             x, y = R2(N)
@@ -239,8 +254,8 @@ class CWFSS:
             w = int(self.wmin + x * (self.wmax - self.wmin))
             self.windows[N] = w
             self.thresholds[N] = t
-            obs_bin = compute_integral_table((obs > t).astype(int))
-            mod_bin = compute_integral_table((fcst > t).astype(int))
+            obs_bin = compute_integral_table(self._binarise(obs, t))
+            mod_bin = compute_integral_table(self._binarise(fcst, t))
             ohat = integral_filter(obs_bin, w)
             fhat = integral_filter(mod_bin, w)
             fflat = fhat.ravel()
