@@ -319,15 +319,18 @@ def calc_scores(sim, obs, args):
         mae = np.mean(np.abs(sim["precip_data_resampled"]-obs["precip_data_resampled"]))
         rms = np.sqrt(np.mean(np.square(sim["precip_data_resampled"]-obs["precip_data_resampled"])))
         corr = np.corrcoef(sim["precip_data_resampled"].flatten(),obs["precip_data_resampled"].flatten())[0,1]
+        threshold_mode = getattr(args, 'fss_threshold_mode', 'over')
+        tolerance = getattr(args, 'fss_tolerance', 0.1)
         fss_num, fss_den, fss, ovest = fss_calc_func(
             sim["precip_data_resampled"],
             obs["precip_data_resampled"],
-            windows,levels,percentiles=False, mode=args.fss_calc_mode.replace("_adaptive", "")) #,
-			# threshold_mode="tolerance", tolerance=0.02)
+            windows,levels,percentiles=False, mode=args.fss_calc_mode.replace("_adaptive", ""),
+            threshold_mode=threshold_mode, tolerance=tolerance)
         fssp_num, fssp_den, fssp, ovestp = fss_calc_func(
             np.copy(sim["precip_data_resampled"]), # circumvent numpy issue #21524
             np.copy(obs["precip_data_resampled"]), # circumvent numpy issue #21524
-            windows,percs,percentiles=True, mode=args.fss_calc_mode.replace("_adaptive", "")) 
+            windows,percs,percentiles=True, mode=args.fss_calc_mode.replace("_adaptive", ""),
+            threshold_mode=threshold_mode, tolerance=tolerance)
         fssf = pd.concat((fss, fssp), axis=0)
         ovestf = pd.concat((ovest, ovestp), axis=0)
         sim['bias'] = np.abs(bias)
@@ -352,46 +355,60 @@ def calc_scores(sim, obs, args):
 
 def fss_d90(rrm, rro, args):
     """
-    arr .... array-like
+    Estimate the displacement of the 90th-percentile precipitation field.
 
-    Loops over array and returns the estimated window size at which arr
-    equals 0.5. Values are linearly interpolated between array entries.
-    Missing Values / Fails return 9999.
+    Computes the FSS between the surplus (non-overlapping) parts of the
+    binary p90 fields at increasing window sizes, and finds the half-window
+    at which the FSS reaches 0.5 via linear interpolation.
+
+    Returns the displacement in km (half-window size), or 9999. / np.nan
+    for degenerate cases.
     """
     fss_calc_func = fss_SAT.fss_cumsum_frame
     if args.fss_method == 'legacy':
         logger.info("FSS method is set to legacy, using old FFT approximation for D90!")
         fss_calc_func = fss_FFT.fss_frame
-    # consistency check
     windows = [3, 5, 7, 11, 21, 31, 41, 51, 61, 81, 101, 121, 141, 181, 251, 351, 501, 701]
     windows_2d = prep_windows(windows, args.mode, *rrm.shape)
     levels = [0.5]
-    _rro = np.where(rro >= np.percentile(np.copy(rro), 90), 1, 0)
-    rrm = np.where(rrm >= np.percentile(np.copy(rrm), 90), 1, 0) # circumvent numpy issue #21524
-    #rrm = np.where(rrm > np.percentile(rrm, 90), 1, 0)
-    rro_s = np.maximum(_rro-rrm, 0)
-    rrm_s = np.maximum(rrm-_rro, 0)
-    if np.sum(rrm) == 0:
+    p90_obs = np.percentile(np.copy(rro), 90)
+    p90_mod = np.percentile(np.copy(rrm), 90)
+    _rro = np.where(rro >= p90_obs, 1, 0)
+    _rrm = np.where(rrm >= p90_mod, 1, 0) # circumvent numpy issue #21524
+    if np.sum(_rrm) == 0:
         logger.warning("No precipitation in model array, returning no d90!")
         return np.nan
-    overlap = float(np.sum(_rro*rrm))/float(np.sum(rrm))
-    _, _, _arr, _ = fss_calc_func(rro_s, rrm_s, windows_2d, levels, mode=args.fss_calc_mode)
+    # if p90 threshold equals the field minimum, the percentile cannot
+    # distinguish intense from non-intense pixels (e.g. constant or all-zero field)
+    if p90_mod <= np.min(rrm):
+        logger.warning("Model p90 threshold (%.4f) equals field minimum — "
+                        "cannot identify intense precipitation area, returning no d90!", p90_mod)
+        return np.nan
+    # surplus fields: non-overlapping parts of the binary p90 fields
+    rro_s = np.maximum(_rro - _rrm, 0)
+    rrm_s = np.maximum(_rrm - _rro, 0)
+    _, _, _arr, _ = fss_calc_func(
+        rro_s.astype(float), rrm_s.astype(float), windows_2d, levels,
+        mode=args.fss_calc_mode)
     arr = _arr.values.flatten()
     logger.debug("FSS array for D90 calculation:")
     logger.debug(arr)
-    for ii in range(1,len(arr)):
-        if arr[ii] - arr[ii-1] < 0:
-            logger.info("non-monotonous array in argument, returning no d90!")
+    # monotonicity check with tolerance for numerical noise
+    for ii in range(1, len(arr)):
+        if arr[ii] - arr[ii-1] < -0.01:
+            logger.info("non-monotonous FSS array in D90, returning no d90!")
             return 9999.
-    # find where the array exceeds 0.5 and interpolate the window size (km equivalent)
+    if arr[0] >= 0.5:
+        return 0.
+    # find where the array exceeds 0.5 and interpolate
     ii = 0
     while arr[ii] < 0.5:
         ii += 1
-        if ii == len(arr)-1:
-            logger.info("all elements of argument are <0.5, returning no d90!")
+        if ii == len(arr) - 1:
+            logger.info("FSS never reaches 0.5, returning no d90!")
             return 9999.
-    t = (0.5-arr[ii-1])/(arr[ii]-arr[ii-1])
-    d = windows[ii-1]+t*float(windows[ii]-windows[ii-1])
+    t = (0.5 - arr[ii-1]) / (arr[ii] - arr[ii-1])
+    d = windows[ii-1] + t * float(windows[ii] - windows[ii-1])
     if d < 0:
         d = 0.
     return 0.5 * d
