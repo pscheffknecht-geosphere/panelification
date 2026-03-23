@@ -13,11 +13,14 @@ logger = logging.getLogger(__name__)
 
 def add_rank_robustness_info(data_list, args):
     logger.info("Calculating FSS samples for ranking robustness check, this can take a few minutes...")
+    threshold_mode = getattr(args, 'fss_threshold_mode', 'over')
+    tolerance = getattr(args, 'fss_tolerance', 0.1)
     cwfss_tmp = Parallel(n_jobs=args.threads, backend='threading')(
         delayed(fss.CWFSS)(
-        sim["precip_data_resampled"], data_list[0]['precip_data_resampled'], 
-        nsamples=1250, threshold_limiting="relative", 
-        window_limits=[10., 200.]) for sim in data_list[1::])
+        sim["precip_data_resampled"], data_list[0]['precip_data_resampled'],
+        nsamples=1250, threshold_limiting="relative",
+        window_limits=[10., 200.],
+        threshold_mode=threshold_mode, tolerance=tolerance) for sim in data_list[1::])
     logger.info("Done. Bootstrapping results")
     for cwfss, sim in zip(cwfss_tmp, data_list[1::]):
         logger.debug(f"Bootstraping {sim['name']}, N = {10000}")
