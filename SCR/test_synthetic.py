@@ -56,16 +56,21 @@ TEST_REGION_DEF = {
 ATOL = 1e-6  # absolute tolerance for float comparisons
 
 # 5x5 parameter grid
-OFFSETS_KM = [20, 35, 50, 70, 90]        # east-west displacement in km
+# OFFSETS_KM = [20, 35, 50, 70, 90]        # east-west displacement in km
+OFFSETS_KM = [20, 50, 90]        # east-west displacement in km
 # SCALE_FACTORS = [0.3, 0.725, 1.15, 1.575, 2.0]  # multiplicative bias
-SCALE_FACTORS = np.arange(0.3, 3.01, 0.3)  # multiplicative bias
+# SCALE_FACTORS = [0.5, 0.75, 0.9, 1., 1.1111111, 1.33333333, 2.]  # multiplicative bias
+SCALE_FACTORS = [0.5, 0.75, 1., 1.33333333, 2.]  # multiplicative bias
+# SCALE_FACTORS = np.arange(0.2, 2.01, 0.1)  # multiplicative bias
 
-# colors for the 5 offset groups (used in time series plots)
-OFFSET_COLORS = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd"]
+SPLIT_DISPLACEMENT_KM = 30  # east/west displacement for split-Gaussian group
+
+# colors for the offset groups + split group (used in time series plots)
+OFFSET_COLORS = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b"]
 
 # time series scores to plot
 TIME_SERIES_SCORES = [
-    "bias", "mae", "rms", "corr",
+    "bias", "mae", "rms", "corr", "d90",
     "fss_condensed_weighted", "cwfss_robust", "cwfss_std",
 ]
 
@@ -87,7 +92,9 @@ def make_args(region, **overrides):
         save_percentiles=False,
         mode="normal",
         rank_by_fss_metric="fss_condensed_weighted",
-        threads=4,
+        threads=8,
+        fss_threshold_mode="over",
+        fss_tolerance=0.1,
         # plotting
         region=region,
         dpi=100,
@@ -132,6 +139,25 @@ def make_obs_field(ny, nx, seed=42):
     return np.maximum(field, 0.0)
 
 
+def make_split_field(obs_field, lon, split_km=30):
+    """Two half-amplitude Gaussians displaced east/west, conserving total precip.
+
+    Takes the obs field and splits it into two copies shifted ±split_km,
+    each scaled so that the domain-total precipitation matches the original.
+    """
+    lon_1d = lon[0, :]
+    shift_gp = km_to_gridpoints(split_km, lon_1d)
+    east = np.roll(obs_field, shift_gp, axis=1)
+    west = np.roll(obs_field, -shift_gp, axis=1)
+    combined = 0.5 * east + 0.5 * west
+    # rescale to conserve total precipitation
+    obs_sum = np.sum(obs_field)
+    comb_sum = np.sum(combined)
+    if comb_sum > 0:
+        combined *= obs_sum / comb_sum
+    return combined
+
+
 def make_entry(name, field, lon, lat, entry_type="model", conf=None,
                init=None, lead=6, color=None):
     """Build a data_list entry dict."""
@@ -168,11 +194,15 @@ def km_to_gridpoints(km, lon_1d, lat_center=47.5):
 # ---------------------------------------------------------------------------
 
 def build_test_data_list(lon, lat):
-    """Return (data_list, meta) with 1 obs + 25 models (5 offsets x 5 scales).
+    """Return (data_list, meta) with 1 obs + models.
 
-    Models are grouped by offset (= conf), with different scale factors
-    mapped to different pseudo-init times so that the time series plots
-    show score variation across scales for each offset group.
+    Groups:
+    - Offset groups: single Gaussian shifted east by OFFSETS_KM, all scale factors
+    - Split group: two half-amplitude Gaussians ±30 km east/west (bias-conserving),
+      all scale factors
+
+    Models are grouped by conf, with different scale factors mapped to
+    different pseudo-init times for time series plots.
     """
     obs_field = make_obs_field(ny=lon.shape[0], nx=lon.shape[1])
 
@@ -183,6 +213,7 @@ def build_test_data_list(lon, lat):
     lon_1d = lon[0, :]
     base_init = datetime(2024, 7, 15, 0, 0, 0)
 
+    # --- offset groups ---
     for oi, offset_km in enumerate(OFFSETS_KM):
         shift_gp = km_to_gridpoints(offset_km, lon_1d)
         shifted = np.roll(obs_field, shift_gp, axis=1)
@@ -192,7 +223,6 @@ def build_test_data_list(lon, lat):
         for si, scale in enumerate(SCALE_FACTORS):
             name = f"O{offset_km:03d}_S{scale:.2f}"
             field = shifted * scale
-            # use scale index as pseudo-init offset (6h apart)
             init = base_init + timedelta(hours=6 * si)
             data_list.append(make_entry(
                 name, field, lon, lat, lead=6,
@@ -202,6 +232,24 @@ def build_test_data_list(lon, lat):
                 "offset_km": offset_km, "scale": scale,
                 "shift_gp": shift_gp, "conf": conf_name,
             }
+
+    # --- split-Gaussian group: two peaks ±30 km, bias-conserving ---
+    split_field = make_split_field(obs_field, lon, split_km=SPLIT_DISPLACEMENT_KM)
+    conf_name = f"Split_{SPLIT_DISPLACEMENT_KM:02d}km"
+    color = OFFSET_COLORS[len(OFFSETS_KM)]
+
+    for si, scale in enumerate(SCALE_FACTORS):
+        name = f"SPL{SPLIT_DISPLACEMENT_KM:02d}_S{scale:.2f}"
+        field = split_field * scale
+        init = base_init + timedelta(hours=6 * si)
+        data_list.append(make_entry(
+            name, field, lon, lat, lead=6,
+            conf=conf_name, init=init, color=color,
+        ))
+        meta[name] = {
+            "offset_km": 0, "scale": scale,
+            "split_km": SPLIT_DISPLACEMENT_KM, "conf": conf_name,
+        }
 
     return data_list, meta
 
@@ -343,6 +391,37 @@ def validate(data_list, meta):
             f"{high_name} bias_real > 0 (overestimated)",
         )
 
+    # --- Split-Gaussian checks ---
+    spl_prefix = f"SPL{SPLIT_DISPLACEMENT_KM:02d}"
+
+    # bias direction for split group
+    spl_low = f"{spl_prefix}_S{SCALE_FACTORS[0]:.2f}"
+    spl_high = f"{spl_prefix}_S{SCALE_FACTORS[-1]:.2f}"
+    v.check(
+        by_name(data_list, spl_low)["bias_real"] < 0,
+        f"{spl_low} bias_real < 0 (underestimated)",
+    )
+    v.check(
+        by_name(data_list, spl_high)["bias_real"] > 0,
+        f"{spl_high} bias_real > 0 (overestimated)",
+    )
+
+    # at scale=1 the split field should be nearly bias-neutral
+    scale_1_idx = SCALE_FACTORS.index(1.)
+    spl_unbiased = f"{spl_prefix}_S{SCALE_FACTORS[scale_1_idx]:.2f}"
+    v.check(
+        abs(by_name(data_list, spl_unbiased)["bias_real"]) < 0.5,
+        f"{spl_unbiased} bias_real near zero (bias-conserving split)",
+    )
+
+    # split at scale=1 should have worse FSS than smallest offset at scale=1
+    best_offset_name = f"O{OFFSETS_KM[0]:03d}_S{SCALE_FACTORS[scale_1_idx]:.2f}"
+    v.check(
+        by_name(data_list, spl_unbiased)["fss_condensed_weighted"]
+        < by_name(data_list, best_offset_name)["fss_condensed_weighted"],
+        f"{spl_unbiased} FSS < {best_offset_name} FSS (split worse than small offset)",
+    )
+
     # --- Ranking robustness: cwfss_robust and cwfss_std should exist ---
     for sim in data_list[1:]:
         name = sim["name"]
@@ -399,13 +478,66 @@ def run_plotting(data_list, args):
 # main
 # ---------------------------------------------------------------------------
 
+def deep_copy_data_list(data_list):
+    """Return a deep copy of data_list, preserving numpy arrays."""
+    import copy
+    return copy.deepcopy(data_list)
+
+
+def run_mode(data_list, meta, region, mode, tolerance=0.1):
+    """Run scoring, ranking, validation, CSV, and plotting for one FSS mode."""
+    mode_label = mode.upper()
+    name_prefix = f"TEST_{mode_label}_"
+    logger.info("=" * 60)
+    logger.info("Running pipeline with fss_threshold_mode='%s' (name=%s)", mode, name_prefix)
+    logger.info("=" * 60)
+
+    args = make_args(region, name=name_prefix,
+                     fss_threshold_mode=mode, fss_tolerance=tolerance)
+
+    # --- score and rank ---
+    logger.info("[%s] Running scoring pipeline ...", mode_label)
+    run_scoring(data_list, args)
+
+    # --- ranking robustness check ---
+    logger.info("[%s] Running ranking robustness check ...", mode_label)
+    ranking_check.add_rank_robustness_info(data_list, args)
+    ranking_check.extract_cwfss_array(data_list)
+
+    # --- validate ---
+    logger.info("[%s] Validating results ...", mode_label)
+    v = validate(data_list, meta)
+
+    # --- CSV output ---
+    logger.info("[%s] Testing CSV output ...", mode_label)
+    csv_ok = test_csv_output(data_list, args)
+    v.check(csv_ok, f"[{mode_label}] CSV output file created successfully")
+
+    # --- panel plot (includes time series) ---
+    logger.info("[%s] Drawing panel plot ...", mode_label)
+    outfile = run_plotting(data_list, args)
+    plot_ok = outfile is not None and os.path.isfile(outfile)
+    v.check(plot_ok, f"[{mode_label}] Panel plot created at {outfile}")
+    if plot_ok:
+        logger.info("[%s] Panel plot saved to: %s", mode_label, outfile)
+
+    # --- ranking confidence plot ---
+    logger.info("[%s] Drawing ranking confidence plot ...", mode_label)
+    start_date = datetime(2024, 7, 15, 0, 0, 0)
+    end_date = datetime(2024, 7, 15, 1, 0, 0)
+    ranking_check.draw_ranking_confidence_plot(
+        data_list, start_date, end_date, "TestDomain", args,
+    )
+
+    return v
+
+
 def main():
     # --- set up test region ---
     logger.info("Setting up test region ...")
     regions.regions["Test"] = TEST_REGION_DEF
     region = regions.Region("Test", ["Default"])
 
-    args = make_args(region)
     lon, lat = make_model_lon_lat()
 
     # --- build synthetic data ---
@@ -415,48 +547,30 @@ def main():
         "Created %d entries (1 obs + %d models)", len(data_list), len(data_list) - 1
     )
 
-    # --- resample onto subdomain ---
+    # --- resample onto subdomain (shared across both modes) ---
     logger.info("Resampling onto verification subdomain ...")
     resample_all(data_list, region, fix_nans=True)
     resampled_shape = data_list[0]["precip_data_resampled"].shape
     logger.info("Resampled grid shape: %s", resampled_shape)
 
-    # --- score and rank ---
-    logger.info("Running scoring pipeline ...")
-    run_scoring(data_list, args)
+    os.makedirs(PAN_DIR_PLOTS, exist_ok=True)
+    os.makedirs(PAN_DIR_TMP, exist_ok=True)
+    os.makedirs(PAN_DIR_SCORES, exist_ok=True)
 
-    # --- ranking robustness check ---
-    logger.info("Running ranking robustness check ...")
-    ranking_check.add_rank_robustness_info(data_list, args)
-    ranking_check.extract_cwfss_array(data_list)
+    # --- run both modes ---
+    all_ok = True
 
-    # --- validate ---
-    logger.info("Validating results ...")
-    v = validate(data_list, meta)
+    # mode 1: normal "over" threshold
+    data_over = deep_copy_data_list(data_list)
+    v_over = run_mode(data_over, meta, region, "over")
+    all_ok = v_over.summary() and all_ok
 
-    # --- CSV output ---
-    logger.info("Testing CSV output ...")
-    csv_ok = test_csv_output(data_list, args)
-    v.check(csv_ok, "CSV output file created successfully")
+    # mode 2: "tolerance" threshold
+    data_tol = deep_copy_data_list(data_list)
+    v_tol = run_mode(data_tol, meta, region, "tolerance", tolerance=0.1)
+    all_ok = v_tol.summary() and all_ok
 
-    # --- panel plot (includes time series) ---
-    logger.info("Drawing panel plot ...")
-    outfile = run_plotting(data_list, args)
-    plot_ok = outfile is not None and os.path.isfile(outfile)
-    v.check(plot_ok, f"Panel plot created at {outfile}")
-    if plot_ok:
-        logger.info("Panel plot saved to: %s", outfile)
-
-    # --- ranking confidence plot ---
-    logger.info("Drawing ranking confidence plot ...")
-    start_date = datetime(2024, 7, 15, 0, 0, 0)
-    end_date = datetime(2024, 7, 15, 1, 0, 0)
-    ranking_check.draw_ranking_confidence_plot(
-        data_list, start_date, end_date, "TestDomain", args,
-    )
-
-    ok = v.summary()
-    sys.exit(0 if ok else 1)
+    sys.exit(0 if all_ok else 1)
 
 
 if __name__ == "__main__":
