@@ -37,6 +37,7 @@ def extract_cwfss_array(data_list):
         for key in [f"cwfss"]:
             c = sim[key]
             sim[f"cwfss_std"] = np.std(c.bootstrap_info)
+            sim[f"cwfss_std_normalized"] = np.std(c.bootstrap_info) / np.abs(c.cwfss) if np.abs(c.cwfss) > 1e-6 else np.nan
             fss_scores[ii, :] = c.bootstrap_info
     return fss_scores
 
