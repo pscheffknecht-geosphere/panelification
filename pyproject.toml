@@ -1,0 +1,7 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
+markers = [
+    "slow: marks tests that run the full integration pipeline (deselect with '-m \"not slow\"')",
+    "plotting: marks tests that exercise plotting code",
+]
