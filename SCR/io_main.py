@@ -147,7 +147,8 @@ class ModelConfiguration:
             logger.debug(f"   {tmpl}")
         for anam in ["init_interval", "max_leadtime", "output_interval", "accumulated", "unit_factor"]:
             setattr(self, anam, self.__pick_value_by_parameter(cmc[anam], anam))
-        for anam in ["ensemble", "grib_handles", "lagged_ensemble", "color", "file_type", "netcdf_variable_name"]:
+        for anam in ["ensemble", "grib_handles", "lagged_ensemble", "color", "file_type", "netcdf_variable",
+                     "use_datetime_for_netcdf"]:
             setattr(self, anam, self.__pick_value_by_parameter(cmc[anam], anam) if anam in cmc else None)
             if anam in cmc:
                 logger.debug(f" found {anam}, setting it to {self.__pick_value_by_parameter(cmc[anam], anam)}")
@@ -198,7 +199,7 @@ class ModelConfiguration:
         }
         if self.file_type == "NetCDF":
             self.read_kwargs["netcdf_variable"] = self.netcdf_variable,
-            self.read_kwargs["netcdf_one_file"] = self.netcdf_one_file
+            self.read_kwargs["netcdf_one_file"] = self.netcdf_one_file,
 
 
     def __pick_value_by_parameter(self, custom_experiment_item, current_key):
@@ -389,7 +390,11 @@ class ModelConfiguration:
     
     def __get_data_not_accumulated(self):
         first = True
+        # hh = 0
+        hh = self.output_interval
         for i, fil in enumerate(self.file_list):
+            if self.use_datetime_for_netcdf:
+                self.read_kwargs["netcdf_read_datetime"] = self.init + dt.timedelta(hours=self.lead + hh)
             logger.info("Reading file ({:d}): {:s}".format(i, fil))
             if first:
                 lon, lat, tmp_data = self.read_data(fil, self.parameter, 0, **self.read_kwargs)
@@ -397,7 +402,10 @@ class ModelConfiguration:
                 first = False
             else:
                 tmp_data += self.read_data(fil, self.parameter, 0, **self.read_kwargs)
+            hh += self.output_interval
         tmp_data = np.where(tmp_data < 0., 0., tmp_data)
+        if tmp_data.ndim == 3 and tmp_data.shape[0] == 1:
+            tmp_data = tmp_data[0, :, :]
         return lon, lat, self.unit_factor * tmp_data
 
 
