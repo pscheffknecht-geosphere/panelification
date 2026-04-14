@@ -605,6 +605,75 @@ def get_value_range(ens_fss_data):
     return v_
 
 
+def ens_map_panel(ens_data, verification_subdomain, args):
+    """Draw a panel plot with one row per ensemble and columns for
+    ensemble mean, median and spread (stdev). Uses the precip colormap
+    for mean/median and a separate sequential cmap for spread."""
+    n_ens = len(ens_data)
+    if n_ens == 0:
+        logger.warning("No ensembles available for ens_map_panel.")
+        return None
+    levels, cmap, norm = parameter_settings.get_cmap_and_levels(args)
+    spread_levels = np.array([0., 0.1, 0.25, 0.5, 1., 2., 3., 5., 7.5, 10., 15., 20., 30., 50.])
+    spread_cmap = plt.colormaps['viridis']
+    spread_norm = bnorm(spread_levels, ncolors=spread_cmap.N)
+
+    proj = args.region.plot_projection
+    data_proj = args.region.data_projection
+    extent = args.region.extent
+
+    fig, axes = plt.subplots(
+        n_ens, 3,
+        figsize=(4 * 3, 4 * n_ens),
+        dpi=args.dpi,
+        subplot_kw={'projection': proj},
+        squeeze=False,
+    )
+
+    col_titles = ["Ensemble Mean", "Ensemble Median", "Ensemble Spread (stdev)"]
+    c_mm, c_sp = None, None
+    for row, ens in enumerate(ens_data):
+        data = ens.precip_data_resampled
+        fields = [
+            np.mean(data, axis=0),
+            np.median(data, axis=0),
+            np.std(data, axis=0),
+        ]
+        for col, field in enumerate(fields):
+            ax = axes[row, col]
+            if col < 2:
+                c_mm = ax.pcolormesh(ens.lon, ens.lat, field,
+                    cmap=cmap, norm=norm, transform=data_proj, shading='auto')
+            else:
+                c_sp = ax.pcolormesh(ens.lon, ens.lat, field,
+                    cmap=spread_cmap, norm=spread_norm, transform=data_proj, shading='auto')
+            ax.set_facecolor("silver")
+            ax.set_extent(extent)
+            add_borders(ax)
+            if row == 0:
+                ax.set_title(col_titles[col])
+            if col == 0:
+                ax.text(-0.05, 0.5, ens.name, va='center', ha='right',
+                        rotation='vertical', transform=ax.transAxes, size=12)
+
+    fig.subplots_adjust(left=0.06, right=0.94, bottom=0.1, top=0.95, wspace=0.05, hspace=0.05)
+    cax1 = fig.add_axes([0.1, 0.05, 0.45, 0.015])
+    cax2 = fig.add_axes([0.62, 0.05, 0.32, 0.015])
+    if c_mm is not None:
+        plt.colorbar(c_mm, cax=cax1, orientation='horizontal',
+                     label=parameter_settings.colorbar_label(args), extend='max')
+    if c_sp is not None:
+        plt.colorbar(c_sp, cax=cax2, orientation='horizontal',
+                     label="Spread (stdev)", extend='max')
+
+    start_date_str = dt.datetime.strptime(args.start, "%Y%m%d%H").strftime("%Y%m%d_%H")
+    outfilename = f"{PAN_DIR_PLOTS}/{args.name}_{args.parameter}_ens_mean_median_spread_{start_date_str}UTC_acc_{args.duration}_{verification_subdomain}.png"
+    plt.savefig(outfilename)
+    plt.close(fig)
+    logger.info(f"Saved ensemble mean/median/spread panel to {outfilename}")
+    return outfilename
+
+
 def ens_fss_plot(ens_data, windows, levels, verification_subdomain, args):
     n_members = len(ens_data)
     fig, ax = plt.subplots(n_members+1, n_members+1, figsize=(4 * n_members, 4 * n_members), sharex=True, sharey=True, dpi=args.dpi)
