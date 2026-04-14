@@ -338,6 +338,9 @@ def main():
         newlist = sorted(data_list[1::], key=lambda d: d['init']) 
         newlist.insert(0, data_list[0])
         data_list = newlist
+    if args.ensemble_scores:
+        ens_dict = ensembles.detect_ensembles(data_list)
+        ensembles.add_ensemble_pseudo_members(data_list, ens_dict)
     df_subdomain_details = scan_obs.get_interesting_subdomains(data_list[0], args)
     thresholds = parameter_settings.get_fss_thresholds(args)
     windows = parameter_settings.get_windows(args)
