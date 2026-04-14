@@ -33,6 +33,21 @@ experiment_configurations = {
                              },
         "lagged_ensemble"  : True
         },
+    "claif": {
+        "init_interval"    : 3,
+        "output_interval"  : 3,
+        "max_leadtime"     : 72, 
+        "accumulated"      : False,
+        #path_template"    : ["/scratch/anamod/aiwp/Production/gsa_tl_multidataset_v2_TL_stageD_3h_sg_core_longer_RO10/pred_sg_core_2026-04-07T00.nc",
+        "path_template"    : ["/scratch/anamod/aiwp/Production/gsa_tl_multidataset_v2_TL_stageD_3h_sg_core_longer_RO10/pred_sg_core_%Y-%m-%dT%H.nc",
+                              "/mapp_arch3/pgfaeller/AIWP/metno_boris/case-studies_det/md-gated-ARA-Bernd_%Y-%m-%dT%H.nc",
+                              "/ment_arch2/pscheff/DEV_PAN/panelification/MODEL/pred_sg_core_%Y-%m-%dT%H.nc"],
+        "unit_factor"      : 1.,
+        "color"            : 'purple',
+        "netcdf_variable"  : "precipitation_amount",
+        "use_datetime_for_netcdf" : True,
+        "netcdf_onefile" : True
+        },
     "aromeruc": {
         "base_experiment"  : "arome",
         "init_interval"    : 1,
@@ -378,6 +393,38 @@ experiment_configurations = {
         "base_experiment"  : "claef1k-control",
         "path_template"    : "/ment_arch2/pscheff/WEB_PAN/panelification/MODEL/ADDGRIB_45_COMAD/%Y%m%d/%H/CLAEF00+%LLLL:00.grb2",
         "color"            : "hotpink"
+    },
+    "metno_boris_det": {
+        "base_experiment"  : "claif",
+        "path_template"    : "/mapp_arch3/pgfaeller/AIWP/metno_boris/case-studies_det/md-gated-ARA-Bernd_%Y-%m-%dT%H.nc",
+        "color"            : 'purple',
+        "netcdf_variable"  : "precipitation_amount",
+        "use_datetime_for_netcdf" : True,
+        "netcdf_onefile" : True
+    },
+    "metno_boris_ensmean": {
+        "base_experiment"  : "claif",
+        "path_template"    : "/mapp_arch3/pgfaeller/AIWP/metno_boris/case-studies_ensmean/md-gated-ARA-Bernd_%Y-%m-%dT%H.nc",
+        "color"            : 'mediumvioletred',
+        "netcdf_variable"  : "precipitation_amount",
+        "use_datetime_for_netcdf" : True,
+        "netcdf_onefile" : True
+    },
+    "sg_core_bernd": {
+        "base_experiment"  : "claif",
+        "path_template"    : "/mapp_arch3/pgfaeller/AIWP/sg_core_bernd/pred_sg_core_%Y-%m-%dT%H.nc",
+        "color"            : 'orchid',
+        "use_datetime_for_netcdf" : True,
+        "netcdf_variable"  : "precipitation_amount",
+        "netcdf_onefile" : True
+    },
+    "sg_core_sf": {
+        "base_experiment"  : "claif",
+        "path_template"    : "/mapp_arch3/pgfaeller/AIWP/sg_core_sf/pred_sg_core_%Y-%m-%dT%H.nc",
+        "color"            : 'lightpink',
+        "netcdf_variable"  : "precipitation_amount",
+        "use_datetime_for_netcdf" : True,
+        "netcdf_onefile" : True
     },
 }
 
