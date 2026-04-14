@@ -109,10 +109,12 @@ experiment_configurations = {
         "max_leadtime"     : 120,
         "path_template"    : ["/ment_arch2/pscheff/event_archive/ECMWF/ecmwf_%Y%m%d_%H+%LLLL.grb",
                               # "/ment_arch2/pscheff/WEB_PAN/panelification/MODEL/ecmwf/ecmwf_precip_%Y%m%d_%H+%LLLL.grb"],
+                              "/mnt/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/ecmwf_%H+%LLLL.grb",
                               "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/ecmwf_%H+%LLLL.grb"],
         "accumulated"      : True,
         "unit_factor"      : 1000.,
-        "color"            : "black"
+        "color"            : "black",
+		"lagged_ensemble"  : True
     },
     "gfs": {
         "init_interval"    : 6,
