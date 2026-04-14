@@ -371,6 +371,7 @@ def main():
                 levels = parameter_settings.get_fss_thresholds(args)
                 windows= parameter_settings.get_windows(args)
                 panel_plotter.ens_fss_plot(ensemble_data, windows, levels, subdomain_name, args)
+                panel_plotter.ens_map_panel(ensemble_data, subdomain_name, args)
             plot_start = datetime.now()
             outfilename = panel_plotter.draw_panels(data_list, start_date, end_date, subdomain_name, args) #, mode=args.mode)
             plot_duration = datetime.now() - plot_start
