@@ -403,9 +403,10 @@ def draw_single_figure(sim, obs, r, jj, levels, cmap, norm, verification_subdoma
             rotation='horizontal', rotation_mode='anchor',
             transform=ax_title.transAxes,size='10', zorder=6)
 
+    title_weight = 'bold' if sim.get('pseudo') else 'normal'
     txt2 = ax_title.text(0.5, part1_y_pos, part1, va='center', ha='center',
         rotation='horizontal', rotation_mode='anchor',
-        transform=ax_title.transAxes,size='14', zorder=6)
+        transform=ax_title.transAxes,size='14', zorder=6, weight=title_weight)
 
     r = ax_title.get_data_ratio()
     ax_title.fill([0.03, 0.97, 0.97, 0.03], [0.03/r, 0.03/r, 1. - 0.06/r, 1. - 0.06/r], color=panel_title_fc, zorder=5)
@@ -529,8 +530,8 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
     logger.debug(args.region.extent)
     time_series_scores = args.rank_score_time_series
     if args.zoom_to_subdomain:
-        plot_extent=[data_list[1]['lon_resampled'].min()-0.25, data_list[1]['lon_resampled'].max()+0.25,
-                     data_list[1]['lat_resampled'].min()-0.25, data_list[1]['lat_resampled'].max()+0.25]
+        plot_extent=[data_list[1]['lon_resampled'].min()-0.02, data_list[1]['lon_resampled'].max()+0.02,
+                     data_list[1]['lat_resampled'].min()-0.02, data_list[1]['lat_resampled'].max()+0.02]
     else:
         plot_extent = args.region.extent
     for sim in data_list:
@@ -620,51 +621,304 @@ def ens_map_panel(ens_data, verification_subdomain, args):
 
     proj = args.region.plot_projection
     data_proj = args.region.data_projection
-    extent = args.region.extent
+    if args.zoom_to_subdomain:
+        lon0 = ens_data[0].lon
+        lat0 = ens_data[0].lat
+        extent = [lon0.min() - 0.02, lon0.max() + 0.02,
+                  lat0.min() - 0.02, lat0.max() + 0.02]
+    else:
+        extent = args.region.extent
 
+    ratio_levels = np.array([0., 0.25, 0.5, 0.75, 0.9, 1.0, 1.1, 1.25, 1.5, 2., 3., 5.])
+    ratio_cmap = plt.colormaps['RdBu']
+    ratio_norm = bnorm(ratio_levels, ncolors=ratio_cmap.N)
+
+    frac_levels = np.arange(0., 1.0001, 0.1)
+    frac_cmap = plt.colormaps['RdBu_r']
+    frac_norm = bnorm(frac_levels, ncolors=frac_cmap.N)
+
+    diff_levels = np.array([-20., -10., -5., -2., -1., -0.5, -0.1, 0.1, 0.5, 1., 2., 5., 10., 20.])
+    diff_cmap = plt.colormaps['BrBG']
+    diff_norm = bnorm(diff_levels, ncolors=diff_cmap.N)
+
+    crps_levels = np.array([0., 0.1, 0.25, 0.5, 1., 2., 3., 5., 7.5, 10., 15., 20., 30.])
+    crps_cmap = plt.colormaps['magma_r']
+    crps_norm = bnorm(crps_levels, ncolors=crps_cmap.N)
+
+    nbh_levels = np.arange(0., 1.0001, 0.1)
+    nbh_cmap = plt.colormaps['YlOrRd']
+    nbh_norm = bnorm(nbh_levels, ncolors=nbh_cmap.N)
+    nbh_size = 50
+
+    smooth_size = 50
+
+    norm_levels = np.array([0., 0.1, 0.2, 0.3, 0.5, 0.75, 1.0, 1.5, 2.0, 3.0])
+    norm_cmap = plt.colormaps['cividis']
+    norm_norm = bnorm(norm_levels, ncolors=norm_cmap.N)
+
+    show = {
+        'mean': True,
+        'median': True,
+        'spread': True,
+        'ratio_mae': False,
+        'ratio_mae_msm': False,
+        'ratio_mae_osm': False,
+        'ratio_mae_both': False,
+        'ratio_mae_post': False,
+        'ratio_median': False,
+        'ratio_median_msm': False,
+        'ratio_median_osm': False,
+        'ratio_median_both': False,
+        'ratio_median_post': False,
+        'norm_mean': False,
+        'norm_median': False,
+        'frac': False,
+        'frac_msm': False,
+        'frac_osm': False,
+        'frac_both': False,
+        'frac_post': False,
+        'mean_minus_median': True,
+        'mean_div_median': True,
+        'crps': True,
+        'nbh': True,
+    }
+    # (key, title, kind); title may contain "{threshold}" placeholder
+    specs = [
+        ('mean',              "Ensemble Mean",                                            'precip'),
+        ('median',            "Ensemble Median",                                          'precip'),
+        ('spread',            "Ensemble Spread (stdev)",                                  'spread'),
+        ('ratio_mae',         "Spread / Mean |member - obs|",                             'ratio'),
+        ('ratio_mae_msm',     f"Spread/MAE, members smoothed ({smooth_size} gp)",         'ratio'),
+        ('ratio_mae_osm',     f"Spread/MAE, obs smoothed ({smooth_size} gp)",             'ratio'),
+        ('ratio_mae_both',    f"Spread/MAE, members & obs smoothed ({smooth_size} gp)",   'ratio'),
+        ('ratio_mae_post',    f"Spread/MAE, result smoothed ({smooth_size} gp)",          'ratio'),
+        ('ratio_median',      "Spread / |Median - obs|",                                  'ratio'),
+        ('ratio_median_msm',  f"Spread/|Med-obs|, members smoothed ({smooth_size} gp)",   'ratio'),
+        ('ratio_median_osm',  f"Spread/|Med-obs|, obs smoothed ({smooth_size} gp)",       'ratio'),
+        ('ratio_median_both', f"Spread/|Med-obs|, members & obs smoothed ({smooth_size} gp)", 'ratio'),
+        ('ratio_median_post', f"Spread/|Med-obs|, result smoothed ({smooth_size} gp)",    'ratio'),
+        ('norm_mean',         "Spread / (Mean + 1)",                                      'norm'),
+        ('norm_median',       "Spread / (Median + 1)",                                    'norm'),
+        ('frac',              "Fraction of members above obs",                            'frac'),
+        ('frac_msm',          f"Frac above obs, members smoothed ({smooth_size} gp)",     'frac'),
+        ('frac_osm',          f"Frac above obs, obs smoothed ({smooth_size} gp)",         'frac'),
+        ('frac_both',         f"Frac above obs, members & obs smoothed ({smooth_size} gp)", 'frac'),
+        ('frac_post',         f"Frac above obs, result smoothed ({smooth_size} gp)",      'frac'),
+        ('mean_minus_median', "Mean - Median",                                            'diff'),
+        ('mean_div_median',   "Mean / Median",                                            'ratio'),
+        ('crps',              "CRPS",                                                     'crps'),
+        ('nbh',               "{nbh_title}",                                              'nbh'),
+    ]
+    active_specs = [s for s in specs if show[s[0]]]
+    n_cols = len(active_specs)
+    n_rows = n_ens + 1
+    probe_fig = plt.figure()
+    probe_ax = probe_fig.add_subplot(projection=proj)
+    probe_ax.set_extent(extent)
+    map_ratio = probe_ax.get_data_ratio()
+    plt.close(probe_fig)
+    col_w = 4.0
+    row_h = max(1.5, col_w * map_ratio)
     fig, axes = plt.subplots(
-        n_ens, 3,
-        figsize=(4 * 3, 4 * n_ens),
+        n_rows, n_cols,
+        figsize=(col_w * n_cols, row_h * n_rows + 0.8),
         dpi=args.dpi,
         subplot_kw={'projection': proj},
         squeeze=False,
     )
-
-    col_titles = ["Ensemble Mean", "Ensemble Median", "Ensemble Spread (stdev)"]
-    c_mm, c_sp = None, None
-    for row, ens in enumerate(ens_data):
-        data = ens.precip_data_resampled
-        fields = [
-            np.mean(data, axis=0),
-            np.median(data, axis=0),
-            np.std(data, axis=0),
-        ]
-        for col, field in enumerate(fields):
-            ax = axes[row, col]
-            if col < 2:
-                c_mm = ax.pcolormesh(ens.lon, ens.lat, field,
-                    cmap=cmap, norm=norm, transform=data_proj, shading='auto')
-            else:
-                c_sp = ax.pcolormesh(ens.lon, ens.lat, field,
-                    cmap=spread_cmap, norm=spread_norm, transform=data_proj, shading='auto')
+    col_titles = [s[1] for s in active_specs]
+    c_mm, c_sp, c_ra, c_fr, c_di, c_cr, c_nb, c_no = None, None, None, None, None, None, None, None
+    eps = 1e-6
+    obs_field = ens_data[0].obs_data_resampled
+    obs_lon = ens_data[0].lon
+    obs_lat = ens_data[0].lat
+    for col in range(n_cols):
+        ax = axes[0, col]
+        if col == 0:
+            ax.pcolormesh(obs_lon, obs_lat, obs_field,
+                cmap=cmap, norm=norm, transform=data_proj, shading='auto')
             ax.set_facecolor("silver")
             ax.set_extent(extent)
             add_borders(ax)
-            if row == 0:
+            ax.set_title(ens_data[0].obs_name)
+            ax.text(-0.05, 0.5, ens_data[0].obs_name, va='center', ha='right',
+                    rotation='vertical', transform=ax.transAxes, size=12)
+        else:
+            ax.axis('off')
+    need_smooth_data = any(show[k] for k in (
+        'ratio_mae_msm', 'ratio_mae_both', 'ratio_median_msm', 'ratio_median_both',
+        'frac_msm', 'frac_both'))
+    need_smooth_obs = any(show[k] for k in (
+        'ratio_mae_osm', 'ratio_mae_both', 'ratio_median_osm', 'ratio_median_both',
+        'frac_osm', 'frac_both'))
+    for ens_idx, ens in enumerate(ens_data):
+        row = ens_idx + 1
+        data = ens.precip_data_resampled
+        obs = ens.obs_data_resampled
+        ens_mean = np.mean(data, axis=0)
+        ens_median = np.median(data, axis=0)
+        spread = np.std(data, axis=0) if any(show[k] for k in (
+            'spread', 'ratio_mae', 'ratio_median', 'ratio_mae_osm', 'ratio_median_osm',
+            'norm_mean', 'norm_median')) else None
+
+        data_smooth = ndimage.uniform_filter(data, size=(1, smooth_size, smooth_size),
+            mode='nearest') if need_smooth_data else None
+        obs_smooth = ndimage.uniform_filter(obs, size=smooth_size,
+            mode='nearest') if need_smooth_obs else None
+        spread_smooth = np.std(data_smooth, axis=0) if data_smooth is not None else None
+
+        field_map = {}
+        if show['mean']:   field_map['mean']   = (ens_mean, 'precip')
+        if show['median']: field_map['median'] = (ens_median, 'precip')
+        if show['spread']: field_map['spread'] = (spread, 'spread')
+        if show['ratio_mae']:
+            mae = np.mean(np.abs(data - obs[None, :, :]), axis=0)
+            field_map['ratio_mae'] = (spread / np.where(mae < eps, np.nan, mae), 'ratio')
+        if show['ratio_mae_msm']:
+            mae_msm = np.mean(np.abs(data_smooth - obs[None, :, :]), axis=0)
+            field_map['ratio_mae_msm'] = (spread_smooth / np.where(mae_msm < eps, np.nan, mae_msm), 'ratio')
+        if show['ratio_mae_osm']:
+            mae_osm = np.mean(np.abs(data - obs_smooth[None, :, :]), axis=0)
+            field_map['ratio_mae_osm'] = (spread / np.where(mae_osm < eps, np.nan, mae_osm), 'ratio')
+        if show['ratio_mae_both']:
+            mae_both = np.mean(np.abs(data_smooth - obs_smooth[None, :, :]), axis=0)
+            field_map['ratio_mae_both'] = (spread_smooth / np.where(mae_both < eps, np.nan, mae_both), 'ratio')
+        if show['ratio_mae_post']:
+            mae = np.mean(np.abs(data - obs[None, :, :]), axis=0)
+            ratio_mae = spread / np.where(mae < eps, np.nan, mae)
+            field_map['ratio_mae_post'] = (ndimage.uniform_filter(ratio_mae, size=smooth_size, mode='nearest'), 'ratio')
+        if show['ratio_median']:
+            me = np.abs(ens_median - obs)
+            field_map['ratio_median'] = (spread / np.where(me < eps, np.nan, me), 'ratio')
+        if show['ratio_median_msm']:
+            med_s = np.median(data_smooth, axis=0)
+            me = np.abs(med_s - obs)
+            field_map['ratio_median_msm'] = (spread_smooth / np.where(me < eps, np.nan, me), 'ratio')
+        if show['ratio_median_osm']:
+            me = np.abs(ens_median - obs_smooth)
+            field_map['ratio_median_osm'] = (spread / np.where(me < eps, np.nan, me), 'ratio')
+        if show['ratio_median_both']:
+            med_s = np.median(data_smooth, axis=0)
+            me = np.abs(med_s - obs_smooth)
+            field_map['ratio_median_both'] = (spread_smooth / np.where(me < eps, np.nan, me), 'ratio')
+        if show['ratio_median_post']:
+            me = np.abs(ens_median - obs)
+            ratio_median = spread / np.where(me < eps, np.nan, me)
+            field_map['ratio_median_post'] = (ndimage.uniform_filter(ratio_median, size=smooth_size, mode='nearest'), 'ratio')
+        if show['norm_mean']:
+            field_map['norm_mean'] = (spread / (ens_mean + 1.), 'norm')
+        if show['norm_median']:
+            field_map['norm_median'] = (spread / (ens_median + 1.), 'norm')
+        if show['frac']:
+            field_map['frac'] = (np.mean(data > obs[None, :, :], axis=0), 'frac')
+        if show['frac_msm']:
+            field_map['frac_msm'] = (np.mean(data_smooth > obs[None, :, :], axis=0), 'frac')
+        if show['frac_osm']:
+            field_map['frac_osm'] = (np.mean(data > obs_smooth[None, :, :], axis=0), 'frac')
+        if show['frac_both']:
+            field_map['frac_both'] = (np.mean(data_smooth > obs_smooth[None, :, :], axis=0), 'frac')
+        if show['frac_post']:
+            fa = np.mean(data > obs[None, :, :], axis=0)
+            field_map['frac_post'] = (ndimage.uniform_filter(fa, size=smooth_size, mode='nearest'), 'frac')
+        if show['mean_minus_median']:
+            field_map['mean_minus_median'] = (ens_mean - ens_median, 'diff')
+        if show['mean_div_median']:
+            field_map['mean_div_median'] = (ens_mean / np.where(ens_median < eps, np.nan, ens_median), 'ratio')
+        if show['crps']:
+            field_map['crps'] = (ens.CRPS, 'crps')
+        threshold = None
+        if show['nbh']:
+            obs_p90 = np.nanpercentile(obs, 90)
+            step = 5. if obs_p90 < 20. else 10.
+            threshold = max(step, float(np.ceil(obs_p90 / step) * step))
+            exceed = (data > threshold).astype(float)
+            member_has_exceed = ndimage.maximum_filter(exceed, size=(1, nbh_size, nbh_size), mode='nearest')
+            field_map['nbh'] = (np.mean(member_has_exceed, axis=0), 'nbh')
+
+        fields = [field_map[s[0]] for s in active_specs]
+        if threshold is not None:
+            for i, s in enumerate(active_specs):
+                if s[0] == 'nbh':
+                    col_titles[i] = f"Nbh exceed > {threshold:.0f} mm ({nbh_size} gp)"
+        for col, (field, kind) in enumerate(fields):
+            ax = axes[row, col]
+            if kind == 'precip':
+                c_mm = ax.pcolormesh(ens.lon, ens.lat, field,
+                    cmap=cmap, norm=norm, transform=data_proj, shading='auto')
+            elif kind == 'spread':
+                c_sp = ax.pcolormesh(ens.lon, ens.lat, field,
+                    cmap=spread_cmap, norm=spread_norm, transform=data_proj, shading='auto')
+            elif kind == 'ratio':
+                c_ra = ax.pcolormesh(ens.lon, ens.lat, field,
+                    cmap=ratio_cmap, norm=ratio_norm, transform=data_proj, shading='auto')
+            elif kind == 'norm':
+                c_no = ax.pcolormesh(ens.lon, ens.lat, field,
+                    cmap=norm_cmap, norm=norm_norm, transform=data_proj, shading='auto')
+            elif kind == 'frac':
+                c_fr = ax.pcolormesh(ens.lon, ens.lat, field,
+                    cmap=frac_cmap, norm=frac_norm, transform=data_proj, shading='auto')
+            elif kind == 'diff':
+                c_di = ax.pcolormesh(ens.lon, ens.lat, field,
+                    cmap=diff_cmap, norm=diff_norm, transform=data_proj, shading='auto')
+            elif kind == 'crps':
+                c_cr = ax.pcolormesh(ens.lon, ens.lat, field,
+                    cmap=crps_cmap, norm=crps_norm, transform=data_proj, shading='auto')
+            else:
+                c_nb = ax.pcolormesh(ens.lon, ens.lat, field,
+                    cmap=nbh_cmap, norm=nbh_norm, transform=data_proj, shading='auto')
+                mpl.rcParams['hatch.linewidth'] = 0.4
+                plt.rcParams.update({'hatch.color': (0., 0., 0., 0.6)})
+                ax.contourf(ens.lon, ens.lat, obs,
+                    levels=[threshold, np.inf], colors='none',
+                    hatches=['////'], transform=data_proj)
+                ax.contour(ens.lon, ens.lat, obs, levels=[threshold],
+                    colors='black', linewidths=0.7, transform=data_proj)
+            ax.set_facecolor("silver")
+            ax.set_extent(extent)
+            add_borders(ax)
+            if row == 1:
                 ax.set_title(col_titles[col])
             if col == 0:
                 ax.text(-0.05, 0.5, ens.name, va='center', ha='right',
                         rotation='vertical', transform=ax.transAxes, size=12)
 
-    fig.subplots_adjust(left=0.06, right=0.94, bottom=0.1, top=0.95, wspace=0.05, hspace=0.05)
-    cax1 = fig.add_axes([0.1, 0.05, 0.45, 0.015])
-    cax2 = fig.add_axes([0.62, 0.05, 0.32, 0.015])
-    if c_mm is not None:
-        plt.colorbar(c_mm, cax=cax1, orientation='horizontal',
-                     label=parameter_settings.colorbar_label(args), extend='max')
-    if c_sp is not None:
-        plt.colorbar(c_sp, cax=cax2, orientation='horizontal',
-                     label="Spread (stdev)", extend='max')
+    fig.subplots_adjust(left=0.04, right=0.98, bottom=0.08, top=0.93, wspace=0.05, hspace=0.05)
+    obs_gap = 0.04
+    for col in range(n_cols):
+        pos = axes[0, col].get_position()
+        axes[0, col].set_position([pos.x0, pos.y0 + obs_gap, pos.width, pos.height])
+    cbar_info = {
+        'precip': (c_mm, parameter_settings.colorbar_label(args), 'max'),
+        'spread': (c_sp, "Spread (stdev)",                        'max'),
+        'ratio':  (c_ra, "Ratio",                                 'both'),
+        'norm':   (c_no, "Spread / (mean or median + 1)",         'max'),
+        'frac':   (c_fr, "Fraction of members above obs",         'neither'),
+        'diff':   (c_di, "Mean - Median [mm]",                    'both'),
+        'crps':   (c_cr, "CRPS",                                  'max'),
+        'nbh':    (c_nb, "Nbh exceedance fraction",               'neither'),
+    }
+    cb_h = 0.0084
+    cb_y = 0.045
+    skip_next = False
+    for i, (key, _title, kind) in enumerate(active_specs):
+        if skip_next:
+            skip_next = False
+            continue
+        mappable, label, extend = cbar_info[kind]
+        if mappable is None:
+            continue
+        pos_left = axes[-1, i].get_position()
+        if i == 0 and len(active_specs) > 1 and active_specs[1][2] == kind:
+            pos_right = axes[-1, 1].get_position()
+            x0 = pos_left.x0
+            width = pos_right.x1 - pos_left.x0
+            skip_next = True
+        else:
+            x0 = pos_left.x0
+            width = pos_left.width
+        cbar_ax = fig.add_axes([x0, cb_y, width, cb_h])
+        plt.colorbar(mappable, cax=cbar_ax, orientation='horizontal',
+                     label=label, extend=extend)
 
     start_date_str = dt.datetime.strptime(args.start, "%Y%m%d%H").strftime("%Y%m%d_%H")
     outfilename = f"{PAN_DIR_PLOTS}/{args.name}_{args.parameter}_ens_mean_median_spread_{start_date_str}UTC_acc_{args.duration}_{verification_subdomain}.png"
