@@ -394,7 +394,7 @@ experiment_configurations = {
         "path_template"    : "/ment_arch2/pscheff/WEB_PAN/panelification/MODEL/ADDGRIB_45_COMAD/%Y%m%d/%H/CLAEF00+%LLLL:00.grb2",
         "color"            : "hotpink"
     },
-    "metno_boris_det": {
+    "Multi-domain_(det)": {
         "base_experiment"  : "claif",
         "path_template"    : "/mapp_arch3/pgfaeller/AIWP/metno_boris/case-studies_det/md-gated-ARA-Bernd_%Y-%m-%dT%H.nc",
         "color"            : 'purple',
@@ -402,7 +402,7 @@ experiment_configurations = {
         "use_datetime_for_netcdf" : True,
         "netcdf_onefile" : True
     },
-    "metno_boris_ensmean": {
+    "Multi-domain_(ens-mean)": {
         "base_experiment"  : "claif",
         "path_template"    : "/mapp_arch3/pgfaeller/AIWP/metno_boris/case-studies_ensmean/md-gated-ARA-Bernd_%Y-%m-%dT%H.nc",
         "color"            : 'mediumvioletred',
@@ -410,7 +410,7 @@ experiment_configurations = {
         "use_datetime_for_netcdf" : True,
         "netcdf_onefile" : True
     },
-    "sg_core_bernd": {
+    "ARA-single-domain_(det)": {
         "base_experiment"  : "claif",
         "path_template"    : "/mapp_arch3/pgfaeller/AIWP/sg_core_bernd/pred_sg_core_%Y-%m-%dT%H.nc",
         "color"            : 'orchid',
