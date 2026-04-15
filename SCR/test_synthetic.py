@@ -109,7 +109,7 @@ def make_args(region, **overrides):
         rank_score_time_series=TIME_SERIES_SCORES,
         tile=[None, None],
         cmap="mycolors",
-        print_colors=True,
+        colormap='print',
         start="2024071500",
     )
     defaults.update(overrides)
