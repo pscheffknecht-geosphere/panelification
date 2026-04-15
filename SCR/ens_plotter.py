@@ -25,11 +25,12 @@ def _build_cmaps(args):
     ratio_levels = np.array([0., 0.25, 0.5, 0.75, 0.9, 1.0, 1.1, 1.25, 1.5, 2., 3., 5.])
     frac_cmap = plt.colormaps['RdBu_r']
     frac_levels = np.arange(0., 1.0001, 0.1)
-    diff_cmap = ccm.roma #plt.colormaps['BrBG']
+    diff_cmap = ccm.broc_r #plt.colormaps['BrBG']
     diff_levels = np.array([-20., -10., -5., -2., -1., -0.5, -0.1, 0.1, 0.5, 1., 2., 5., 10., 20.])
     crps_cmap = plt.colormaps['magma_r']
     crps_levels = np.array([0., 0.1, 0.25, 0.5, 1., 2., 3., 5., 7.5, 10., 15., 20., 30.])
-    nbh_cmap = ccm.nuuk_r #plt.colormaps['YlOrRd']
+    _nbh_base = plt.colormaps["YlGnBu"] #ccm.nuuk_r #plt.colormaps['YlOrRd']
+    nbh_cmap = mpl.colors.ListedColormap(_nbh_base(np.linspace(0., 0.66, _nbh_base.N)))
     nbh_levels = np.arange(0., 1.0001, 0.1)
     norm_cmap = plt.colormaps['cividis']
     norm_levels = np.array([0., 0.1, 0.2, 0.3, 0.5, 0.75, 1.0, 1.5, 2.0, 3.0])
