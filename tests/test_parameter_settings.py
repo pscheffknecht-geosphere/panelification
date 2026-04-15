@@ -9,7 +9,7 @@ import parameter_settings
 
 def _args(**overrides):
     defaults = dict(parameter="precip", d_windows=[], duration=1,
-                    mode="normal", cmap="mycolors", print_colors=True)
+                    mode="normal", cmap="mycolors", colormap='print')
     defaults.update(overrides)
     return argparse.Namespace(**defaults)
 
@@ -101,3 +101,42 @@ class TestLabels:
                       "hail", "gusts", "lightning", "cma"]:
             result = parameter_settings.title_part(_args(parameter=param))
             assert isinstance(result, str) and len(result) > 0
+
+
+# =====================================================================
+# colormap selection (--colormap default/new/print)
+# =====================================================================
+
+class TestPrecipMycolors:
+
+    def test_default_matches_constant(self):
+        out = parameter_settings._precip_mycolors(_args(colormap='default'))
+        assert out is parameter_settings._MYCOLORS_DEFAULT
+
+    def test_new_matches_constant(self):
+        out = parameter_settings._precip_mycolors(_args(colormap='new'))
+        assert out is parameter_settings._MYCOLORS_NEW
+
+    def test_print_matches_constant(self):
+        out = parameter_settings._precip_mycolors(_args(colormap='print'))
+        assert out is parameter_settings._MYCOLORS_PRINT
+
+    def test_missing_attr_falls_back_to_default(self):
+        args = argparse.Namespace(parameter="precip", d_windows=[], duration=1,
+                                  mode="normal", cmap="mycolors")
+        out = parameter_settings._precip_mycolors(args)
+        assert out is parameter_settings._MYCOLORS_DEFAULT
+
+    def test_three_palettes_same_length(self):
+        assert len(parameter_settings._MYCOLORS_DEFAULT) == \
+               len(parameter_settings._MYCOLORS_NEW) == \
+               len(parameter_settings._MYCOLORS_PRINT) == 15
+
+    def test_cmap_differs_between_variants(self):
+        lv_d, cmap_d, _ = parameter_settings.get_cmap_and_levels(_args(colormap='default'))
+        lv_n, cmap_n, _ = parameter_settings.get_cmap_and_levels(_args(colormap='new'))
+        lv_p, cmap_p, _ = parameter_settings.get_cmap_and_levels(_args(colormap='print'))
+        assert lv_d == lv_n == lv_p
+        # ListedColormap lookups differ between variants
+        assert not np.allclose(cmap_d(0.3), cmap_n(0.3))
+        assert not np.allclose(cmap_n(0.3), cmap_p(0.3))
