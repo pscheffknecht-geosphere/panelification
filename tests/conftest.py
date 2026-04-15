@@ -96,7 +96,7 @@ def make_test_args():
             rank_score_time_series=[],
             tile=[None, None],
             cmap="mycolors",
-            print_colors=True,
+            colormap='print',
             start="2024071500",
             region=None,
         )
