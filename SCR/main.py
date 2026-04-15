@@ -225,8 +225,9 @@ def parse_arguments():
         help = 'Treat multiple init times of the same ensemble as one ensemble')
     parser.add_argument('--merge_ens_init_times', nargs='?', default=False, const=True, type=str2bool,
         help = 'Treat multiple init times of the same ensemble as one ensemble')
-    parser.add_argument('--print_colors', nargs='?', default=False, const=True, type=str2bool,
-        help = 'Adapt color map for printing')
+    parser.add_argument('--colormap', type=str, default='default',
+        choices=['default', 'new', 'print'],
+        help = 'Precip colormap variant: default (original screen), new (L*-stretched for screen), print (print-optimised pastel)')
     parser.add_argument('--save_percentiles', nargs='?', default=False, const=True, type=str2bool,
         help = 'Save all percentiles to CSV')
     parser.add_argument('--threads', type=int, default=8,
