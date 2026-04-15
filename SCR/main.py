@@ -21,6 +21,7 @@ import obs_from_db as obs
 import read_antilope as antilope
 import read_esp as esp
 import panel_plotter
+import ens_plotter
 import io_main as io
 import scan_obs
 import regions
@@ -373,8 +374,8 @@ def main():
                 logging.info("Plotting pFSS for ensembles")
                 levels = parameter_settings.get_fss_thresholds(args)
                 windows= parameter_settings.get_windows(args)
-                panel_plotter.ens_fss_plot(ensemble_data, windows, levels, subdomain_name, args)
-                panel_plotter.ens_map_panel(ensemble_data, subdomain_name, args)
+                ens_plotter.ens_fss_plot(ensemble_data, windows, levels, subdomain_name, args)
+                ens_plotter.ens_map_panel(ensemble_data, subdomain_name, args)
             plot_start = datetime.now()
             outfilename = panel_plotter.draw_panels(data_list, start_date, end_date, subdomain_name, args) #, mode=args.mode)
             plot_duration = datetime.now() - plot_start
