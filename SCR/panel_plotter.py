@@ -21,6 +21,7 @@ import parameter_settings
 from joblib import Parallel, delayed
 from multiprocessing import Pool
 import pickle
+import subprocess
 import scipy.ndimage as ndimage
 
 from paths import PAN_DIR_TMP, PAN_DIR_PLOTS, PAN_DIR_SCR
@@ -426,6 +427,19 @@ def draw_single_figure(sim, obs, r, jj, levels, cmap, norm, verification_subdoma
         draw_RGB_colorbars(tmp_string, args)
 
 
+def _run_worker(cmd):
+    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    for line in result.stdout.splitlines():
+        if line.strip():
+            logger.info("[worker] %s", line)
+    for line in result.stderr.splitlines():
+        if line.strip():
+            logger.info("[worker] %s", line)
+    if result.returncode:
+        logger.error("[worker] %s exited with %d", cmd, result.returncode)
+    return result.returncode
+
+
 def define_panel_and_plot_dimensions(data_list, args):
     """ Make a dummy map to obtain the aspect ratio, calculate lines
     and columns. This happens in the same function to make use of
@@ -573,8 +587,8 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
     logger.info("Done.")
     # generate a list of commands, one for each model, these will call panel_plotter.py to draw a single model
     cmd_list = [f"{sys.executable} {PAN_DIR_SCR}/panel_plotter.py -p {pickle_file}" for pickle_file in glob.glob(f"{PAN_DIR_TMP}/{tmp_string}/???.p")]
-    # execute the commands in parallel
-    Parallel(n_jobs=args.threads)(delayed(os.system)(cmd) for cmd in cmd_list)
+    # execute the commands in parallel; capture worker output and re-emit via the parent logger
+    Parallel(n_jobs=args.threads, verbose=10)(delayed(_run_worker)(cmd) for cmd in cmd_list)
     logger.debug(f"montage {PAN_DIR_TMP}/{tmp_string}/???.png -geometry +0+0 -tile {lins}x{cols} {PAN_DIR_TMP}/{tmp_string}/999.png")
     # use the individual panels and combine them into one large plot using imagemagick
     os.system(f"montage {PAN_DIR_TMP}/{tmp_string}/???.png -geometry +0+0 -tile {lins}x{cols} {PAN_DIR_TMP}/{tmp_string}/999.png")
@@ -589,6 +603,7 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
 
 def main():
     """ used when called directly, this will draw a single model from a given pickle file"""
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s: %(message)s')
     parser = argparse.ArgumentParser()
     parser.add_argument("--pickle_file", "-p", type=str, default='None')
     args = parser.parse_args()
