@@ -48,7 +48,8 @@ experiment_configurations = {
         "output_interval"  : 1,
         "max_leadtime"     : 48, 
         "accumulated"      : True,
-        "path_template"    : "/ment_arch2/pscheff/WEB_PAN/panelification/MODEL/DEODE/%Y/%m/%d/GRIBPFDEOD+%LLLLh00m00s.grb",
+        "path_template"    : ["/ment_arch2/pscheff/WEB_PAN/panelification/MODEL/DEODE/%Y/%m/%d/GRIBPFDEOD+%LLLLh00m00s.grb",
+                              "/ment_arch2/pscheff/de_rr/%Y%m%d/%H/de500+%LL.grb2"],
         "color"            : "darkmagenta"
         },
     "inca-opt-grib": {
@@ -94,6 +95,26 @@ experiment_configurations = {
         "path_template"    : ["/ment_arch2/pscheff/event_archive/ECMWF/ecmwf_%Y%m%d_%H+%LLLL.grb",
                               # "/ment_arch2/pscheff/WEB_PAN/panelification/MODEL/ecmwf/ecmwf_precip_%Y%m%d_%H+%LLLL.grb"],
                               "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/ecmwf_%H+%LLLL.grb"],
+        "accumulated"      : True,
+        "unit_factor"      : 1000.,
+        "color"            : "black"
+    },
+    "ifs": {
+        "init_interval"    : 6,
+        "output_interval"  : 1, # 3 for some lead times, but panelification can sort that out
+        "max_leadtime"     : 120,
+        "path_template"    : ["/ment_arch2/pscheff/event_archive/ECMWF/ecmwf_%Y%m%d_%H+%LLLL.grb",
+                              # "/ment_arch2/pscheff/WEB_PAN/panelification/MODEL/ecmwf/ecmwf_precip_%Y%m%d_%H+%LLLL.grb"],
+                              "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/ecmwf_%H+%LLLL.grb"],
+        "accumulated"      : True,
+        "unit_factor"      : 1000.,
+        "color"            : "black"
+    },
+    "ifs-dt": {
+        "init_interval"    : 6,
+        "output_interval"  : 1, # 3 for some lead times, but panelification can sort that out
+        "max_leadtime"     : 120,
+        "path_template"    : "/ment_arch2/pscheff/de_rr/%Y%m%d/%H/dt+%LL.grb2",
         "accumulated"      : True,
         "unit_factor"      : 1000.,
         "color"            : "black"
@@ -357,6 +378,7 @@ experiment_configurations = {
     "claef1k-enVar": {
         "base_experiment"  : "claef1k-control",
         "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_01_%H+%LLLL.grb2",
+                              "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_01_%H+%LLLL:00.grb2",
                               "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_envar_%H+%LLLL.grb2",
                               "/ment_arch2/pscheff/arch_precip_test/%Y%m%d/claef_1k_envar_%H+%LLLL:00.grb2"],
         "color"            : "steelblue"
