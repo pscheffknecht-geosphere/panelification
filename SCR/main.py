@@ -380,7 +380,7 @@ def main():
             plot_start = datetime.now()
             outfilename = panel_plotter.draw_panels(data_list, start_date, end_date, subdomain_name, args) #, mode=args.mode)
             plot_duration = datetime.now() - plot_start
-            logging.info("Plotting "+str(len(data_list))+"panels took "+str(plot_duration))
+            logging.info("Plotting "+str(len(data_list))+" panels took "+str(plot_duration))
             logging.info("File saved to: " + os.path.abspath(outfilename))
         if dom['score']:
             if args.save:
