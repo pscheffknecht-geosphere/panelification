@@ -21,6 +21,7 @@ import obs_from_db as obs
 import read_antilope as antilope
 import read_esp as esp
 import panel_plotter
+import ens_plotter
 import io_main as io
 import scan_obs
 import regions
@@ -173,6 +174,11 @@ def parse_arguments():
     parser.add_argument('--fss_mode', type=str, default='ranks')
     parser.add_argument('--fss_calc_mode', type=str, default='same')
     parser.add_argument('--fss_method', type=str, default='default')
+    parser.add_argument('--fss_threshold_mode', type=str, default='over',
+        choices=['over', 'under', 'between', 'tolerance'],
+        help = 'Threshold mode for FSS binarisation (default: over)')
+    parser.add_argument('--fss_tolerance', type=float, default=0.1,
+        help = 'Tolerance fraction for FSS tolerance mode (default: 0.1)')
     parser.add_argument('--rank_by_fss_metric',type=str, default='fss_condensed_weighted',
         help = """Select score used when ranking simulation by their FSS performance:
         fss_total_abs_score .................. use the old FSS Rank Score
@@ -194,7 +200,7 @@ def parse_arguments():
     parser.add_argument('--loglevel', type=str, default='info',
         help = """Logging level:
           debug, info, warning, error""")
-    parser.add_argument('--rank_score_time_series', nargs='+', default=[], type=str,
+    parser.add_argument('--rank_score_time_series', nargs='*', default=[], type=str,
         help = """Draw line plots of model performance, init on x axis, score on y axis""")
     parser.add_argument('--check_ranking', nargs='?', default=False, const=True, type=str2bool,
         help = 'Use random sampling and bootstrapping to test the robustness of the suggested ranking')
@@ -219,10 +225,13 @@ def parse_arguments():
         help = 'Treat multiple init times of the same ensemble as one ensemble')
     parser.add_argument('--merge_ens_init_times', nargs='?', default=False, const=True, type=str2bool,
         help = 'Treat multiple init times of the same ensemble as one ensemble')
-    parser.add_argument('--print_colors', nargs='?', default=False, const=True, type=str2bool,
-        help = 'Adapt color map for printing')
+    parser.add_argument('--colormap', type=str, default='default',
+        choices=['default', 'new', 'print'],
+        help = 'Precip colormap variant: default (original screen), new (L*-stretched for screen), print (print-optimised pastel)')
     parser.add_argument('--save_percentiles', nargs='?', default=False, const=True, type=str2bool,
         help = 'Save all percentiles to CSV')
+    parser.add_argument('--threads', type=int, default=8,
+        help = 'Number of threads used for parallel processing (joblib)')
 
     args = parser.parse_args()
     init_logging(args)
@@ -331,6 +340,9 @@ def main():
         newlist = sorted(data_list[1::], key=lambda d: d['init']) 
         newlist.insert(0, data_list[0])
         data_list = newlist
+    if args.ensemble_scores:
+        ens_dict = ensembles.detect_ensembles(data_list)
+        ensembles.add_ensemble_pseudo_members(data_list, ens_dict)
     df_subdomain_details = scan_obs.get_interesting_subdomains(data_list[0], args)
     thresholds = parameter_settings.get_fss_thresholds(args)
     windows = parameter_settings.get_windows(args)
@@ -345,7 +357,7 @@ def main():
                 sim["precip_data_resampled"] = _data
             if args.fss_calc_mode and args.fss_method != "legacy":
                 logging.warning(f"fss_mode was set to {args.fss_calc_mode}, this is ignored unless fss_method is set to legacy!")
-            Parallel(n_jobs=2,backend='threading')(delayed(scoring.calc_scores)(sim, data_list[0], args) for ii, sim in enumerate(data_list))
+            Parallel(n_jobs=args.threads,backend='threading')(delayed(scoring.calc_scores)(sim, data_list[0], args) for ii, sim in enumerate(data_list))
             scoring.rank_scores(data_list)
             if args.check_ranking:
                 ranking_check.add_rank_robustness_info(data_list, args)
@@ -363,7 +375,8 @@ def main():
                 logging.info("Plotting pFSS for ensembles")
                 levels = parameter_settings.get_fss_thresholds(args)
                 windows= parameter_settings.get_windows(args)
-                panel_plotter.ens_fss_plot(ensemble_data, windows, levels, subdomain_name, args)
+                ens_plotter.ens_fss_plot(ensemble_data, windows, levels, subdomain_name, args)
+                ens_plotter.ens_map_panel(ensemble_data, subdomain_name, args)
             plot_start = datetime.now()
             outfilename = panel_plotter.draw_panels(data_list, start_date, end_date, subdomain_name, args) #, mode=args.mode)
             plot_duration = datetime.now() - plot_start

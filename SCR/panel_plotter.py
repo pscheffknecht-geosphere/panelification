@@ -403,9 +403,10 @@ def draw_single_figure(sim, obs, r, jj, levels, cmap, norm, verification_subdoma
             rotation='horizontal', rotation_mode='anchor',
             transform=ax_title.transAxes,size='10', zorder=6)
 
+    title_weight = 'bold' if sim.get('pseudo') else 'normal'
     txt2 = ax_title.text(0.5, part1_y_pos, part1, va='center', ha='center',
         rotation='horizontal', rotation_mode='anchor',
-        transform=ax_title.transAxes,size='14', zorder=6)
+        transform=ax_title.transAxes,size='14', zorder=6, weight=title_weight)
 
     r = ax_title.get_data_ratio()
     ax_title.fill([0.03, 0.97, 0.97, 0.03], [0.03/r, 0.03/r, 1. - 0.06/r, 1. - 0.06/r], color=panel_title_fc, zorder=5)
@@ -529,8 +530,8 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
     logger.debug(args.region.extent)
     time_series_scores = args.rank_score_time_series
     if args.zoom_to_subdomain:
-        plot_extent=[data_list[1]['lon_resampled'].min()-0.25, data_list[1]['lon_resampled'].max()+0.25,
-                     data_list[1]['lat_resampled'].min()-0.25, data_list[1]['lat_resampled'].max()+0.25]
+        plot_extent=[data_list[1]['lon_resampled'].min()-0.02, data_list[1]['lon_resampled'].max()+0.02,
+                     data_list[1]['lat_resampled'].min()-0.02, data_list[1]['lat_resampled'].max()+0.02]
     else:
         plot_extent = args.region.extent
     for sim in data_list:
@@ -573,7 +574,7 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
     # generate a list of commands, one for each model, these will call panel_plotter.py to draw a single model
     cmd_list = [f"{sys.executable} {PAN_DIR_SCR}/panel_plotter.py -p {pickle_file}" for pickle_file in glob.glob(f"{PAN_DIR_TMP}/{tmp_string}/???.p")]
     # execute the commands in parallel
-    Parallel(n_jobs=2)(delayed(os.system)(cmd) for cmd in cmd_list)
+    Parallel(n_jobs=args.threads)(delayed(os.system)(cmd) for cmd in cmd_list)
     logger.debug(f"montage {PAN_DIR_TMP}/{tmp_string}/???.png -geometry +0+0 -tile {lins}x{cols} {PAN_DIR_TMP}/{tmp_string}/999.png")
     # use the individual panels and combine them into one large plot using imagemagick
     os.system(f"montage {PAN_DIR_TMP}/{tmp_string}/???.png -geometry +0+0 -tile {lins}x{cols} {PAN_DIR_TMP}/{tmp_string}/999.png")
@@ -584,97 +585,6 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
     os.system(f"rm -R {PAN_DIR_TMP}/{tmp_string}")
     return outfilename
 
-
-def ens_fss_abs(ax, fss_data, name, windows, levels):
-    pass
-
-
-def ens_fss_diff(ax, fss_data, name1, name2, windows, levels):
-    pass
-
-
-def get_value_range(ens_fss_data):
-    n_members = len(ens_fss_data)
-    val = -9999.
-    for jj in range(1, n_members):
-        for ii in range(0, n_members-1):
-            if ii < jj:
-                v_ = np.nanmax(np.abs(ens_fss_data[ii].pFSS[2] - ens_fss_data[jj].pFSS[2]))
-                if v_ > val:
-                    val = v_
-    return v_
-
-
-def ens_fss_plot(ens_data, windows, levels, verification_subdomain, args):
-    n_members = len(ens_data)
-    fig, ax = plt.subplots(n_members+1, n_members+1, figsize=(4 * n_members, 4 * n_members), sharex=True, sharey=True, dpi=args.dpi)
-    #if n_members < 2:
-    #    logger.warning("Ensemble data has fewer than 2 entris, no comparison plot will be generated.")
-    #    return None
-    vmax = 1. if n_members < 2 else get_value_range(ens_data)
-
-    levels1 = np.arange(0., 1.01, 0.05)
-    step = 0.001
-    levels2 = np.arange(-vmax, vmax+0.001, step)
-    while levels2.size > 50:
-        step = 2 * step
-        levels2 = np.arange(-vmax, vmax+0.001, step)
-    logger.info(f"Using step = {step}, {levels2.size} levels")
-    cmap1 = plt.colormaps['coolwarm_r']
-    cmap2 = plt.colormaps['RdYlGn']
-    norm1 = mpl.colors.BoundaryNorm(levels1, ncolors=cmap1.N)
-    norm2 = mpl.colors.BoundaryNorm(levels2, ncolors=cmap2.N)
-    
-    logger.info("Making pFSS plots")
-    ax[0][0].axis('off')
-    c1, c2 = None, None
-    for ii in range(0, n_members):
-        logger.debug(f"  preparing {ens_data[ii].name}")
-        c1 = ax[0][ii+1].pcolormesh(ens_data[ii].pFSS[2], cmap=cmap1, norm=norm1)
-        ax[0][ii+1].set_title(f"{ens_data[ii].name}", loc="left")
-    for jj in range(0, n_members):
-        logger.debug(f"  preparing {ens_data[jj].name}")
-        ax[jj+1][0].pcolormesh(ens_data[jj].pFSS[2], cmap=cmap1, norm=norm1)
-        ax[jj+1][0].set_title(f"{ens_data[jj].name}", loc="left")
-        for ii in range(0, n_members):
-            if ii != jj:
-                logger.debug(f"  preparing {ens_data[ii].name} - {ens_data[jj].name}")
-                c2 = ax[jj+1][ii+1].pcolormesh(
-                    ens_data[ii].pFSS[2] - ens_data[jj].pFSS[2],
-                    cmap=cmap2, norm=norm2)        
-                ax[jj+1][ii+1].set_title(f"{ens_data[ii].name} -\n{ens_data[jj].name}", loc="left")
-            else:
-                ax[jj+1][ii+1].axis('off')
-
-    for N, ax1 in enumerate(ax.flatten()):
-        ax1.set_yticks([x+0.5 for x in range(len(levels))])
-        ax1.set_xticks([x+0.5 for x in range(len(windows))])
-        ax1.set_yticklabels([str(x) for x in levels])
-        ax1.set_xticklabels([str(x) for x in windows], rotation=90)
-        ax1.set_ylim([9., 0.])
-        ax1.set_xlim([0., 8.]) 
-        if N%n_members == 0:
-            ax1.set_ylabel("preipc. threshold [mm]")
-        if N >= n_members * (n_members -1):
-            ax1.set_xlabel("window size [km]")
-
-    plt.tight_layout()
-    fig.subplots_adjust(bottom=0.12)
-    cax1 = fig.add_axes([0.1, 0.05, 0.35, 0.01])
-    cax2 = fig.add_axes([0.55, 0.05, 0.35, 0.01])
-
-    cbar1 = plt.colorbar(c1, cax=cax1, orientation="horizontal", label="pFSS") #, extend="min")
-    if n_members > 1:
-        cbar2 = plt.colorbar(c2, cax=cax2, orientation="horizontal", label="pFSS difference") #, extend='both')
-        plt.draw()  # Force rendering so labels exist
-        tick_labels = [label.get_text() for label in cbar2.ax.get_xticklabels()]
-        tick_positions = cbar2.ax.get_xticks()
-        cbar2.ax.set_xticks(tick_positions)
-        cbar2.ax.set_xticklabels(tick_labels, rotation=30)
-    
-    start_date_str = dt.datetime.strptime(args.start, "%Y%m%d%H").strftime("%Y%m%d_%H")
-    outfilename = f"{PAN_DIR_PLOTS}/{args.name}_{args.parameter}_pFSS_{start_date_str}UTC_acc_{args.duration}_{verification_subdomain}.png"
-    plt.savefig(outfilename)
 
 
 def main():
