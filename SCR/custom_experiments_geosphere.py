@@ -181,8 +181,10 @@ experiment_configurations = {
     },
     "icond2": {
         "base_experiment"  : "arome",
-        "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/icond2_%H+%LLLL.grb",
-        "color"            : "orange"
+        "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/icond2_%H+%LLLL.grb",
+                              "/mnt/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/icond2_%H+%LLLL.grb"],
+        "color"            : "orange",
+		"lagged_ensemble"  : True
     },
     "icon1e": {
         "base_experiment"  : "arome",
