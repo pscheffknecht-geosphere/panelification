@@ -39,6 +39,43 @@ def detect_ensembles(data_list):
     return ensembles
 
 
+def add_ensemble_pseudo_members(data_list, ensembles_dict):
+    """For each detected ensemble, append two pseudo-model entries to
+    data_list: the per-grid-point ensemble mean and median of the
+    members' native precip_data fields. These pseudo-models look like
+    regular sims so they go through the standard resample/score/plot
+    workflow. Members of one ensemble are assumed to share the same
+    native grid (lon/lat from the first member). For lagged ensembles
+    the latest member init is used as the pseudo-model init."""
+    pseudo_specs = [("mean", np.mean), ("median", np.median)]
+    for ens_name, ens in ensembles_dict.items():
+        member_indices = ens['data_indices']
+        ref = data_list[member_indices[0]]
+        stack = np.stack([data_list[i]['precip_data'] for i in member_indices], axis=0)
+        latest_init = max(data_list[i]['init'] for i in member_indices)
+        for stat_name, stat_func in pseudo_specs:
+            field = stat_func(stack, axis=0)
+            pseudo = {
+                'case': ref.get('case', ''),
+                'exp':  f"{ens_name}_{stat_name}",
+                'conf': f"{ens_name}_{stat_name}",
+                'type': 'model',
+                'init': latest_init,
+                'lead': ref.get('lead', 0),
+                'name': f"{ens_name}_{stat_name}",
+                'lon':  ref['lon'],
+                'lat':  ref['lat'],
+                'precip_data': field,
+                'color': 'black' if stat_name == 'mean' else 'dimgray',
+                'ensemble': None,
+                'pseudo': True,
+            }
+            data_list.append(pseudo)
+            logger.info(f"Added pseudo-member {pseudo['name']} from {len(member_indices)} members "
+                        f"(init={latest_init})")
+    return data_list
+
+
 class Ensemble:
     def __init__(self, data_list, single_ens_dict, ens_name, args):
         self.member_count = single_ens_dict['member_count']
@@ -50,6 +87,7 @@ class Ensemble:
         for ii, idx in enumerate(self.data_indices):
             self.precip_data_resampled[ii, :, :] = data_list[idx]['precip_data_resampled']
         self.obs_data_resampled = data_list[0]['precip_data_resampled']
+        self.obs_name = data_list[0].get('name', 'Observations')
         self.lon = data_list[0]['lon_resampled']
         self.lat = data_list[0]['lat_resampled']
         logger.info(f"Created ensemble {self.name} with {self.member_count} members")
@@ -57,6 +95,7 @@ class Ensemble:
         ww = [10,20,30,40,60,80,100,120,140,160,180,200]
         self.windows = prep_windows(ww, args.fss_calc_mode, nx, ny)
         self.fss_method = args.fss_method
+        self.threads = args.threads
         self.calc_scores()
         self.save()
         
@@ -80,14 +119,14 @@ class Ensemble:
     def calc_dFSS(self):
         combos = list(combinations([x for x in range(self.member_count)], 2))
         if self.fss_method == "legacy":
-            self.dFSS = Parallel(n_jobs=16, backend='threading')(delayed(fss_FFT.fss_raw)(
-            self.precip_data_resampled[combo[0]], 
-            self.precip_data_resampled[combo[1]], 
-            self.windows, 
+            self.dFSS = Parallel(n_jobs=self.threads, backend='threading')(delayed(fss_FFT.fss_raw)(
+            self.precip_data_resampled[combo[0]],
+            self.precip_data_resampled[combo[1]],
+            self.windows,
             self.thresholds
             ) for combo in combos)
         else:
-            self.dFSS = Parallel(n_jobs=16, backend='threading')(delayed(fss_SAT.fss_cumsum_frame)(
+            self.dFSS = Parallel(n_jobs=self.threads, backend='threading')(delayed(fss_SAT.fss_cumsum_frame)(
             self.precip_data_resampled[combo[0]], 
             self.precip_data_resampled[combo[1]], 
             self.windows, 

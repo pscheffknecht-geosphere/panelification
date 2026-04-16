@@ -17,7 +17,9 @@ def read_data_netcdf(nc_file_path, parameter, valid_time, **kwargs):
     Reads data from a NetCDF file, fixed to work with daily timesteps and
     robustly handle common coordinate variable names.
     """
-    parameter = kwargs.get("netcdf_parameter", "precipitation")
+    parameter = kwargs.get("netcdf_variable", "precipitation")
+    valid_date_time = kwargs.get("netcdf_read_datetime", None)
+    parameter = parameter[0]
     get_lonlat_data = kwargs.get("get_lonlat_data", False)
     lead_start = kwargs.get("lead_start", 0)
     lead_end = kwargs.get("lead_end")
@@ -30,10 +32,15 @@ def read_data_netcdf(nc_file_path, parameter, valid_time, **kwargs):
         time_dim_name = [d for d in var.dimensions if d.startswith('time')][0]
         time_var = ds.variables[time_dim_name]
         file_times = nc.num2date(time_var[:], units=time_var.units)
-        time_idx = (np.abs(file_times - valid_time)).argmin()
-        if np.abs(file_times[time_idx] - valid_time) > dt.timedelta(minutes=30):
-            logger.error(f"Requested valid time {valid_time} not found in file {nc_file_path}")
-            return None
+        file_times_dt = np.array([
+           dt.datetime(ft.year, ft.month, ft.day, ft.hour) for ft in file_times])
+        if valid_date_time:
+            time_idx = (np.abs(file_times_dt - valid_date_time)).argmin()
+        else:
+            time_idx = (np.abs(file_times - valid_time)).argmin()
+            if np.abs(file_times[time_idx] - valid_time) > dt.timedelta(minutes=30):
+                logger.error(f"Requested valid time {valid_time} not found in file {nc_file_path}")
+                return None
         data = var[time_idx, ...]
         logger.info(f"The time index is {time_idx} and valid time is {valid_time}")
         if get_lonlat_data:
