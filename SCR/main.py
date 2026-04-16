@@ -200,7 +200,7 @@ def parse_arguments():
     parser.add_argument('--loglevel', type=str, default='info',
         help = """Logging level:
           debug, info, warning, error""")
-    parser.add_argument('--rank_score_time_series', nargs='+', default=[], type=str,
+    parser.add_argument('--rank_score_time_series', nargs='*', default=[], type=str,
         help = """Draw line plots of model performance, init on x axis, score on y axis""")
     parser.add_argument('--check_ranking', nargs='?', default=False, const=True, type=str2bool,
         help = 'Use random sampling and bootstrapping to test the robustness of the suggested ranking')
