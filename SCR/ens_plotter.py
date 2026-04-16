@@ -384,38 +384,45 @@ def ens_map_panel(ens_data, verification_subdomain, args):
 
 # ------------------------------ pFSS panel ---------------------------------
 
-def ens_fss_abs(ax, fss_data, name, windows, levels):
-    pass
-
-
-def ens_fss_diff(ax, fss_data, name1, name2, windows, levels):
-    pass
-
-
 def get_value_range(ens_fss_data):
-    n_members = len(ens_fss_data)
-    val = -9999.
-    for jj in range(1, n_members):
-        for ii in range(0, n_members-1):
-            if ii < jj:
-                v_ = np.nanmax(np.abs(ens_fss_data[ii].pFSS[2] - ens_fss_data[jj].pFSS[2]))
-                if v_ > val:
-                    val = v_
-    return v_
+    """Max absolute pairwise pFSS difference across all ensemble pairs."""
+    stack = np.stack([e.pFSS[2] for e in ens_fss_data], axis=0)
+    diffs = stack[:, None] - stack[None, :]
+    return float(np.nanmax(np.abs(diffs)))
+
+
+def _diff_levels(vmax, max_levels=50):
+    step = 0.001
+    lv = np.arange(-vmax, vmax + 0.001, step)
+    while lv.size > max_levels:
+        step *= 2
+        lv = np.arange(-vmax, vmax + 0.001, step)
+    return lv, step
 
 
 def ens_fss_plot(ens_data, windows, levels, verification_subdomain, args):
-    n_members = len(ens_data)
-    fig, ax = plt.subplots(n_members+1, n_members+1,
-        figsize=(4 * n_members, 4 * n_members), sharex=True, sharey=True, dpi=args.dpi)
-    vmax = 1. if n_members < 2 else get_value_range(ens_data)
+    """Pairwise pFSS comparison grid.
 
-    levels1 = np.arange(0., 1.01, 0.05)
-    step = 0.001
-    levels2 = np.arange(-vmax, vmax+0.001, step)
-    while levels2.size > 50:
-        step = 2 * step
-        levels2 = np.arange(-vmax, vmax+0.001, step)
+    Diagonal: each ensemble's pFSS surface (threshold x window).
+    Upper triangle: pFSS[i] - pFSS[j] for i < j.
+    Lower triangle: empty (the lower half is just the sign-flipped upper)."""
+    n_members = len(ens_data)
+    keep = np.array([l < 1000. for l in levels])
+    plot_levels = [l for l, k in zip(levels, keep) if k]
+    n_lev = len(plot_levels)
+    n_rows = n_members + 2  # two extra rows: dFSSmean and dFSSstdev overviews
+    row_dfm = n_members       # index of the dFSSmean row
+    row_dfs = n_members + 1   # index of the dFSSstdev row
+    fig, ax = plt.subplots(n_rows, n_members,
+        figsize=(4 * n_members, 4 * n_rows), sharex=True, sharey=True, dpi=args.dpi,
+        squeeze=False)
+    vmax = 1. if n_members < 2 else get_value_range(ens_data)
+    pfss = [np.asarray(e.pFSS[2])[keep, :] for e in ens_data]
+    dfss_mean = [np.asarray(e.dFSSmean)[keep, :] for e in ens_data]
+    dfss_std = [np.asarray(e.dFSSstdev)[keep, :] for e in ens_data]
+
+    levels1 = np.arange(0., 1.01, 0.1)
+    levels2, step = _diff_levels(vmax)
     logger.info(f"Using step = {step}, {levels2.size} levels")
     cmap1 = plt.colormaps['coolwarm_r']
     cmap2 = plt.colormaps['RdYlGn']
@@ -423,51 +430,73 @@ def ens_fss_plot(ens_data, windows, levels, verification_subdomain, args):
     norm2 = mpl.colors.BoundaryNorm(levels2, ncolors=cmap2.N)
 
     logger.info("Making pFSS plots")
-    ax[0][0].axis('off')
-    c1, c2 = None, None
-    for ii in range(0, n_members):
-        logger.debug(f"  preparing {ens_data[ii].name}")
-        c1 = ax[0][ii+1].pcolormesh(ens_data[ii].pFSS[2], cmap=cmap1, norm=norm1)
-        ax[0][ii+1].set_title(f"{ens_data[ii].name}", loc="left")
-    for jj in range(0, n_members):
-        logger.debug(f"  preparing {ens_data[jj].name}")
-        ax[jj+1][0].pcolormesh(ens_data[jj].pFSS[2], cmap=cmap1, norm=norm1)
-        ax[jj+1][0].set_title(f"{ens_data[jj].name}", loc="left")
-        for ii in range(0, n_members):
-            if ii != jj:
-                logger.debug(f"  preparing {ens_data[ii].name} - {ens_data[jj].name}")
-                c2 = ax[jj+1][ii+1].pcolormesh(
-                    ens_data[ii].pFSS[2] - ens_data[jj].pFSS[2],
-                    cmap=cmap2, norm=norm2)
-                ax[jj+1][ii+1].set_title(f"{ens_data[ii].name} -\n{ens_data[jj].name}", loc="left")
-            else:
-                ax[jj+1][ii+1].axis('off')
+    c1, c2, c3, c4 = None, None, None, None
+    cmap3 = plt.colormaps['Greens']
+    norm3 = mpl.colors.BoundaryNorm(levels1, ncolors=cmap3.N)
+    # dFSSstdev has its own, smaller range
+    levels4 = np.arange(0., 0.51, 0.025)
+    cmap4 = ccm.lajolla_r #plt.colormaps['magma']
+    norm4 = mpl.colors.BoundaryNorm(levels4, ncolors=cmap4.N)
 
-    for N, ax1 in enumerate(ax.flatten()):
-        ax1.set_yticks([x+0.5 for x in range(len(levels))])
-        ax1.set_xticks([x+0.5 for x in range(len(windows))])
-        ax1.set_yticklabels([str(x) for x in levels])
-        ax1.set_xticklabels([str(x) for x in windows], rotation=90)
-        ax1.set_ylim([9., 0.])
-        ax1.set_xlim([0., 8.])
-        if N % n_members == 0:
-            ax1.set_ylabel("preipc. threshold [mm]")
-        if N >= n_members * (n_members -1):
-            ax1.set_xlabel("window size [km]")
+    for jj in range(n_members):
+        for ii in range(n_members):
+            cell = ax[jj][ii]
+            if ii == jj:
+                c1 = cell.pcolormesh(pfss[ii], cmap=cmap1, norm=norm1)
+                cell.set_title(ens_data[ii].name, loc="left")
+            elif ii > jj:
+                diff = pfss[ii] - pfss[jj]
+                c2 = cell.pcolormesh(diff, cmap=cmap2, norm=norm2)
+                cell.set_title(f"{ens_data[ii].name} -\n{ens_data[jj].name}", loc="left")
+            else:
+                cell.axis('off')
+
+    # Ensemble-coherence diagnostic rows: dFSSmean and dFSSstdev per ensemble.
+    for ii in range(n_members):
+        c3 = ax[row_dfm][ii].pcolormesh(dfss_mean[ii], cmap=cmap3, norm=norm3)
+        ax[row_dfm][ii].set_title(f"dFSSmean: {ens_data[ii].name}", loc="left")
+        c4 = ax[row_dfs][ii].pcolormesh(dfss_std[ii], cmap=cmap4, norm=norm4)
+        ax[row_dfs][ii].set_title(f"dFSSstdev: {ens_data[ii].name}", loc="left")
+
+    n_win = len(windows)
+    for row in range(n_rows):
+        for col in range(n_members):
+            is_drawn = (row >= n_members) or (col >= row)
+            if not is_drawn:
+                continue
+            a = ax[row][col]
+            a.set_yticks([x + 0.5 for x in range(n_lev)])
+            a.set_xticks([x + 0.5 for x in range(n_win)])
+            a.set_yticklabels([str(x) for x in plot_levels])
+            a.set_xticklabels([str(x) for x in windows], rotation=90)
+            a.set_ylim([n_lev, 0.])
+            a.set_xlim([0., n_win])
+            a.tick_params(labelleft=True, labelbottom=True)
+            if col == row or (row >= n_members and col == 0):
+                a.set_ylabel("precip. threshold [mm]")
+            if row == n_rows - 1 or (col == n_members - 1 and row == col):
+                a.set_xlabel("window size [km]")
 
     plt.tight_layout()
-    fig.subplots_adjust(bottom=0.12)
-    cax1 = fig.add_axes([0.1, 0.05, 0.35, 0.01])
-    cax2 = fig.add_axes([0.55, 0.05, 0.35, 0.01])
+    fig.subplots_adjust(bottom=0.09)
+    cax1 = fig.add_axes([0.05, 0.04, 0.20, 0.008])
+    cax2 = fig.add_axes([0.28, 0.04, 0.20, 0.008])
+    cax3 = fig.add_axes([0.51, 0.04, 0.20, 0.008])
+    cax4 = fig.add_axes([0.74, 0.04, 0.20, 0.008])
 
     plt.colorbar(c1, cax=cax1, orientation="horizontal", label="pFSS")
     if n_members > 1:
-        cbar2 = plt.colorbar(c2, cax=cax2, orientation="horizontal", label="pFSS difference")
+        cbar2 = plt.colorbar(c2, cax=cax2, orientation="horizontal",
+                             label="pFSS difference")
         plt.draw()
         tick_labels = [label.get_text() for label in cbar2.ax.get_xticklabels()]
         tick_positions = cbar2.ax.get_xticks()
         cbar2.ax.set_xticks(tick_positions)
         cbar2.ax.set_xticklabels(tick_labels, rotation=30)
+    plt.colorbar(c3, cax=cax3, orientation="horizontal",
+                 label="dFSSmean (intra-ensemble pair FSS)")
+    plt.colorbar(c4, cax=cax4, orientation="horizontal",
+                 label="dFSSstdev (spread across member pairs)")
 
     start_date_str = dt.datetime.strptime(args.start, "%Y%m%d%H").strftime("%Y%m%d_%H")
     outfilename = (f"{PAN_DIR_PLOTS}/{args.name}_{args.parameter}_pFSS_"
