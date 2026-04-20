@@ -293,18 +293,16 @@ def get_lead_limits(args):
     return min_lead, max_lead
 
 
-def print_some_basics(start_date, end_date, min_lead, max_lead):
-    logging.info("Checking precipitation for the {:d} hours from {:s} to {:s}.".format(
-        int((end_date - start_date).total_seconds()/3600),
-        start_date.strftime("%Y-%m-%d %H UTC"),
-        end_date.strftime("%Y-%m-%d %H UTC")))
+def print_some_basics(models, start_date, end_date, min_lead, max_lead):
+    start_date_str = start_date.strftime("%Y-%m-%d %H UTC")
+    end_date_str = end_date.strftime("%Y-%m-%d %H UTC")
+    verif_window_len = int((end_date - start_date).total_seconds()/3600)
+    logging.info(f"Checking precipitation for the {verif_window_len} hours from {start_date_str} to {end_date_str}.")
     if type(max_lead) == int:
-        logging.info("Limiting models to lead times between {:d} and {:d} hours before {:s}.".format(
-            min_lead, max_lead, start_date.strftime("%Y-%m-%d %H UTC")))
+        logging.info("Limiting models to lead times between {min_lead} and {max_lead} hours before {start_date_str}.")
     else:
-        for mil, mal in zip(min_lead, max_lead):
-            logging.info("Limiting models to lead times between {:d} and {:d} hours before {:s}.".format(
-                mil, mal, start_date.strftime("%Y-%m-%d %H UTC")))
+        for mod, mil, mal in zip(models, min_lead, max_lead):
+            logging.info(f"Limiting {mod} to lead times between {mil} and {mal} hours before {start_date_str}.")
 
 
 def main():
@@ -320,7 +318,8 @@ def main():
     min_lead, max_lead = get_lead_limits(args)
     start_date = datetime.strptime(args.start, "%Y%m%d%H")
     end_date = start_date + dt(hours=args.duration)
-    print_some_basics(start_date, end_date, min_lead, max_lead)
+    print_some_basics(args.custom_experiments, start_date, end_date, min_lead, max_lead)
+    exit()
     # generate a list of available simulations and add data, observations and scores
     data_list = []
     if args.custom_experiments:
