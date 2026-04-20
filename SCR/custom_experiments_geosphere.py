@@ -173,6 +173,7 @@ experiment_configurations = {
         "output_interval"  : 3, # 3 for some lead times, but panelification can sort that out
         "max_leadtime"     : 120,
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/aifs_%H+%LLLL.grb",
+        "grib_handles"     : {'precip': [{'shortName': 'tp', 'forecastTime': 0}]},
         "accumulated"      : True,
         "unit_factor"      : 1.,
         "color"            : "fuchsia"
