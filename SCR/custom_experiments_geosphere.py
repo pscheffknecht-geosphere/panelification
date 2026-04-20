@@ -205,12 +205,13 @@ experiment_configurations = {
         "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/icond2_%H+%LLLL.grb",
                               "/mnt/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/icond2_%H+%LLLL.grb"],
         "color"            : "orange",
-		"lagged_ensemble"  : True
+	"lagged_ensemble"  : True
     },
     "icon1e": {
         "base_experiment"  : "arome",
-        "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/icond1e_%H+%LLLL.grb",
+        "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/icon1e_%H+%LLLL.grb2",
                               "/ment_arch2/pscheff/arch_precip_test/%Y%m%d/icon1e_%H+%LLLL.grb2"], # archive testing path
+        "accumulated"      : False,
         "color"            : "orange"
     },
     "icon-eu": {
