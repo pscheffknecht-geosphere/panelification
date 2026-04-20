@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 # one parameter and another path for all other parameters.
 experiment_configurations = {
     "arome": {
+		"web_form_entry"   : True,
         "init_interval"    : 3,
         "output_interval"  : 1,
         "max_leadtime"     : 60, 
@@ -33,6 +34,7 @@ experiment_configurations = {
         "lagged_ensemble"  : True
         },
     "claif": {
+		"web_form_entry"   : True,
         "init_interval"    : 3,
         "output_interval"  : 3,
         "max_leadtime"     : 72, 
@@ -48,6 +50,7 @@ experiment_configurations = {
         "netcdf_onefile" : True
         },
     "aromeruc": {
+		"web_form_entry"   : True,
         "base_experiment"  : "arome",
         "init_interval"    : 1,
         "output_interval"  : 1,
@@ -77,6 +80,7 @@ experiment_configurations = {
         "color"            : "red"
     },
     "inca-opt": {
+		"web_form_entry"   : True,
         "init_interval"    : 1,
         "output_interval"  : 1,
         "max_leadtime"     : 48,
@@ -90,6 +94,7 @@ experiment_configurations = {
         "color"            : "firebrick"
     },
     "samos": {
+		"web_form_entry"   : True,
         "init_interval"    : 3,
         "output_interval"  : 1,
         "max_leadtime"     : 96,
@@ -99,10 +104,12 @@ experiment_configurations = {
         "color"            : "teal"
         },
     "aromeesuite": {
+		"web_form_entry"   : True,
         "base_experiment"  : "arome",
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/aromeesuite_%H+%LLLL.grb"
         },
     "ecmwf": {
+		"web_form_entry"   : True,
         "init_interval"    : 6,
         "output_interval"  : 1, # 3 for some lead times, but panelification can sort that out
         "max_leadtime"     : 120,
@@ -137,6 +144,7 @@ experiment_configurations = {
         "color"            : "black"
     },
     "gfs": {
+		"web_form_entry"   : True,
         "init_interval"    : 6,
         "output_interval"  : 3, # 6 for some lead times, but panelification can sort that out
         "max_leadtime"     : 192,
@@ -169,6 +177,7 @@ experiment_configurations = {
         "color"            : "purple"
     },
     "aifs": {
+		"web_form_entry"   : True,
         "init_interval"    : 6,
         "output_interval"  : 3, # 3 for some lead times, but panelification can sort that out
         "max_leadtime"     : 120,
@@ -179,6 +188,7 @@ experiment_configurations = {
         "color"            : "fuchsia"
     },
     "claef-control": {
+		"web_form_entry"   : True,
         "init_interval"    : 12,
         "base_experiment"  : "arome",
         # "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef-control_%H+%LLLL.grb",
@@ -188,22 +198,26 @@ experiment_configurations = {
         "color"            : "skyblue"
     },
     "claef-mean": {
+		"web_form_entry"   : True,
         "base_experiment"  : "claef-control",
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef-mean_%H+%LLLL.grb",
         "grib_handles"     : {'precip': [{"shortName": "tp"}]},
     },
     "claef-median": {
+		"web_form_entry"   : True,
         "base_experiment"  : "claef-control",
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef-median_%H+%LLLL.grb",
         "grib_handles"     : {'precip': [{"shortName": "tp"}]},
     },
     "icon": {
+		"web_form_entry"   : True,
         "max_leadtime"     : 120,
         "base_experiment"  : "arome",
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/icon_%H+%LLLL.grb",
         "color"            : "darkgoldenrod"
     },
     "icond2": {
+		"web_form_entry"   : True,
         "base_experiment"  : "arome",
         "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/icond2_%H+%LLLL.grb",
                               "/mnt/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/icond2_%H+%LLLL.grb"],
@@ -212,6 +226,7 @@ experiment_configurations = {
 	"lagged_ensemble"  : True
     },
     "icon1e": {
+		"web_form_entry"   : True,
         "base_experiment"  : "arome",
         "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/icon1e_%H+%LLLL.grb2",
                               "/ment_arch2/pscheff/arch_precip_test/%Y%m%d/icon1e_%H+%LLLL.grb2"], # archive testing path
@@ -220,18 +235,21 @@ experiment_configurations = {
         "color"            : "orange"
     },
     "icon-eu": {
+		"web_form_entry"   : True,
         "base_experiment"  : "arome",
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/icon-eu_%H+%LLLL.grb",
         "grib_handles"     : {'precip': [{'shortName': 'tp', 'forecastTime': 0}]},
         "color"            : "darkorange"
     },
     "arpege": {
+		"web_form_entry"   : True,
         "max_leadtime"     : 120,
         "base_experiment"  : "arome",
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/arpege_%H+%LLLL.grb",
         "color"            : "darkgreen"
     },
     "cosmo1e": {
+		"web_form_entry"   : True,
         "init_interval"    : 3,
         "output_interval"  : 1, 
         "max_leadtime"     : 33,
@@ -241,6 +259,7 @@ experiment_configurations = {
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/cosmo1e_%H+%LLLL.grb2",
     },
     "claef1k-control": {
+		"web_form_entry"   : True,
         "output_interval"  : 1,
         "init_interval"    : 6,
         "unit_factor"      : 1.,
@@ -254,20 +273,24 @@ experiment_configurations = {
         "color"            : "dodgerblue"
     },
     "claef1k-esuite": {
+		"web_form_entry"   : True,
         "base_experiment"  : "claef1k-control",
         "path_template"    : ["/ment_arch2/pscheff/arch_precip_test/%Y%m%d/claef_1k_esuite_%H+%LLLL.grb2",
                               "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_esuite_%H+%LLLL.grb2"],
         "color"            : "royalblue"
     },
     "claef1k-mean": {
+		"web_form_entry"   : True,
         "base_experiment"  : "claef1k-control",
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef1k-mean_%H+%LLLL.grb",
     },
     "claef1k-median": {
+		"web_form_entry"   : True,
         "base_experiment"  : "claef1k-control",
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef1k-median_%H+%LLLL.grb",
     },
     "claef1k-all-members": {
+		"web_form_entry"   : True,
         "dummy_val"        : "all claef members, this is replaced in main.py"
     },
     "claef1k-m01": {
@@ -423,6 +446,7 @@ experiment_configurations = {
         "color"            : "red"
     },
     "claef1k-enVar": {
+		"web_form_entry"   : True,
         "base_experiment"  : "claef1k-control",
         "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_01_%H+%LLLL.grb2",
                               "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_01_%H+%LLLL:00.grb2",
