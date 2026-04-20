@@ -99,7 +99,7 @@ def read_data_grib(grib_file_path, parameter, lead, **kwargs): #get_lonlat_data=
         if grib_handles is None:
             logger.warning(f"No grib handles given for file {grib_file_path}, auto-detecting...")
             grib_handles = find_grib_handles(f, parameter, lead)
-			logger.warning(f"Set grib handle for this model to {repr(grib_handles)} to avoid this warning in the future.")
+            logger.warning(f"Set grib handle for this model to {repr(grib_handles)} to avoid this warning in the future.")
         logger.debug("Getting {:s} from file {:s}".format(repr(grib_handles), grib_file_path))
         tmp_data_list = read_list_of_fields(f, grib_handles)
     tmp_data_field = calc_data(tmp_data_list, parameter)
