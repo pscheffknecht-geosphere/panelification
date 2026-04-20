@@ -28,10 +28,8 @@ experiment_configurations = {
                               'hail': 1000.,
                               'else': 1.},
         "color"            : 'blue',
-        "grib_handles"     : {
-                              'precip': [{"indicatorOfParameter": 197}, {"indicatorOfParameter": 198}, {"indicatorOfParameter": 199}],
-                              'cma'   : [{"indicatorOfParameter": 171}]
-                             },
+        "grib_handles"     : {'precip': [{"indicatorOfParameter": 197}, {"indicatorOfParameter": 198}, {"indicatorOfParameter": 199}],
+                              'cma'   : [{"indicatorOfParameter": 171}]},
         "lagged_ensemble"  : True
         },
     "claif": {
@@ -112,6 +110,7 @@ experiment_configurations = {
                               # "/ment_arch2/pscheff/WEB_PAN/panelification/MODEL/ecmwf/ecmwf_precip_%Y%m%d_%H+%LLLL.grb"],
                               "/mnt/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/ecmwf_%H+%LLLL.grb",
                               "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/ecmwf_%H+%LLLL.grb"],
+        "grib_handles"     : {'precip': [{'shortName': 'tp'}]},
         "accumulated"      : True,
         "unit_factor"      : 1000.,
         "color"            : "black",
@@ -184,15 +183,18 @@ experiment_configurations = {
         # "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef-control_%H+%LLLL.grb",
         "path_template"    : {'hail': "/ment_arch2/pscheff/WEB_PAN/panelification/MODEL/CLAEF_CONTROL/%Y%m%d%H/CLAEF_00_%Y%m%d%H+%LL.grb",
                               'else': "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef-control_%H+%LLLL.grb"},
+        "grib_handles"     : {'precip': [{"shortName": "tp"}]},
         "color"            : "skyblue"
     },
     "claef-mean": {
         "base_experiment"  : "claef-control",
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef-mean_%H+%LLLL.grb",
+        "grib_handles"     : {'precip': [{"shortName": "tp"}]},
     },
     "claef-median": {
         "base_experiment"  : "claef-control",
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef-median_%H+%LLLL.grb",
+        "grib_handles"     : {'precip': [{"shortName": "tp"}]},
     },
     "icon": {
         "max_leadtime"     : 120,
@@ -204,6 +206,7 @@ experiment_configurations = {
         "base_experiment"  : "arome",
         "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/icond2_%H+%LLLL.grb",
                               "/mnt/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/icond2_%H+%LLLL.grb"],
+        "grib_handles"     : {'precip': [{'shortName': 'tp', 'forecastTime': 0}]},
         "color"            : "orange",
 	"lagged_ensemble"  : True
     },
@@ -211,12 +214,14 @@ experiment_configurations = {
         "base_experiment"  : "arome",
         "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/icon1e_%H+%LLLL.grb2",
                               "/ment_arch2/pscheff/arch_precip_test/%Y%m%d/icon1e_%H+%LLLL.grb2"], # archive testing path
+        "grib_handles"     : {'precip': [{'parameterNumber': 52}]},
         "accumulated"      : False,
         "color"            : "orange"
     },
     "icon-eu": {
         "base_experiment"  : "arome",
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/icon-eu_%H+%LLLL.grb",
+        "grib_handles"     : {'precip': [{'shortName': 'tp', 'forecastTime': 0}]},
         "color"            : "darkorange"
     },
     "arpege": {
@@ -244,6 +249,7 @@ experiment_configurations = {
                               "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_00_%H+%LLLL.grb2",
                               "/mnt/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_00_%H+%LLLL.grb2",
                               "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_%H+%LLLL.grb2"],
+        "grib_handles"     : {'precip': [{'shortName': 'tp', 'forecastTime': 0}]},
         "color"            : "dodgerblue"
     },
     "claef1k-esuite": {
