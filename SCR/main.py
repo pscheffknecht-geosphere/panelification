@@ -319,7 +319,6 @@ def main():
     start_date = datetime.strptime(args.start, "%Y%m%d%H")
     end_date = start_date + dt(hours=args.duration)
     print_some_basics(args.custom_experiments, start_date, end_date, min_lead, max_lead)
-    exit()
     # generate a list of available simulations and add data, observations and scores
     data_list = []
     if args.custom_experiments:
