@@ -368,7 +368,7 @@ def read_inca_netcdf_archive(data_list, start_date, end_date, args):
                 fetch_inca(tt)
             data_tmp = Dataset(read_file, "r")
             previous_file = read_file
-        read_hour = int((tt - datetime(tt.year, tt.month, 1)).total_seconds() / 3600)
+        read_hour = int((tt - datetime(tt.year, tt.month, 1)).total_seconds() / 3600 + 1)
         if first:
             rr_tmp = data_tmp.variables['RR'][read_hour, :, :]
             first = False
