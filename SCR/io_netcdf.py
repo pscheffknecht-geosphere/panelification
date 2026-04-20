@@ -42,7 +42,7 @@ def read_data_netcdf(nc_file_path, parameter, valid_time, **kwargs):
                 logger.error(f"Requested valid time {valid_time} not found in file {nc_file_path}")
                 return None
         data = var[time_idx, ...]
-        logger.info(f"The time index is {time_idx} and valid time is {valid_time}")
+        logger.debug(f"The time index is {time_idx} and valid time is {valid_time}")
         if get_lonlat_data:
             lat_names = ['lat', 'latitude', 'lats', 'Latitude']
             lon_names = ['lon', 'longitude', 'lons', 'Longitude']

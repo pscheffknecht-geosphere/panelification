@@ -170,6 +170,8 @@ class ModelConfiguration:
         self.url_template = cmc["url_template"] if "url_template" in cmc.keys() else None
         self.__check_validity()
         if self.valid:
+            init_str = self.init.strftime("%Y-%m-%d %HUTC")
+            logger.info(f"Reading data for {self.experiment_name} {init_str}:")
             self.read_data = read_func_dict[self.file_type]
             self.__prep_read_kwargs()
         else:
@@ -291,7 +293,7 @@ class ModelConfiguration:
             logger.debug(f"all files are of type {first}")
             for ftype, suffixList in file_type_indicators.items():
                 if first in suffixList:
-                    logger.info(f" model uses {ftype} files")
+                    logger.debug(f"{self.experiment_name} uses {ftype} files")
                     return ftype
         else:
             logger.error(f"file types found: {file_type_list}\n"
@@ -312,7 +314,8 @@ class ModelConfiguration:
                     logger.error(f"File {fil} not found!")
                     return False
             else:
-                logger.error(f"File to check is None!")
+                init_str = self.init.strftime("%Y-%m-%d %HUTC")
+                logger.error(f"{self.experiment_name} {init_str}: No input files found! Skipping this run...")
                 return False
         if not self.file_type:
             logger.debug(f"File type not set for {self.experiment_name}, detecting from files...")
@@ -369,7 +372,7 @@ class ModelConfiguration:
     def __get_data_3d(self):
         first = True
         for ii, fil in enumerate(self.file_list):
-            logger.info("Reading file ({:d}): {:s}".format(ii, fil))
+            logger.info("  Reading file ({:d}): {:s}".format(ii, fil))
             if first:
                 lon, lat, tmp_data = self.read_data(fil, self.parameter, 0, **self.read_kwargs, 
                     grib_handles=self.grib_handles)
@@ -397,7 +400,7 @@ class ModelConfiguration:
         for i, fil in enumerate(self.file_list):
             if self.use_datetime_for_netcdf:
                 self.read_kwargs["netcdf_read_datetime"] = self.init + dt.timedelta(hours=self.lead + hh)
-            logger.info("Reading file ({:d}): {:s}".format(i, fil))
+            logger.info("  file ({:d}): {:s}".format(i, fil))
             if first:
                 lon, lat, tmp_data = self.read_data(fil, self.parameter, 0, **self.read_kwargs)
                 self.read_kwargs["get_lonlat_data"] = False
@@ -427,11 +430,11 @@ class ModelConfiguration:
 
 
     def __get_data_accumulated(self):
-        logger.info("Reading end file: {:s}".format(self.end_file))
+        logger.info("  end file: {:s}".format(self.end_file))
         lon, lat, tmp_data = read_data_grib(self.end_file, self.parameter, self.lead_end, get_lonlat_data=True,
             grib_handles = self.grib_handles)
         if self.start_file:
-            logger.info("Reading start file: {:s}".format(self.start_file))
+            logger.info("  start file: {:s}".format(self.start_file))
             start_tmp_data = read_data_grib(self.start_file, self.parameter, self.lead,
                 grib_handles = self.grib_handles)
             tmp_data -= start_tmp_data
