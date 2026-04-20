@@ -200,6 +200,8 @@ class ModelConfiguration:
         if self.file_type == "NetCDF":
             self.read_kwargs["netcdf_variable"] = self.netcdf_variable,
             self.read_kwargs["netcdf_one_file"] = self.netcdf_one_file,
+        if self.file_type == "GRIB" and self.grib_handles:
+            self.read_kwargs["grib_handles"] = self.grib_handles
 
 
     def __pick_value_by_parameter(self, custom_experiment_item, current_key):
