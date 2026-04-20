@@ -111,7 +111,7 @@ def parse_arguments():
     parser = argparse.ArgumentParser(conflict_handler="resolve")
     parser.add_argument('--parameter', '-p', type=str, default='precip',
         help = 'parameter to verify/plot')
-    parser.add_argument('--verif_dataset', type=str, default = 'INCA',
+    parser.add_argument('--verif_dataset', type=str, default = 'INCAPlus',
         help = """select precip data set:
             INCA ... INCA analysis over Austria
             OPERA .. OPERA analysis over Europ (MUST be in ../OBS!!)""")
