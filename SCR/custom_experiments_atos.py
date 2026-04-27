@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 # one parameter and another path for all other parameters.
 experiment_configurations = {
     "arome": {
-        "init_interval"    : 24,
+        "init_interval"    : 3,
         "output_interval"  : 1,
         "max_leadtime"     : 60, 
         "accumulated"      : {'gusts': False,
@@ -78,7 +78,8 @@ experiment_configurations = {
     },
     "claef1k-control": {
         "base_experiment"  : "arome",
-        "path_template"    : "/ec/ws2/tc/zat2/tcwork/claef1k/DATA/%Y%m%d/%H/MEM_00/ADDGRIB/CLAEF00+%LLLL:00.grb",
+        "path_template"    : ["/ec/ws2/tc/zat2/tcwork/claef1k/DATA/%Y%m%d/%H/MEM_00/ADDGRIB/CLAEF00+%LLLL:00.grb",
+                              "/ec/res4/scratch/kmek/tmp/claefdata/CLAEF00+%LLLL.grb2"],
         "ecfs_path_template" : "/ec/ws2/tc/zat2/tcwork/claef1k/DATA/%Y%m%d/%H/MEM_00/ADDGRIB/CLAEF00+%LLLL:00.grb",
         # "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_%H+%LLLL.grb",
         "color"            : "dodgerblue"
@@ -104,7 +105,7 @@ experiment_configurations = {
         "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/icon_%H+%LLLL.grb",
     },
     "ifs-highres": {
-        "init_interval"    : 24,
+        "init_interval"    : 6,
         "output_interval"  : 1,
         "max_leadtime"     : 240, 
         "accumulated"      : True,
@@ -125,7 +126,7 @@ experiment_configurations = {
         "color"            : "navy"
         },
     "deode_arome_500_austria": {
-        "init_interval"    : 24,
+        "init_interval"    : 12,
         "output_interval"  : 1,
         "max_leadtime"     : 48, 
         "accumulated"      : True,
@@ -848,4 +849,159 @@ experiment_configurations = {
         "ensemble"        : "ICOND2",
         "color"           : "orange",
     },
+    "REF_IFS_45s" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/ec/res4/scratch/kmcw/claef1k/DATA/%Y%m%d/%H/MEM_00/ADDGRIB_REF_IFS_45s/AT10/CLAEF00+%LLLL:00.grb2",
+        },
+    "PREOP_60s" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/home/aut0883/claef1k/DATA/%Y%m%d/%H/MEM_00/001_preop_60s/CLAEF00+%LLLL.grb2",
+        },
+    "PREOP_45s" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/ec/res4/scratch/kmcw/claef1k/DATA/%Y%m%d/%H/MEM_00/ADDGRIB_PREOP_45s/AT10/CLAEF00+%LLLL:00.grb2",
+        },
+    "PREOP" : {
+        "base_experiment"  : "deode_arome_500_austria",
+# --r----- 744 Feb 20 14:18 /ec/res4/scratch/kaan/claef1k_dynamics/DATA/20250629/00/MEM_00/ADDGRIB/AT10/CLAEF00+0003:00.grb2
+        "path_template"    : "/ec/res4/scratch/kaan/claef1k_dynamics/DATA/%Y%m%d/%H/MEM_00/ADDGRIB/AT10/CLAEF00+%LLLL:00.grb2",
+        },
+    "COMADP1" : {
+        "base_experiment"  : "deode_arome_500_austria",
+# -rw-r2922090 Feb 20 14:17 /ec/res4/scratch/kaan/claef1k_dynamics/DATA/20250629/00/MEM_01/ADDGRIB/AT10/CLAEF01+0003:00.grb2
+        "path_template"    : "/ec/res4/scratch/kaan/claef1k_dynamics/DATA/%Y%m%d/%H/MEM_01/ADDGRIB/AT10/CLAEF01+%LLLL:00.grb2",
+        },
+    "COMADP2" : {
+        "base_experiment"  : "deode_arome_500_austria",
+# -r 302674150 Feb 20 14:17 /ec/res4/scratch/kaan/claef1k_dynamics/DATA/20250629/00/MEM_02/ADDGRIB/AT10/CLAEF02+0003:00.grb2
+        "path_template"    : "/ec/res4/scratch/kaan/claef1k_dynamics/DATA/%Y%m%d/%H/MEM_02/ADDGRIB/AT10/CLAEF02+%LLLL:00.grb2",
+        },
+# 
+    "COMADP1_IFS_45s" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/home/kaan/claef1k_jan2026/claef_1k/DATA/%Y%m%d/%H/MEM_00/001_exps/COMADP1_IFS_45s/CLAEF00+%LLLL:00.grb2",
+        },
+    "COMADP2_IFS_45s" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/home/kaan/claef1k_jan2026/claef_1k/DATA/%Y%m%d/%H/MEM_00/001_exps/COMADP2_IFS_45s/CLAEF00+%LLLL:00.grb2",
+        },
+    "COMADP3_IFS_45s" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/home/kaan/claef1k_jan2026/claef_1k/DATA/%Y%m%d/%H/MEM_00/001_exps/COMADP3_IFS_45s/CLAEF00+%LLLL:00.grb2",
+        },
+    "COMADP4_IFS_45s" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/home/kaan/claef1k_jan2026/claef_1k/DATA/%Y%m%d/%H/MEM_00/001_exps/COMADP4_IFS_45s/CLAEF00+%LLLL:00.grb2",
+        },
+    "COMADP5_IFS_45s" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/home/kaan/claef1k_jan2026/claef_1k/DATA/%Y%m%d/%H/MEM_00/001_exps/COMADP5_IFS_45s/CLAEF00+%LLLL:00.grb2",
+        },
+    "COMADP6_IFS_45s" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/home/kaan/claef1k_jan2026/claef_1k/DATA/%Y%m%d/%H/MEM_00/001_exps/COMADP6_IFS_45s/CLAEF00+%LLLL:00.grb2",
+        },
+    "SLHD_COMAD_IFS_45s" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : ["/ec/res4/scratch/kmcw/claef1k/DATA/%Y%m%d/%H/MEM_00/ADDGRIB_SLHD_COMAD_IFS_45s/AT10/CLAEF00+%LLLL:00.grb2",
+                              "/scratch/kaan/claef1k/DATA/%Y%m%d/%H/MEM_00/001_exps/SLHD_COMAD_IFS_45s/CLAEF00+%LLLL:00.grb2"],
+        },
+    "SLHDP1_IFS_45s" : {
+        "base_experiment"  : "deode_arome_500_austria",
+                              #/scratch/kmcw/claef1k/DATA/20260108/00/MEM_00/ADDGRIB_SLHDP1_IFS_45s/AT10/CLAEF00+0022:00.grb2
+        "path_template"    : ["/scratch/kmcw/claef1k/DATA/%Y%m%d/%H/MEM_00/ADDGRIB_SLHDP1_IFS_45s/AT10/CLAEF00+%LLLL:00.grb2",
+                              "/home/kaan/claef1k_jan2026/claef_1k/DATA/%Y%m%d/%H/MEM_00/001_exps/SLHDP1_IFS_45s/CLAEF00+%LLLL:00.grb2"],
+        },
+    "SLHDP2_IFS_45s" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/ec/res4/scratch/kmcw/claef1k/DATA/%Y%m%d/%H/MEM_00/ADDGRIB_SLHDP2_IFS_45s/AT10/CLAEF00+%LLLL:00.grb2",
+        },
+    "SLHDP3_IFS_45s" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/ec/res4/scratch/kmcw/claef1k/DATA/%Y%m%d/%H/MEM_00/ADDGRIB_SLHDP3_IFS_45s/AT10/CLAEF00+%LLLL:00.grb2",
+        },
+    "SLHDP4_IFS_45s" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/home/kaan/claef1k_jan2026/claef_1k/DATA/%Y%m%d/%H/MEM_00/001_exps/SLHDP4_IFS_45s/CLAEF00+%LLLL:00.grb2",
+        },
+    "VSQSATP1_IFS_45s" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/scratch/aut0883/claef1k/DATA/%Y%m%d/%H/MEM_00/ADDGRIB_vsqsatp1_ifs_45s/AT10/CLAEF00+%LLLL:00.grb2",
+        },
+    "CFRACT_IFS_45s" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/scratch/aut0883/claef1k/DATA/%Y%m%d/%H/MEM_00/ADDGRIB_cfract_ifs_45s/AT10/CLAEF00+%LLLL:00.grb2",
+        },
+    "SUBGCONDF_IFS_45s" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/scratch/aut0883/claef1k/DATA/%Y%m%d/%H/MEM_00/ADDGRIB_subgcondf_ifs_45s/AT10/CLAEF00+%LLLL:00.grb2",
+        },
+    "CLAEF2.5K_IFS_60S" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "MISSING",
+        },
+    "DEODE_cy49_AROME" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/scratch/kmw/deode/CY49t2_AROME_CLAEF1k_%Y%m%d/archive/%Y/%m/%d/%H/mbr000/GRIBPFDEOD+%LLLLh00m00s",
+        },
+    "DEODE_cy49_HARMONIE" : {
+        "base_experiment"  : "deode_arome_500_austria",
+        "path_template"    : "/scratch/kmw/deode/CY49t2_HARMONIE_AROME_CLAEF1k_%Y%m%d/archive/%Y/%m/%d/%H/mbr000/GRIBPFDEOD+%LLLLh00m00s",
+                              # /stch/kmw/deode/CY49t2_HARMONIE_AROME_CLAEF1k_20251119/archive/2025/11/19/12/mbr000/GRIBPFDEOD+0004h00m00s
+        },
+    "FILTER_IFS_45s" : {
+        "base_experiment"  : "deode_arome_500_austria",
+                             #/ec/res4/scratch/kmcw/claef1k/DATA/20260108/00/MEM_00/ADDGRIB_FILTER_IFS_45s/AT10/CLAEF00+0003:00.grb2
+        "path_template"    : "/ec/res4/scratch/kmcw/claef1k/DATA/%Y%m%d/%H/MEM_00/ADDGRIB_FILTER_IFS_45s/AT10/CLAEF00+%LLLL:00.grb2",
+        },
+    "DEODE_c49_AROME_globalDT" : {
+        "base_experiment"  : "deode_arome_500_austria",
+                             #/ec/res4/scratch/kmcw/claef1k/DATA/20260108/00/MEM_00/ADDGRIB_FILTER_IFS_45s/AT10/CLAEF00+0003:00.grb2
+        "path_template"    : "/ec/res4/scratch/kmcw/claef1k/DATA/%Y%m%d/%H/MEM_00/ADDGRIB_FILTER_IFS_45s/AT10/CLAEF00+%LLLL:00.grb2",
+        },
+    "PREOP_new" : {
+        "base_experiment"  : "deode_arome_500_austria",
+                             #/home/kaan/claef1k_apr2026/claef_1k/DATA/20250626/00/MEM_00/ADDGRIB/AT10/CLAEF00+0005:00.grb2
+        "path_template"    : "/home/kaan/claef1k_apr2026/claef_1k/DATA/%Y%m%d/%H/MEM_00/ADDGRIB/AT10/CLAEF00+%LLLL:00.grb2",
+        },
+    "COMAD_new" : {
+        "base_experiment"  : "deode_arome_500_austria",
+                             #/home/kaan/claef1k_apr2026/claef_1k/DATA/20250626/00/MEM_01/ADDGRIB/AT10/CLAEF00+0005:00.grb2
+        "path_template"    : "/home/kaan/claef1k_apr2026/claef_1k/DATA/%Y%m%d/%H/MEM_01/ADDGRIB/AT10/CLAEF01+%LLLL:00.grb2",
+        },
+    "SLHD_new" : {
+        "base_experiment"  : "deode_arome_500_austria",
+                             #/home/kaan/claef1k_apr2026/claef_1k/DATA/20250626/00/MEM_02/ADDGRIB/AT10/CLAEF00+0005:00.grb2
+        "path_template"    : "/home/kaan/claef1k_apr2026/claef_1k/DATA/%Y%m%d/%H/MEM_02/ADDGRIB/AT10/CLAEF02+%LLLL:00.grb2",
+        },
+    "SLHD_fallhydro" : {
+        "base_experiment"  : "deode_arome_500_austria",
+                             #/home/kaan/claef1k_apr2026/claef_1k/DATA/20250626/00/MEM_03/ADDGRIB/AT10/CLAEF00+0005:00.grb2
+        "path_template"    : "/home/kaan/claef1k_apr2026/claef_1k/DATA/%Y%m%d/%H/MEM_03/ADDGRIB/AT10/CLAEF03+%LLLL:00.grb2",
+        },
+    "SLHD_nolqm" : {
+        "base_experiment"  : "deode_arome_500_austria",
+                             #/home/kaan/claef1k_apr2026/claef_1k/DATA/20250626/00/MEM_04/ADDGRIB/AT10/CLAEF00+0005:00.grb2
+        "path_template"    : "/home/kaan/claef1k_apr2026/claef_1k/DATA/%Y%m%d/%H/MEM_04/ADDGRIB/AT10/CLAEF04+%LLLL:00.grb2",
+        },
+    "SLHD_nolqm_slhdepsh": {
+        "base_experiment"  : "deode_arome_500_austria",
+                             #/home/kaan/claef1k_apr2026/claef_1k/DATA/20250626/00/MEM_05/ADDGRIB/AT10/CLAEF00+0005:00.grb2
+        "path_template"    : "/home/kaan/claef1k_apr2026/claef_1k/DATA/%Y%m%d/%H/MEM_05/ADDGRIB/AT10/CLAEF05+%LLLL:00.grb2",
+        },
+    "SLHD_slhdd00" : {
+        "base_experiment"  : "deode_arome_500_austria",
+                             #/home/kaan/claef1k_apr2026/claef_1k/DATA/20250626/00/MEM_06/ADDGRIB/AT10/CLAEF00+0005:00.grb2
+        "path_template"    : "/home/kaan/claef1k_apr2026/claef_1k/DATA/%Y%m%d/%H/MEM_06/ADDGRIB/AT10/CLAEF06+%LLLL:00.grb2",
+        },
+    "FCI" : {
+        "base_experiment"  : "arome",
+                             #/lus/h2resw01/scratch/kaan/my_allskyir_mtg_fci_in_claef1k/DATA/20260422/06_FCI/MEM_00/ADDGRIB/AT10/CLAEF00+0005
+        "path_template"    : "/lus/h2resw01/scratch/kaan/my_allskyir_mtg_fci_in_claef1k/DATA/%Y%m%d/%H_FCI/MEM_00/ADDGRIB/AT10/CLAEF00+0005:00.grb2"
+        },
+    "SEVIRI" : {
+        "base_experiment"  : "arome",
+                             #/lus/h2resw01/scratch/kaan/my_allskyir_mtg_fci_in_claef1k/DATA/20260422/06_SEVIRI/MEM_00/ADDGRIB/AT10/CLAEF00+0005
+        "path_template"    : "/lus/h2resw01/scratch/kaan/my_allskyir_mtg_fci_in_claef1k/DATA/%Y%m%d/%H_SEVIRI/MEM_00/ADDGRIB/AT10/CLAEF00+0005:00.grb2"
+        },
 }
