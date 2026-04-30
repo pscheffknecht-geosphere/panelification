@@ -32,7 +32,7 @@ experiment_configurations = {
                               'cma'   : [{"indicatorOfParameter": 171}]},
         "lagged_ensemble"  : True
         },
-    "claif": {
+    "gehma": {
         "init_interval"    : 3,
         "output_interval"  : 3,
         "max_leadtime"     : 72, 
