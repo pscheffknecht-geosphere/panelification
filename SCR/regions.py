@@ -34,56 +34,6 @@ default_thresholds =  {'draw_avg' : 2., 'draw_max' : 25., 'score_avg' : 1., 'sco
 
 logger.info("Yeah, it's working here")
 regions = {
-    "Europe": {
-        "central_longitude": 15.,
-        "central_latitude": 45.,
-        "extent": [-10., 40., 35., 70.],
-        "verification_subdomains": {
-            "Default": {
-                "central_longitude": 20., "central_latitude": 52.5,
-                "x_size": 1500, "y_size": 1500}
-        }
-    },
-    "AROME-Aut": {
-        "central_longitude": 14.,
-        "central_latitude": 47.5,
-        "extent": [6.5 , 21.5, 43., 52.],
-        "verification_subdomains": {
-            "Default": {
-                "central_longitude": 14.0, "central_latitude": 47.5,
-                "x_size": 1050, "y_size":  850}
-        },
-    },
-    "Alps": {
-        "central_longitude": 9.,
-        "central_latitude": 45.,
-        "extent": [3., 19., 43., 49.5],
-        "verification_subdomains": {
-            "Default": {
-                "central_longitude": 9., "central_latitude": 46.25,
-                "x_size": 1000, "y_size": 500}
-        },
-    },
-
-
-
-    "Hungary": {
-        "central_longitude": 19.5,
-        "central_latitude": 47.18,
-        "extent": [15.3, 24, 45.759, 49.1], # bb visualisation 
-        "verification_subdomains": {     # for calculations 
-            "Default": { # all of Hungary
-                "central_longitude": 19.5, "central_latitude": 47.18,
-                "x_size": 524., "y_size": 303.}   #kms
-        }
-    },
-
-    # depending on requests, adding  requested subregions for AVIATON etc. 
-
-
-
-
-
     "Austria": {
         "central_longitude": 13.,
         "central_latitude": 48.3,
@@ -168,6 +118,51 @@ regions = {
             # "Nockberge" :     [13.85, 14.51, 46.75, 47,21],
             # "Kitzbuehel" :    [12.10, 12.76, 47.24, 47.70],
     },
+    "Europe": {
+        "central_longitude": 15.,
+        "central_latitude": 45.,
+        "extent": [-10., 40., 35., 70.],
+        "verification_subdomains": {
+            "Default": {
+                "central_longitude": 20., "central_latitude": 52.5,
+                "x_size": 1500, "y_size": 1500}
+        }
+    },
+    "AROME-Aut": {
+        "central_longitude": 14.,
+        "central_latitude": 47.5,
+        "extent": [6.5 , 21.5, 43., 52.],
+        "verification_subdomains": {
+            "Default": {
+                "central_longitude": 14.0, "central_latitude": 47.5,
+                "x_size": 1050, "y_size":  850}
+        },
+    },
+    "Alps": {
+        "central_longitude": 9.,
+        "central_latitude": 45.,
+        "extent": [3., 19., 43., 49.5],
+        "verification_subdomains": {
+            "Default": {
+                "central_longitude": 9., "central_latitude": 46.25,
+                "x_size": 1000, "y_size": 500}
+        },
+    },
+
+
+
+    "Hungary": {
+        "central_longitude": 19.5,
+        "central_latitude": 47.18,
+        "extent": [15.3, 24, 45.759, 49.1], # bb visualisation 
+        "verification_subdomains": {     # for calculations 
+            "Default": { # all of Hungary
+                "central_longitude": 19.5, "central_latitude": 47.18,
+                "x_size": 524., "y_size": 303.}   #kms
+        }
+    },
+
+    # depending on requests, adding  requested subregions for AVIATON etc. 
     "Austria_East": {
         "central_longitude": 14.25,
         "central_latitude": 48.3,
