@@ -358,7 +358,7 @@ def read_inca_netcdf_archive(data_list, start_date, end_date, args):
     previous_file = None
     this_month = datetime(datetime.now().year, datetime.now().month, 1)
     while tt < end_date:
-        tt_str = tt.strftime("%Y%m")
+        tt_str = (tt + dt(hours=1)).strftime("%Y%m")
         read_file = f"{PAN_DIR_OBS}/INCA_netcdf/INCAL_HOURLY_RR_{tt_str}.nc"
         if not read_file == previous_file:
             if datetime(tt.year, tt.month, 1) == this_month and not fetched_current:
