@@ -269,7 +269,7 @@ experiment_configurations = {
                               "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_00_%H+%LLLL.grb2",
                               "/mnt/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_00_%H+%LLLL.grb2",
                               "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_%H+%LLLL.grb2"],
-        "grib_handles"     : {'precip': [{'shortName': 'tp', 'forecastTime': 0}]},
+        # "grib_handles"     : {'precip': [{'shortName': 'tp', 'forecastTime': 0}]},
         "color"            : "dodgerblue"
     },
     "claef1k-esuite": {
