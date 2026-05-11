@@ -232,7 +232,7 @@ experiment_configurations = {
                               "/ment_arch2/pscheff/arch_precip_test/%Y%m%d/icon1e_%H+%LLLL.grb2"], # archive testing path
         "grib_handles"     : {'precip': [{'parameterNumber': 52}]},
         "accumulated"      : False,
-        "color"            : "orange"
+        "color"            : "khaki"
     },
     "icon-eu": {
         "web_form_entry"   : True,
