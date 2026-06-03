@@ -11,7 +11,7 @@ remote_base_path = "/modelle/prod/mgruppe/WEB/PRECIP_VERIF_PANELS/"
 
 
 def today():
-    t_ = dt.datetime.now() 
+    t_ = dt.datetime.now()
     d_curr = dt.datetime(t_.year, t_.month, t_.day)
     return(d_curr)
 
@@ -42,7 +42,7 @@ def clean_old_panels(d_curr=today()):
 
 def send_html_to_mgruppe():
     os.system("scp verif_panels.html mgruppe@vvhmod-dev:/modelle/prod/mgruppe/WEB/HTML/.")
-    
+
 
 def get_file_lists(d_curr):
     fclist = []
@@ -77,7 +77,7 @@ def make_file_list_html(flist):
             parts[pidx+2].replace("UTC", " UTC") + " " + \
             parts[pidx+3].replace("0", "").replace("h", " hour accumulated rain") + " " + \
             parts[pidx+5].replace(".png", "")
-        fil = fil.replace("PLOTS", "PRECIP_VERIF_PANELS")    
+        fil = fil.replace("PLOTS", "PRECIP_VERIF_PANELS")
         fstr += "<a href=\""+fil+"\" target=\"_blank=\" rel=\"noopener noreferrer\">"+pretty_str+"</a><br>\n"
     return fstr
 
