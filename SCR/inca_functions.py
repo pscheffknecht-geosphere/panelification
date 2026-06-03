@@ -291,47 +291,6 @@ def read_INCA_plus(inca_file, k_start, k_end):
     return rr_tmp.values
 
 
-def read_inca_netcdf_archive(data_list, start_date, end_date, args):
-    """ read INCA data from netcdf hourly archive"""
-    tt = start_date
-    # 1. check if all necessary files exist and are up to date:
-    fetched_current = False # if current month is found, was it updated?
-    rr_tmp = 'None'
-    data_tmp = None
-    previous_file = None
-    this_month = datetime(datetime.now().year, datetime.now().month, 1)
-    while tt < end_date:
-        tt_str = tt.strftime("%Y%m")
-        read_file = f"{PAN_DIR_OBS}/INCA_netcdf/INCAL_HOURLY_RR_{tt_str}.nc"
-        if not read_file == previous_file:
-            if datetime(tt.year, tt.month, 1) == this_month and not fetched_current:
-                fetch_inca(tt)
-                fetched_current = True
-            elif not os.path.isfile(read_file):
-                fetch_inca(tt)
-            data_tmp = Dataset(read_file, "r")
-            previous_file = read_file
-        read_hour = int((tt - datetime(tt.year, tt.month, 1)).total_seconds() / 3600)
-        if not rr_tmp:
-            rr_tmp = data_tmp.variables['RR'][read_hour, :, :]
-        else:
-            rr_tmp += data_tmp.variables['RR'][read_hour, :, :]
-        tt += dt(hours=1)
-    lon, lat = INCA_grid()
-    data_list.insert(0,{
-        'conf' : 'INCA',
-        'type' : 'obs',
-        'name' : 'INCA',
-        'lat' : np.asarray(lat),
-        'lon' : np.asarray(lon),
-        'precip_data': rr_tmp})
-    logger.debug(data_list[0]["precip_data"])
-    logger.debug(data_list[0]["precip_data"].max())
-    logger.debug(data_list[0]["precip_data"].min())
-    return data_list
-
-    
-
 def fetch_inca(month):
     """ fetch INCA netcdf from GeoSphere archive
     example file: https://public.hub.geosphere.at/datahub/resources/inca-v1-1h-1km/filelisting/RR/INCAL_HOURLY_RR_201106.nc"""
@@ -358,17 +317,22 @@ def read_inca_netcdf_archive(data_list, start_date, end_date, args):
     previous_file = None
     this_month = datetime(datetime.now().year, datetime.now().month, 1)
     while tt < end_date:
-        tt_str = (tt + dt(hours=1)).strftime("%Y%m")
+        # INCA stores each hourly accumulation under the time stamp of the END
+        # of the interval, so the hour from 23 UTC to 00 UTC belongs to the next
+        # month's file. Use that end-of-interval time consistently for the file,
+        # the fetch logic and the hour index.
+        read_time = tt + dt(hours=1)
+        tt_str = read_time.strftime("%Y%m")
         read_file = f"{PAN_DIR_OBS}/INCA_netcdf/INCAL_HOURLY_RR_{tt_str}.nc"
         if not read_file == previous_file:
-            if datetime(tt.year, tt.month, 1) == this_month and not fetched_current:
-                fetch_inca(tt)
+            if datetime(read_time.year, read_time.month, 1) == this_month and not fetched_current:
+                fetch_inca(read_time)
                 fetched_current = True
             elif not os.path.isfile(read_file):
-                fetch_inca(tt)
+                fetch_inca(read_time)
             data_tmp = Dataset(read_file, "r")
             previous_file = read_file
-        read_hour = int((tt - datetime(tt.year, tt.month, 1)).total_seconds() / 3600 + 1)
+        read_hour = int((read_time - datetime(read_time.year, read_time.month, 1)).total_seconds() / 3600)
         if first:
             rr_tmp = data_tmp.variables['RR'][read_hour, :, :]
             first = False
