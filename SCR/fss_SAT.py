@@ -62,18 +62,62 @@ def _fss_score(fhat, ohat, inv_area_sq):
     return num, denom, 1.0 - num / denom
 
 
-def fss(fcst, obs, window, fcst_cache, obs_cache, threshold_mode="over"):
+def _fss_score_masked(Sf, So, C):
+    """
+    Missing-data FSS score with per-window valid-point weighting.
+
+    Sf, So are box-sums of the *mask-zeroed* binary forecast/observation fields,
+    C is the number of valid points in each window.  The windowed fractions are
+    Sf/C and So/C, and each window centre is weighted by C.  With weight C the
+    weighted means collapse to:
+
+        num = sum((Sf - So)^2 / C) / sum(C)
+        den = sum((Sf^2 + So^2) / C) / sum(C)
+
+    C is defined as the full window area minus the number of missing points in
+    the (boundary-clamped) window, so with no missing data C equals the constant
+    window area everywhere and the score reduces exactly to the clean fast path.
+    Windows with no valid points (C == 0) drop out naturally.
+    """
+    with np.errstate(divide='ignore'):
+        inv = np.where(C > 0, 1.0 / C, 0.0)
+    diff = Sf - So
+    wsum = C.sum()
+
+    if wsum == 0.0:
+        return 0.0, 0.0, np.nan
+
+    num   = np.sum(diff * diff * inv) / wsum
+    denom = np.sum((Sf * Sf + So * So) * inv) / wsum
+
+    if denom == 0.0:
+        return num, denom, np.nan
+    return num, denom, 1.0 - num / denom
+
+
+def fss(fcst, obs, window, fcst_cache, obs_cache, threshold_mode="over", invalid_cache=None):
     """
     Compute the fraction skill score using summed area tables.
     :param fcst: nd-array, forecast field.
     :param obs: nd-array, observation field.
     :param window: integer, window size.
+    :param invalid_cache: optional integral table of the *invalid* (missing-point)
+        mask.  When given, the missing-data path is used (per-window valid-point
+        weighting); the forecast/observation caches must then be the mask-zeroed
+        binary SATs.
     :return: tuple of FSS numerator, denominator and score.
     """
     fhat = integral_filter(fcst_cache, window)
     ohat = integral_filter(obs_cache, window)
 
     w = window // 2
+
+    if invalid_cache is not None:
+        # Valid count = full window area minus the missing points it contains.
+        area = (2.0 * w + 1.0) ** 2
+        C = area - integral_filter(invalid_cache, window)
+        return _fss_score_masked(fhat, ohat, C)
+
     inv_area_sq = 1.0 / (2.0 * w + 1.0) ** 4   # (inv_window_area)^2
 
     return _fss_score(fhat, ohat, inv_area_sq)
@@ -97,7 +141,46 @@ def _build_binary_sat(fcst, obs, t1, t2, t1o, t1f, percentiles,
         obs_bin = compute_integral_table(
             ((obs > (1.-tolerance) * t1o) & (obs <= (1.+tolerance)*t1o)).astype(int))
         mod_bin = compute_integral_table(
-            ((fcst > (1.-tolerance) * t1f) & (fcst <= (1.+tolerance)*t1f)).astype(int))
+            ((fcst > (1.-tolerance) * t1f) & (fcst <= (1.+tolerance)*t1o)).astype(int))
+    return mod_bin, obs_bin
+
+
+def _validity_mask(fcst, obs):
+    """Boolean mask of points valid in *both* fields (a point is missing if
+    either forecast or observation is NaN there)."""
+    return ~(np.isnan(fcst) | np.isnan(obs))
+
+
+def _invalid_sat(mask):
+    """Integral table of the *invalid* (missing-point) mask, threshold-independent.
+
+    Used to subtract missing points from the full window area, so the per-window
+    valid count matches the clean path's constant area where nothing is missing.
+    """
+    return compute_integral_table((~mask).astype(float))
+
+
+def _build_binary_sat_masked(fcst, obs, t1, t2, t1o, t1f, percentiles,
+                             threshold_mode, tolerance, mask):
+    """Like _build_binary_sat, but zeros out missing points (via `mask`) so they
+    do not contribute to the windowed sums, and binarises to float."""
+    with np.errstate(invalid='ignore'):  # NaN comparisons are intentional -> False
+        if threshold_mode == "over":
+            obs_b = (obs > t1o) & mask
+            mod_b = (fcst > t1f) & mask
+        elif threshold_mode == "under":
+            obs_b = (obs <= t1o) & mask
+            mod_b = (fcst <= t1f) & mask
+        elif threshold_mode == "between":
+            t2o = np.nanpercentile(obs, t2) if percentiles else t2
+            t2f = np.nanpercentile(fcst, t2) if percentiles else t2
+            obs_b = (obs > t1o) & (obs <= t2o) & mask
+            mod_b = (fcst > t1f) & (fcst <= t2f) & mask
+        elif threshold_mode == "tolerance":
+            obs_b = (obs > (1.-tolerance) * t1o) & (obs <= (1.+tolerance)*t1o) & mask
+            mod_b = (fcst > (1.-tolerance) * t1f) & (fcst <= (1.+tolerance)*t1o) & mask
+    obs_bin = compute_integral_table(obs_b.astype(float))
+    mod_bin = compute_integral_table(mod_b.astype(float))
     return mod_bin, obs_bin
 
 
@@ -106,23 +189,49 @@ def fss_threshold(fcst, obs, t1, t2, windows, percentiles=False, threshold_mode=
     den_t = np.zeros(windows.shape)
     fss_t = np.zeros(windows.shape)
 
-    t1o = np.percentile(obs, t1) if percentiles else t1
-    t1f = np.percentile(fcst, t1) if percentiles else t1
+    mask = _validity_mask(fcst, obs)
 
-    mod_bin, obs_bin = _build_binary_sat(
-        fcst, obs, t1, t2, t1o, t1f, percentiles, threshold_mode, tolerance)
+    if mask.all():
+        # ── clean fast path (unchanged) ──
+        t1o = np.percentile(obs, t1) if percentiles else t1
+        t1f = np.percentile(fcst, t1) if percentiles else t1
 
-    for jj, window in enumerate(windows):
-        num_t[jj], den_t[jj], fss_t[jj] = fss(fcst, obs, window,
-                                                fcst_cache=mod_bin, obs_cache=obs_bin,
-                                                threshold_mode=threshold_mode)
-    ovest_val = (np.sum(fcst > t1) - np.sum(obs > t1)) / fcst.size
+        mod_bin, obs_bin = _build_binary_sat(
+            fcst, obs, t1, t2, t1o, t1f, percentiles, threshold_mode, tolerance)
+
+        for jj, window in enumerate(windows):
+            num_t[jj], den_t[jj], fss_t[jj] = fss(fcst, obs, window,
+                                                    fcst_cache=mod_bin, obs_cache=obs_bin,
+                                                    threshold_mode=threshold_mode)
+        ovest_val = (np.sum(fcst > t1) - np.sum(obs > t1)) / fcst.size
+    else:
+        # ── missing-data path (per-window valid-point weighting) ──
+        t1o = np.nanpercentile(obs, t1) if percentiles else t1
+        t1f = np.nanpercentile(fcst, t1) if percentiles else t1
+
+        mod_bin, obs_bin = _build_binary_sat_masked(
+            fcst, obs, t1, t2, t1o, t1f, percentiles, threshold_mode, tolerance, mask)
+        invalid_sat = _invalid_sat(mask)
+
+        for jj, window in enumerate(windows):
+            num_t[jj], den_t[jj], fss_t[jj] = fss(fcst, obs, window,
+                                                    fcst_cache=mod_bin, obs_cache=obs_bin,
+                                                    threshold_mode=threshold_mode,
+                                                    invalid_cache=invalid_sat)
+        nvalid = mask.sum()
+        with np.errstate(invalid='ignore'):
+            ovest_val = (np.sum((fcst > t1f) & mask) - np.sum((obs > t1o) & mask)) / nvalid
+
     ovest = np.full(windows.shape, ovest_val)
     return [num_t, den_t, fss_t, ovest]
 
 
 def fss_threshold_eps(fcst, obs, t1, t2, windows, percentiles=False, threshold_mode="over", tolerance=0.1):
     assert fcst.ndim == 3, "eFSS calculation requires Forecast to be a 3D array, but it is {fcst.ndim}D with shape {fcst.shape}"
+    if np.isnan(fcst).any() or np.isnan(obs).any():
+        raise NotImplementedError(
+            "Missing-data (NaN) handling is not implemented for the ensemble (eps) "
+            "FSS path; it is currently supported only for deterministic 2D fields.")
     num_t = np.zeros(windows.shape)
     den_t = np.zeros(windows.shape)
     fss_t = np.zeros(windows.shape)
@@ -146,7 +255,7 @@ def fss_threshold_eps(fcst, obs, t1, t2, windows, percentiles=False, threshold_m
         obs_bin = compute_integral_table(
             ((obs > (1.-tolerance) * t1o) & (obs <= (1.+tolerance)*t1o)).astype(int))
         mod_bin = compute_integral_table(
-            np.mean((fcst > (1.-tolerance) * t1f) & (fcst <= (1.+tolerance)*t1f), axis=0))
+            np.mean((fcst > (1.-tolerance) * t1f) & (fcst <= (1.+tolerance)*t1o), axis=0))
     for jj, window in enumerate(windows):
         num_t[jj], den_t[jj], fss_t[jj] = fss(fcst, obs, window,
                                                 fcst_cache=mod_bin, obs_cache=obs_bin,
@@ -189,7 +298,7 @@ def fss_cumsum_frame(fcst, obs, windows, thresholds, percentiles=False, threshol
     # adjust windows from legacy format:
     windows = [w[0] for w in windows]
     ret_arr = fss_cumsum_parallel(fcst, obs, thresholds, windows, percentiles=percentiles,
-                                  threshold_mode=threshold_mode, tolerance=tolerance, eps=eps)
+                                  threshold_mode="over", tolerance=tolerance, eps=eps)
     if raw:
         return ret_arr[2]
     else:
@@ -211,8 +320,7 @@ def R2(N):
 
 class CWFSS:
     def __init__(self, fcst, obs, nsamples=500, threshold_limits=(0.1, 100.), window_limits=(1, 601),
-                threshold_max_weight=2., window_max_weight=2., threshold_limiting="relative",
-                threshold_mode="over", tolerance=0.1):
+                threshold_max_weight=2., window_max_weight=2., threshold_limiting="relative"):
         self.wmin = int(window_limits[0])
         self.wmax = int(window_limits[1])
         if threshold_limiting == "relative":
@@ -225,8 +333,6 @@ class CWFSS:
             self.tmin = np.percentile(obs, threshold_limits[0])
             self.tmax = np.percentile(obs, threshold_limits[1])
         self.nsamples = nsamples
-        self.threshold_mode = threshold_mode
-        self.tolerance = tolerance
         self.denominators = np.zeros(nsamples)
         self.numerators = np.zeros(nsamples)
         self.values = np.zeros(nsamples)
@@ -235,18 +341,6 @@ class CWFSS:
         self.__calc__(fcst, obs)
         self.__calc_cwfss()
 
-    def _binarise(self, field, t):
-        """Binarise a field at threshold t using the configured threshold_mode."""
-        if self.threshold_mode == "over":
-            return (field > t).astype(int)
-        elif self.threshold_mode == "under":
-            return (field <= t).astype(int)
-        elif self.threshold_mode == "tolerance":
-            return ((field > (1. - self.tolerance) * t) &
-                    (field <= (1. + self.tolerance) * t)).astype(int)
-        else:
-            return (field > t).astype(int)
-
     def __calc__(self, fcst, obs):
         for N in range(self.nsamples):
             x, y = R2(N)
@@ -254,8 +348,8 @@ class CWFSS:
             w = int(self.wmin + x * (self.wmax - self.wmin))
             self.windows[N] = w
             self.thresholds[N] = t
-            obs_bin = compute_integral_table(self._binarise(obs, t))
-            mod_bin = compute_integral_table(self._binarise(fcst, t))
+            obs_bin = compute_integral_table((obs > t).astype(int))
+            mod_bin = compute_integral_table((fcst > t).astype(int))
             ohat = integral_filter(obs_bin, w)
             fhat = integral_filter(mod_bin, w)
             fflat = fhat.ravel()
