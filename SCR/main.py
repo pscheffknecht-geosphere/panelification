@@ -7,6 +7,7 @@ from datetime import timedelta as dt
 from misc import loop_datetime, str2bool
 import argparse
 import logging
+import numbers
 from joblib import Parallel, delayed
 import numpy as np
 import os
@@ -131,9 +132,16 @@ def parse_arguments():
             Subdomains are defined in regions.py for each region""")
     parser.add_argument('--sorting', type=str, default='model',
         help = """Sorting of the panels
-            default ... sort by model as given in the arguments
-            model ..... sort by model name
-            init ...... sort by init time""")
+            default ........ sort by model as given in the arguments
+            model .......... sort by model name
+            init ........... sort by init time
+            <metric> ....... sort by a verification metric, i.e. any numeric
+                             key present in the data_list entries (e.g. mae,
+                             rms, bias, corr, d90, fss_condensed_weighted_rect).
+                             Append ':desc' to reverse the order, e.g.
+                             'corr:desc' or 'fss_condensed_weighted_rect:desc'.
+                             Sorting happens after scores are calculated; the
+                             observation panel always stays first.""")
     parser.add_argument('--draw_subdomain', nargs='?', default=True, const=True, type=str2bool,
         help = "Draw a rectangle to show the verification subdomain")
     parser.add_argument('--case', '-c', type=str, nargs='+', default="austria_2022",
@@ -305,6 +313,29 @@ def print_some_basics(models, start_date, end_date, min_lead, max_lead):
             logging.info(f"Limiting {mod} to lead times between {mil} and {mal} hours before {start_date_str}.")
 
 
+def sort_data_list_by_metric(data_list, sorting):
+    """Sort the simulation panels by a verification metric.
+
+    `sorting` refers to a key present in the data_list entries (e.g. 'mae',
+    'rms', 'corr', 'd90', 'fss_condensed_weighted_rect'). An optional ':desc'
+    suffix reverses the order. The observation (data_list[0]) always stays
+    first. Entries missing the requested key or holding a non-numeric value are
+    kept at the end in their original order. The list is sorted in place.
+    """
+    key, _, direction = sorting.partition(':')
+    reverse = direction.lower() == 'desc'
+    sims = data_list[1::]
+    missing = [s for s in sims if not isinstance(s.get(key), numbers.Number)]
+    if missing:
+        names = ", ".join(s.get('name', '?') for s in missing)
+        logging.warning(f"Cannot sort by '{key}': missing/non-numeric value for {names}. "
+                        "These panels are placed last.")
+    sortable = [s for s in sims if isinstance(s.get(key), numbers.Number)]
+    sortable.sort(key=lambda d: d[key], reverse=reverse)
+    data_list[1::] = sortable + missing
+    return data_list
+
+
 def main():
     parse_arguments()
     if args.intranet_update:
@@ -357,6 +388,10 @@ def main():
                 logging.warning(f"fss_mode was set to {args.fss_calc_mode}, this is ignored unless fss_method is set to legacy!")
             Parallel(n_jobs=args.threads,backend='threading')(delayed(scoring.calc_scores)(sim, data_list[0], args) for ii, sim in enumerate(data_list))
             scoring.rank_scores(data_list)
+            if args.sorting not in ('model', 'default', 'init'):
+                # sort panels by a verification metric (a key in data_list
+                # entries); only possible now that scores have been calculated
+                sort_data_list_by_metric(data_list, args.sorting)
             if args.check_ranking:
                 ranking_check.add_rank_robustness_info(data_list, args)
                 ranking_check.draw_ranking_confidence_plot(data_list, start_date, end_date, subdomain_name, args)
@@ -375,6 +410,7 @@ def main():
                 windows= parameter_settings.get_windows(args)
                 ens_plotter.ens_fss_plot(ensemble_data, windows, levels, subdomain_name, args)
                 ens_plotter.ens_map_panel(ensemble_data, subdomain_name, args)
+                ens_plotter.ens_score_boxplot(ensemble_data, subdomain_name, args)
             plot_start = datetime.now()
             outfilename = panel_plotter.draw_panels(data_list, start_date, end_date, subdomain_name, args) #, mode=args.mode)
             plot_duration = datetime.now() - plot_start
