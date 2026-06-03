@@ -312,7 +312,7 @@ def main():
         prepare_for_web.complete_blank_html()
         prepare_for_web.send_panels_to_mgruppe()
         prepare_for_web.send_html_to_mgruppe()
-        prepare_for_web.clean_old_panels
+        prepare_for_web.clean_old_panels()
         sys.exit(0)
     region = args.region
     min_lead, max_lead = get_lead_limits(args)
