@@ -226,41 +226,99 @@ def fss_threshold(fcst, obs, t1, t2, windows, percentiles=False, threshold_mode=
     return [num_t, den_t, fss_t, ovest]
 
 
+def _eps_prob_masked(fcst, t1f, t2, t2f, threshold_mode, tolerance, member_valid, inv_n):
+    """Per-point ensemble exceedance probability over the *valid* members.
+
+    `member_valid` is the 3D ~isnan mask, `inv_n` the per-point reciprocal of the
+    valid-member count (0 where no member is valid).  NaN members never count as
+    exceeding (NaN comparisons are False) and are excluded from the denominator.
+    """
+    with np.errstate(invalid='ignore'):  # NaN comparisons are intentional -> False
+        if threshold_mode == "over":
+            exceed = (fcst > t1f) & member_valid
+        elif threshold_mode == "under":
+            exceed = (fcst <= t1f) & member_valid
+        elif threshold_mode == "between":
+            exceed = (fcst > t1f) & (fcst <= t2f) & member_valid
+        elif threshold_mode == "tolerance":
+            exceed = (fcst > (1.-tolerance) * t1f) & (fcst <= (1.+tolerance)*t1f) & member_valid
+    return exceed.sum(axis=0) * inv_n
+
+
 def fss_threshold_eps(fcst, obs, t1, t2, windows, percentiles=False, threshold_mode="over", tolerance=0.1):
     assert fcst.ndim == 3, "eFSS calculation requires Forecast to be a 3D array, but it is {fcst.ndim}D with shape {fcst.shape}"
-    if np.isnan(fcst).any() or np.isnan(obs).any():
-        raise NotImplementedError(
-            "Missing-data (NaN) handling is not implemented for the ensemble (eps) "
-            "FSS path; it is currently supported only for deterministic 2D fields.")
     num_t = np.zeros(windows.shape)
     den_t = np.zeros(windows.shape)
     fss_t = np.zeros(windows.shape)
 
-    t1o = np.percentile(obs, t1) if percentiles else t1
-    t1f = np.percentile(fcst, t1) if percentiles else t1
-    if percentiles and t2:
-        t2o = np.percentile(obs, t2) if percentiles else t2
-        t2f = np.percentile(fcst, t2) if percentiles else t2
+    member_valid = ~np.isnan(fcst)            # 3D, valid forecast members
+    obs_valid = ~np.isnan(obs)                # 2D
 
-    if threshold_mode == "over":
-        obs_bin = compute_integral_table((obs > t1o).astype(int))
-        mod_bin = compute_integral_table(np.mean(fcst > t1f, axis=0))
-    elif threshold_mode == "under":
-        obs_bin = compute_integral_table((obs <= t1o).astype(int))
-        mod_bin = compute_integral_table(np.mean(fcst <= t1f, axis=0))
-    elif threshold_mode == "between":
-        obs_bin = compute_integral_table(((obs > t1o) & (obs <= t2o)).astype(int))
-        mod_bin = compute_integral_table(np.mean((fcst > t1f) & (fcst <= t2f), axis=0))
-    elif threshold_mode == "tolerance":
-        obs_bin = compute_integral_table(
-            ((obs > (1.-tolerance) * t1o) & (obs <= (1.+tolerance)*t1o)).astype(int))
-        mod_bin = compute_integral_table(
-            np.mean((fcst > (1.-tolerance) * t1f) & (fcst <= (1.+tolerance)*t1o), axis=0))
-    for jj, window in enumerate(windows):
-        num_t[jj], den_t[jj], fss_t[jj] = fss(fcst, obs, window,
-                                                fcst_cache=mod_bin, obs_cache=obs_bin,
-                                                threshold_mode=threshold_mode)
-    ovest_val = (np.sum(fcst > t1) - np.sum(obs > t1)) / fcst.size
+    if member_valid.all() and obs_valid.all():
+        # ── clean fast path (unchanged) ──
+        t1o = np.percentile(obs, t1) if percentiles else t1
+        t1f = np.percentile(fcst, t1) if percentiles else t1
+        if percentiles and t2:
+            t2o = np.percentile(obs, t2) if percentiles else t2
+            t2f = np.percentile(fcst, t2) if percentiles else t2
+
+        if threshold_mode == "over":
+            obs_bin = compute_integral_table((obs > t1o).astype(int))
+            mod_bin = compute_integral_table(np.mean(fcst > t1f, axis=0))
+        elif threshold_mode == "under":
+            obs_bin = compute_integral_table((obs <= t1o).astype(int))
+            mod_bin = compute_integral_table(np.mean(fcst <= t1f, axis=0))
+        elif threshold_mode == "between":
+            obs_bin = compute_integral_table(((obs > t1o) & (obs <= t2o)).astype(int))
+            mod_bin = compute_integral_table(np.mean((fcst > t1f) & (fcst <= t2f), axis=0))
+        elif threshold_mode == "tolerance":
+            obs_bin = compute_integral_table(
+                ((obs > (1.-tolerance) * t1o) & (obs <= (1.+tolerance)*t1o)).astype(int))
+            mod_bin = compute_integral_table(
+                np.mean((fcst > (1.-tolerance) * t1f) & (fcst <= (1.+tolerance)*t1o), axis=0))
+
+        for jj, window in enumerate(windows):
+            num_t[jj], den_t[jj], fss_t[jj] = fss(fcst, obs, window,
+                                                    fcst_cache=mod_bin, obs_cache=obs_bin,
+                                                    threshold_mode=threshold_mode)
+        ovest_val = (np.sum(fcst > t1) - np.sum(obs > t1)) / fcst.size
+    else:
+        # ── missing-data path (per-window valid-point weighting) ──
+        # A grid point counts when obs is valid AND at least one member is valid.
+        mask = obs_valid & member_valid.any(axis=0)
+        n_valid = member_valid.sum(axis=0)
+        with np.errstate(divide='ignore'):
+            inv_n = np.where(n_valid > 0, 1.0 / n_valid, 0.0)
+
+        t1o = np.nanpercentile(obs, t1) if percentiles else t1
+        t1f = np.nanpercentile(fcst, t1) if percentiles else t1
+        t2o = (np.nanpercentile(obs, t2) if percentiles else t2) if threshold_mode == "between" else None
+        t2f = (np.nanpercentile(fcst, t2) if percentiles else t2) if threshold_mode == "between" else None
+
+        p_f = _eps_prob_masked(fcst, t1f, t2, t2f, threshold_mode, tolerance, member_valid, inv_n)
+        p_f = np.where(mask, p_f, 0.0)        # zero out missing points
+
+        with np.errstate(invalid='ignore'):
+            if threshold_mode == "over":
+                obs_b = (obs > t1o) & mask
+            elif threshold_mode == "under":
+                obs_b = (obs <= t1o) & mask
+            elif threshold_mode == "between":
+                obs_b = (obs > t1o) & (obs <= t2o) & mask
+            elif threshold_mode == "tolerance":
+                obs_b = (obs > (1.-tolerance) * t1o) & (obs <= (1.+tolerance)*t1o) & mask
+
+        mod_bin = compute_integral_table(p_f)
+        obs_bin = compute_integral_table(obs_b.astype(float))
+        invalid_sat = _invalid_sat(mask)
+
+        for jj, window in enumerate(windows):
+            num_t[jj], den_t[jj], fss_t[jj] = fss(fcst, obs, window,
+                                                    fcst_cache=mod_bin, obs_cache=obs_bin,
+                                                    threshold_mode=threshold_mode,
+                                                    invalid_cache=invalid_sat)
+        ovest_val = (p_f.sum() - obs_b.sum()) / mask.sum()
+
     ovest = np.full(windows.shape, ovest_val)
     return [num_t, den_t, fss_t, ovest]
 
