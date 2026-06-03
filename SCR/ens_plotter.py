@@ -115,7 +115,29 @@ def _probe_map_ratio(proj, extent):
 
 # -------------------------- per-ensemble field calc ------------------------
 
-def _compute_fields(ens, show, smooth_size, nbh_size, nbh_size_small, eps):
+def _disk_footprint(diameter):
+    """Boolean disk of the given diameter (grid points), shaped (1, D, D) so
+    it acts per-member in the (member, y, x) stack. Used for circular
+    neighbourhoods in the exceedance-fraction panels."""
+    r = (diameter - 1) / 2.0
+    y, x = np.ogrid[:diameter, :diameter]
+    return ((x - r) ** 2 + (y - r) ** 2 <= r ** 2)[None, :, :]
+
+
+def _nbh_max_filter(exceed, size, shape):
+    """Per-member neighbourhood max of a binary exceedance stack.
+
+    shape='square' uses a separable size x size box (fast); shape='circle'
+    uses a disk of diameter `size` (footprint-based, slower but isotropic)."""
+    if shape == 'circle':
+        return ndimage.maximum_filter(
+            exceed, footprint=_disk_footprint(size), mode='nearest')
+    return ndimage.maximum_filter(
+        exceed, size=(1, size, size), mode='nearest')
+
+
+def _compute_fields(ens, show, smooth_size, nbh_size, nbh_size_small, eps,
+                    nbh_shape='square'):
     """Return (field_map, threshold). field_map: key -> (array, kind)."""
     data = ens.precip_data_resampled
     obs  = ens.obs_data_resampled
@@ -212,10 +234,10 @@ def _compute_fields(ens, show, smooth_size, nbh_size, nbh_size_small, eps):
         threshold = max(step, float(np.ceil(obs_p90 / step) * step))
         exceed = (data > threshold).astype(float)
         if show['nbh']:
-            mhe = ndimage.maximum_filter(exceed, size=(1, nbh_size, nbh_size), mode='nearest')
+            mhe = _nbh_max_filter(exceed, nbh_size, nbh_shape)
             fm['nbh'] = (np.mean(mhe, axis=0), 'nbh')
         if show['nbh_20']:
-            mhe = ndimage.maximum_filter(exceed, size=(1, nbh_size_small, nbh_size_small), mode='nearest')
+            mhe = _nbh_max_filter(exceed, nbh_size_small, nbh_shape)
             fm['nbh_20'] = (np.mean(mhe, axis=0), 'nbh')
     return fm, threshold
 
@@ -310,6 +332,7 @@ def ens_map_panel(ens_data, verification_subdomain, args):
     smooth_size = 50
     nbh_size = 50
     nbh_size_small = 20
+    nbh_shape = 'circle'  # 'square' = N x N box, 'circle' = disk of diameter N
     eps = 1e-6
 
     show = _get_default_show()
@@ -340,13 +363,15 @@ def ens_map_panel(ens_data, verification_subdomain, args):
     mappables = {}
     for ens_idx, ens in enumerate(ens_data):
         row = ens_idx + 1
-        field_map, threshold = _compute_fields(ens, show, smooth_size, nbh_size, nbh_size_small, eps)
+        field_map, threshold = _compute_fields(ens, show, smooth_size, nbh_size,
+            nbh_size_small, eps, nbh_shape=nbh_shape)
         if threshold is not None:
+            reach = "diameter" if nbh_shape == 'circle' else "box"
             for i, s in enumerate(active_specs):
                 if s[0] == 'nbh':
-                    col_titles[i] = f"RR > {threshold:.0f} mm within {nbh_size} km"
+                    col_titles[i] = f"RR > {threshold:.0f} mm within {nbh_size} km ({reach})"
                 elif s[0] == 'nbh_20':
-                    col_titles[i] = f"RR > {threshold:.0f} mm within {nbh_size_small} km"
+                    col_titles[i] = f"RR > {threshold:.0f} mm within {nbh_size_small} km ({reach})"
 
         fields = [field_map[s[0]] for s in active_specs]
         for col, (field, kind) in enumerate(fields):
@@ -556,9 +581,58 @@ def _available_scores(ens_data):
             if any(_member_sample(e, k).size for e in ens_data)]
 
 
-def _draw_single_score(ax, key, label, ens_data, ens_colors, style):
+def _ens_colors(ens_data):
+    """One colour per ensemble, taken from its configuration (all members of
+    an ensemble share it). Falls back to the tab10 cycle if a config has no
+    colour defined."""
+    fallback = plt.colormaps['tab10']
+    colors = []
+    for i, e in enumerate(ens_data):
+        c = getattr(e, 'color', None)
+        colors.append(c if c else fallback(i % fallback.N))
+    return colors
+
+
+def _xtick_labels(ens_data):
+    """Per-box x-tick label. Proper (non-lagged) single-init ensembles are
+    labelled by their init time as DD-HH so several runs of the same
+    configuration (same colour) can be told apart; a proper ensemble whose
+    init times were merged (--merge_ens_init_times) has no single init and is
+    labelled by its configuration name. Lagged ensembles are identified by the
+    legend instead and get no x-tick label."""
+    labels = []
+    for e in ens_data:
+        init = getattr(e, 'init', None)
+        if getattr(e, 'lagged', False):
+            labels.append("")
+        elif getattr(e, 'merged_inits', False) or init is None:
+            labels.append(getattr(e, 'conf', None) or e.name)
+        else:
+            labels.append(init.strftime("%d-%H"))
+    return labels
+
+
+def _legend_handles(ens_data, ens_colors):
+    """One legend entry per configuration. Lagged ensembles are labelled
+    '{conf}_lagged'; proper ensembles get a single entry per configuration
+    (deduplicated), since their individual runs are distinguished by the
+    init-time x-tick labels."""
+    handles, seen = [], set()
+    for e, c in zip(ens_data, ens_colors):
+        conf = getattr(e, 'conf', None) or e.name
+        label = f"{conf}_lagged" if getattr(e, 'lagged', False) else conf
+        if label in seen:
+            continue
+        seen.add(label)
+        handles.append(mpl.patches.Patch(facecolor=c, alpha=0.7, label=label))
+    return handles
+
+
+def _draw_single_score(ax, key, label, ens_data, ens_colors, style,
+                       xticklabels, show_xticklabels):
     """One panel for one score: a box per ensemble, each spanning the
-    ensemble's members. Panel is kept square (aspect ratio ~1)."""
+    ensemble's members. Panel is kept square (aspect ratio ~1). Only the
+    bottom row of the grid shows x-tick labels (all panels share the x-axis)."""
     n_ens = len(ens_data)
     data, positions, colors = [], [], []
     for e_idx, ens in enumerate(ens_data):
@@ -580,7 +654,10 @@ def _draw_single_score(ax, key, label, ens_data, ens_colors, style):
 
     ax.set_title(label)
     ax.set_xticks(np.arange(1, n_ens + 1))
-    ax.set_xticklabels([])
+    if show_xticklabels:
+        ax.set_xticklabels(xticklabels, rotation=90, fontsize=8)
+    else:
+        ax.set_xticklabels([])
     ax.set_xlim(0.5, n_ens + 0.5)
     ax.grid(axis='y', linestyle=':', alpha=0.5)
     if key == 'bias_real':
@@ -610,9 +687,8 @@ def ens_score_boxplot(ens_data, verification_subdomain, args, box_style=None):
     if box_style:
         style.update(box_style)
 
-    ens_names = [e.name for e in ens_data]
-    base_cmap = plt.colormaps['tab10']
-    ens_colors = [base_cmap(i % base_cmap.N) for i in range(n_ens)]
+    ens_colors = _ens_colors(ens_data)
+    xticklabels = _xtick_labels(ens_data)
 
     n_cols = min(3, len(scores))
     n_rows = int(np.ceil(len(scores) / n_cols))
@@ -622,17 +698,28 @@ def ens_score_boxplot(ens_data, verification_subdomain, args, box_style=None):
         dpi=args.dpi, squeeze=False)
     flat_axes = axes.ravel()
 
-    for ax, (key, label) in zip(flat_axes, scores):
-        _draw_single_score(ax, key, label, ens_data, ens_colors, style)
+    # Label x-ticks only on the bottom-most panel of each column (all panels
+    # share the same x-axis). With row-major fill these are the last <=n_cols
+    # panels, which is correct even when the final row is partly empty.
+    label_from = len(scores) - n_cols
+    for i, (key, label) in enumerate(scores):
+        _draw_single_score(flat_axes[i], key, label, ens_data, ens_colors,
+                           style, xticklabels, show_xticklabels=(i >= label_from))
     for ax in flat_axes[len(scores):]:
         ax.axis('off')
 
-    handles = [mpl.patches.Patch(facecolor=c, alpha=0.7, label=n)
-               for c, n in zip(ens_colors, ens_names)]
-    fig.legend(handles=handles, loc='lower center', ncol=min(n_ens, 6),
+    handles = _legend_handles(ens_data, ens_colors)
+    # Cap legend columns to the grid width so it never overruns the figure
+    # sides; it wraps onto extra rows and we reserve bottom space for them.
+    leg_ncol = min(len(handles), n_cols)
+    leg_rows = int(np.ceil(len(handles) / leg_ncol))
+    bottom_margin = 0.03 + 0.025 * leg_rows
+    fig.legend(handles=handles, loc='lower center', ncol=leg_ncol,
                fontsize=9, bbox_to_anchor=(0.5, 0.0))
     fig.suptitle(f"Ensemble member score distributions - {verification_subdomain}")
-    fig.tight_layout(rect=[0, 0.05, 1, 0.95])
+    fig.tight_layout(rect=[0, bottom_margin, 1, 0.95])
+    # extra vertical room between rows so panel titles aren't cramped
+    fig.subplots_adjust(hspace=0.35)
 
     start_date_str = dt.datetime.strptime(args.start, "%Y%m%d%H").strftime("%Y%m%d_%H")
     outfilename = (f"{PAN_DIR_PLOTS}/{args.name}_{args.parameter}_ens_score_boxplot_"
