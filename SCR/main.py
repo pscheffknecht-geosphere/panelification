@@ -240,6 +240,9 @@ def parse_arguments():
         help = 'Save all percentiles to CSV')
     parser.add_argument('--threads', type=int, default=8,
         help = 'Number of threads used for parallel processing (joblib)')
+    parser.add_argument('--opera_qi_threshold', type=float, default=0.8,
+        help = 'Minimum OPERA quality index (0..1) to keep a pixel; lower-QI '
+               'pixels are masked as NaN. Set to 0.0 to mask only QI==0 cells.')
 
     args = parser.parse_args()
     init_logging(args)
