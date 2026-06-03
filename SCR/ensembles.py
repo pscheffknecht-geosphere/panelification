@@ -96,8 +96,29 @@ class Ensemble:
         self.windows = prep_windows(ww, args.fss_calc_mode, nx, ny)
         self.fss_method = args.fss_method
         self.threads = args.threads
+        self.collect_member_scores(data_list)
         self.calc_scores()
         self.save()
+
+    # per-member scalar verification scores, harvested from the member sim
+    # dicts (populated earlier by scoring.calc_scores and, if --check_ranking
+    # was given, ranking_check.add_rank_robustness_info). Used by the
+    # ensemble summary box plots. Scores missing on the members (e.g.
+    # cwfss_robust without --check_ranking) are simply left out.
+    MEMBER_SCORE_KEYS = [
+        'bias_real', 'mae', 'rms', 'corr',
+        'fss_condensed_weighted', 'fss_condensed_weighted_rect',
+        'cwfss_robust',
+    ]
+
+    def collect_member_scores(self, data_list):
+        self.member_scores = {}
+        for key in self.MEMBER_SCORE_KEYS:
+            vals = [data_list[idx].get(key) for idx in self.data_indices]
+            if all(v is not None for v in vals):
+                self.member_scores[key] = np.array(vals, dtype=float)
+        logger.info(f"  Collected member scores for {self.name}: "
+                    f"{list(self.member_scores.keys())}")
         
     def calc_scores(self):
         logger.info(f"  Calculating pFSS for {self.name}")
