@@ -381,15 +381,17 @@ class CWFSS:
                 threshold_max_weight=2., window_max_weight=2., threshold_limiting="relative"):
         self.wmin = int(window_limits[0])
         self.wmax = int(window_limits[1])
+        # NaN-aware: obs (e.g. OPERA) may carry NaN where there is no coverage
         if threshold_limiting == "relative":
-            self.tmin = threshold_limits[0] * obs.max() / 100.
-            self.tmax = threshold_limits[1] * obs.max() / 100.
+            obs_max = np.nanmax(obs)
+            self.tmin = threshold_limits[0] * obs_max / 100.
+            self.tmax = threshold_limits[1] * obs_max / 100.
         elif threshold_limiting == "absolute":
             self.tmin = threshold_limits[0]
             self.tmax = threshold_limits[1]
         elif threshold_limiting == "percentiles":
-            self.tmin = np.percentile(obs, threshold_limits[0])
-            self.tmax = np.percentile(obs, threshold_limits[1])
+            self.tmin = np.nanpercentile(obs, threshold_limits[0])
+            self.tmax = np.nanpercentile(obs, threshold_limits[1])
         self.nsamples = nsamples
         self.denominators = np.zeros(nsamples)
         self.numerators = np.zeros(nsamples)
@@ -400,26 +402,43 @@ class CWFSS:
         self.__calc_cwfss()
 
     def __calc__(self, fcst, obs):
+        # points valid in both fields; missing data path uses per-window weighting
+        mask = _validity_mask(fcst, obs)
+        clean = mask.all()
+        if not clean:
+            invalid_sat = _invalid_sat(mask)
         for N in range(self.nsamples):
             x, y = R2(N)
             t = self.tmin + y * (self.tmax - self.tmin)
             w = int(self.wmin + x * (self.wmax - self.wmin))
             self.windows[N] = w
             self.thresholds[N] = t
-            obs_bin = compute_integral_table((obs > t).astype(int))
-            mod_bin = compute_integral_table((fcst > t).astype(int))
-            ohat = integral_filter(obs_bin, w)
-            fhat = integral_filter(mod_bin, w)
-            fflat = fhat.ravel()
-            oflat = ohat.ravel()
-            n = fflat.size
-            ff = np.dot(fflat, fflat)
-            oo = np.dot(oflat, oflat)
-            fo = np.dot(fflat, oflat)
-            self.numerators[N] = (ff + oo - 2.0 * fo) / n
-            self.denominators[N] = (ff + oo) / n
-            with np.errstate(divide='ignore', invalid='ignore'):
-                self.values[N] = 1. - self.numerators[N] / self.denominators[N]
+            if clean:
+                obs_bin = compute_integral_table((obs > t).astype(int))
+                mod_bin = compute_integral_table((fcst > t).astype(int))
+                ohat = integral_filter(obs_bin, w)
+                fhat = integral_filter(mod_bin, w)
+                fflat = fhat.ravel()
+                oflat = ohat.ravel()
+                n = fflat.size
+                ff = np.dot(fflat, fflat)
+                oo = np.dot(oflat, oflat)
+                fo = np.dot(fflat, oflat)
+                self.numerators[N] = (ff + oo - 2.0 * fo) / n
+                self.denominators[N] = (ff + oo) / n
+                with np.errstate(divide='ignore', invalid='ignore'):
+                    self.values[N] = 1. - self.numerators[N] / self.denominators[N]
+            else:
+                with np.errstate(invalid='ignore'):  # NaN comparisons -> False
+                    obs_bin = compute_integral_table(((obs > t) & mask).astype(float))
+                    mod_bin = compute_integral_table(((fcst > t) & mask).astype(float))
+                Sf = integral_filter(mod_bin, w)
+                So = integral_filter(obs_bin, w)
+                ww = w // 2
+                area = (2.0 * ww + 1.0) ** 2
+                C = area - integral_filter(invalid_sat, w)
+                self.numerators[N], self.denominators[N], self.values[N] = \
+                    _fss_score_masked(Sf, So, C)
 
     def __calc_cwfss(self):
         t_factor = (self.tmax + self.thresholds) / self.tmax
