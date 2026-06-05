@@ -422,10 +422,28 @@ def calc_scores(sim, obs, args):
         sim['fss_thresholds'] = thresholds
         sim['fss_thresholds_percs'] = thresholds_percs
         sim['fssf_thresholds'] = thresholds + thresholds_percs
-        bias = np.mean(sim["precip_data_resampled"]-obs["precip_data_resampled"])
-        mae = np.mean(np.abs(sim["precip_data_resampled"]-obs["precip_data_resampled"]))
-        rms = np.sqrt(np.mean(np.square(sim["precip_data_resampled"]-obs["precip_data_resampled"])))
-        corr = np.corrcoef(sim["precip_data_resampled"].flatten(),obs["precip_data_resampled"].flatten())[0,1]
+        # NaN-aware over jointly-valid pixels: observation fields (e.g. OPERA)
+        # may carry NaN where there is no radar coverage. Restrict every
+        # point statistic to pixels valid in *both* fields so a single NaN
+        # does not poison the whole score.
+        _mod = sim["precip_data_resampled"]
+        _obs = obs["precip_data_resampled"]
+        valid = ~(np.isnan(_mod) | np.isnan(_obs))
+        n_valid = int(valid.sum())
+        if n_valid < 2:
+            logger.warning("%s: fewer than 2 jointly-valid pixels vs obs, "
+                           "point scores set to NaN", sim['name'])
+            bias = mae = rms = corr = np.nan
+        else:
+            _diff = _mod[valid] - _obs[valid]
+            bias = np.mean(_diff)
+            mae = np.mean(np.abs(_diff))
+            rms = np.sqrt(np.mean(np.square(_diff)))
+            corr = np.corrcoef(_mod[valid], _obs[valid])[0, 1]
+            if n_valid < _mod.size:
+                logger.debug("%s: point scores over %d/%d valid pixels (%.1f%% masked)",
+                             sim['name'], n_valid, _mod.size,
+                             100.0 * (1.0 - n_valid / _mod.size))
         threshold_mode = getattr(args, 'fss_threshold_mode', 'over')
         tolerance = getattr(args, 'fss_tolerance', 0.1)
         fss_num, fss_den, fss, ovest = fss_calc_func(
@@ -482,16 +500,31 @@ def fss_d90(rrm, rro, args):
     windows = [3, 5, 7, 11, 21, 31, 41, 51, 61, 81, 101, 121, 141, 181, 251, 351, 501, 701]
     windows_2d = prep_windows(windows, args.mode, *rrm.shape)
     levels = [0.5]
-    p90_obs = np.percentile(np.copy(rro), 90)
-    p90_mod = np.percentile(np.copy(rrm), 90)
+    # NaN-aware: observation fields (e.g. OPERA) may contain NaN where there is
+    # no radar coverage. A plain np.percentile would return NaN and silently
+    # turn the binary intense field into all-zeros. Use nanpercentile and treat
+    # unobserved pixels as non-events in both fields so they add no displacement.
+    obs_unobserved = np.isnan(rro)
+    if obs_unobserved.all() or np.isnan(rrm).all():
+        logger.warning("Observation or model field is entirely NaN, returning no d90!")
+        return np.nan
+    p90_obs = np.nanpercentile(np.copy(rro), 90)
+    p90_mod = np.nanpercentile(np.copy(rrm), 90)
+    # comparisons against NaN yield False, so NaN pixels become 0 (non-event)
     _rro = np.where(rro >= p90_obs, 1, 0)
     _rrm = np.where(rrm >= p90_mod, 1, 0) # circumvent numpy issue #21524
+    # do not credit/penalise displacement where the obs is unobserved
+    _rrm[obs_unobserved] = 0
     if np.sum(_rrm) == 0:
         logger.warning("No precipitation in model array, returning no d90!")
         return np.nan
+    if np.sum(_rro) == 0:
+        logger.warning("No intense precipitation in observation array "
+                       "(after NaN masking), returning no d90!")
+        return np.nan
     # if p90 threshold equals the field minimum, the percentile cannot
     # distinguish intense from non-intense pixels (e.g. constant or all-zero field)
-    if p90_mod <= np.min(rrm):
+    if p90_mod <= np.nanmin(rrm):
         logger.warning("Model p90 threshold (%.4f) equals field minimum — "
                         "cannot identify intense precipitation area, returning no d90!", p90_mod)
         return np.nan
