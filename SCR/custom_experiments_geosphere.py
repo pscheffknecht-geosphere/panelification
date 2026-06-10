@@ -103,6 +103,17 @@ experiment_configurations = {
         "path_template"    : "/samos_arch/FCruc/prec/%Y/%m/%d/FC_samosRUC_prec_%Y%m%d%H_lt%LLLh.PERS.RUC.CLAEF.AROME.DET.ENS.GFS.ICON.MU.grd",
         "color"            : "teal"
         },
+    "samos-RegAust": {
+        "web_form_entry"   : True,
+        "init_interval"    : 3,
+        "output_interval"  : 1,
+        "max_leadtime"     : 96,
+        "accumulated"      : False,
+        "unit_factor"      : 1,
+        # "path_template"  : "/samos_arch/FC/prec/2026/05/26/FC_prec_2026052606_lt084h.PERS.CLAEF.DET.ENS.GFS.ICON.MU.grd",
+        "path_template"    : "/samos_arch/FC/prec/%Y/%m/%d/FC_prec_%Y%m%d%H_lt%LLLh.PERS.CLAEF.DET.ENS.GFS.ICON.MU.grd",
+        "color"            : "darkslategray"
+        },
     "aromeesuite": {
         "web_form_entry"   : True,
         "base_experiment"  : "arome",
@@ -263,6 +274,7 @@ experiment_configurations = {
         "output_interval"  : 1,
         "init_interval"    : 6,
         "unit_factor"      : 1.,
+        "max_leadtime"     : 60,
         "accumulated"      : True,
         "base_experiment"  : "arome",
         "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_%H+%LLLL.grb",
@@ -278,6 +290,40 @@ experiment_configurations = {
         "path_template"    : ["/ment_arch2/pscheff/arch_precip_test/%Y%m%d/claef_1k_esuite_%H+%LLLL.grb2",
                               "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_esuite_%H+%LLLL.grb2"],
         "color"            : "royalblue"
+    },
+    "arome_emu_1k": {
+        "web_form_entry"   : True,
+        "base_experiment"  : "claef1k-control",
+        "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/arome_emu_1k_%H+%LLLL.grb"],
+        "color"            : "slateblue"
+    },
+    "claef1k-backup": {
+        "web_form_entry"   : True,
+        "init_interval"    : 3,
+        "base_experiment"  : "claef1k-control",
+        "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_backup_%H+%LLLL.grb2"],
+        "color"            : "royalblue"
+    },
+    "claef1k-slhd-slhdepsh": {
+        "web_form_entry"   : True,
+        "init_interval"    : 24,
+        "base_experiment"  : "claef1k-control",
+        "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_slhd_%H+%LLLL:00.grb2"],
+        "color"            : "crimson"
+    },
+    "claef1k-slhd-fhnolqm": {
+        "web_form_entry"   : True,
+        "init_interval"    : 24,
+        "base_experiment"  : "claef1k-control",
+        "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_slhd_fhnoqlm_%H+%LLLL:00.grb2"],
+        "color"            : "mediumvioletred"
+    },
+    "claef1k-slhd-fallhydro": {
+        "web_form_entry"   : True,
+        "init_interval"    : 24,
+        "base_experiment"  : "claef1k-control",
+        "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_slhd_nofhqlm_%H+%LLLL:00.grb2"],
+        "color"            : "hotpink"
     },
     "claef1k-mean": {
         "web_form_entry"   : True,
