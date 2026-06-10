@@ -1,3 +1,4 @@
+import re
 import numpy as np
 import fss_FFT
 import fss_SAT
@@ -96,8 +97,60 @@ class Ensemble:
         self.windows = prep_windows(ww, args.fss_calc_mode, nx, ny)
         self.fss_method = args.fss_method
         self.threads = args.threads
+        self.collect_member_scores(data_list)
+        self.collect_metadata(data_list)
         self.calc_scores()
         self.save()
+
+    def collect_metadata(self, data_list):
+        """Config-derived metadata used for plotting (all members of an
+        ensemble share the same configuration, hence the same colour):
+
+          * color   - the configuration colour from custom_experiments*.py
+          * lagged  - True for a lagged ensemble (name ends in '_lagged',
+                      set in io_main.ModelConfiguration)
+          * conf    - the base configuration name (for legend labels); the
+                      experiment name for lagged ensembles, the ensemble name
+                      with any trailing _YYYYMMDD_HH init suffix stripped for
+                      proper ensembles
+          * init    - representative member init time (the common init for a
+                      proper ensemble at a single init time)
+          * merged_inits - True when members span several init times merged
+                      into one ensemble (--merge_ens_init_times); such a
+                      proper ensemble has no single init time to label by"""
+        ref = data_list[self.data_indices[0]]
+        self.color = ref.get('color')
+        self.lagged = bool(self.name) and self.name.endswith('_lagged')
+        if self.lagged:
+            self.conf = ref.get('conf') or self.name[:-len('_lagged')]
+        else:
+            self.conf = re.sub(r'_\d{8}_\d{2}$', '', self.name)
+        inits = sorted({data_list[idx].get('init') for idx in self.data_indices}
+                       - {None})
+        self.init = inits[0] if inits else None
+        self.merged_inits = len(inits) > 1
+        logger.info(f"  {self.name}: color={self.color}, lagged={self.lagged}, "
+                    f"conf={self.conf}, init={self.init}, merged={self.merged_inits}")
+
+    # per-member scalar verification scores, harvested from the member sim
+    # dicts (populated earlier by scoring.calc_scores and, if --check_ranking
+    # was given, ranking_check.add_rank_robustness_info). Used by the
+    # ensemble summary box plots. Scores missing on the members (e.g.
+    # cwfss_robust without --check_ranking) are simply left out.
+    MEMBER_SCORE_KEYS = [
+        'bias_real', 'mae', 'rms', 'corr',
+        'fss_condensed_weighted', 'fss_condensed_weighted_rect',
+        'cwfss_robust',
+    ]
+
+    def collect_member_scores(self, data_list):
+        self.member_scores = {}
+        for key in self.MEMBER_SCORE_KEYS:
+            vals = [data_list[idx].get(key) for idx in self.data_indices]
+            if all(v is not None for v in vals):
+                self.member_scores[key] = np.array(vals, dtype=float)
+        logger.info(f"  Collected member scores for {self.name}: "
+                    f"{list(self.member_scores.keys())}")
         
     def calc_scores(self):
         logger.info(f"  Calculating pFSS for {self.name}")
