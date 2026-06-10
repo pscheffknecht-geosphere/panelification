@@ -162,7 +162,8 @@ def read_INCAPlus_ANA(data_list, start_date, end_date, args):
     rr_tmp = None
     while tt <= end_date:
         dat_str = tt.strftime("%Y%m%d%H")
-        inca_file_path = f"/incaplus_arch1/iplus/out/INCAPlus_1h/inca/{tt.year}/{tt.month:02d}/{tt.day:02d}/INCAPlus_1h_RR_15m_ANA_{dat_str}00.nc"
+        inca_file_path = f"/incaplus_arch1/iplus/out/INCAPlus_1h/inca/{tt.year}/{tt.month:02d}/{tt.day:02d}/INCAPlus_1h_RR_ANA_{dat_str}00.nc"
+        # inca_file_path = f"/incaplus_arch1/iplus/out/INCAPlus_1h/inca/{tt.year}/{tt.month:02d}/{tt.day:02d}/INCAPlus_1h_RR_15m_ANA_{dat_str}00.nc"
         if os.path.isfile(inca_file_path):
             logger.info(f"reading INCAPlus from {inca_file_path}")
             data_tmp = Dataset(inca_file_path, "r")
