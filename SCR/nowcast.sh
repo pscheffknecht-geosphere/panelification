@@ -29,6 +29,7 @@ else
   -l                    6 15    6 15          6 15            6 15         6 15           6 15              6 15             6 15            6 15           6 15             0 3        6 12      6 12     3 9  \
   --draw \
   --fix_nans \
+  --threads 2 \
   --rank_score_time_series bias mae corr fss_condensed_weighted 
 /ment_arch/pscheff/miniconda3-py3.8/envs/panelification_web/bin/python main.py \
   -n nowcasting \
@@ -40,6 +41,7 @@ else
   -l                    7 16    7 16          7 16            7 16         7 16           7 16              7 16             7 16            7 16           7 16             1 4        7 13      7 13     4 10 \
   --draw \
   --fix_nans \
+  --threads 2 \
   --rank_score_time_series bias mae corr fss_condensed_weighted  
 /ment_arch/pscheff/miniconda3-py3.8/envs/panelification_web/bin/python main.py \
   -n nowcasting \
@@ -51,6 +53,7 @@ else
   -l                    8 17    8 17          8 17            8 17         8 17           8 17              7 16             8 17            8 17           8 17             2 5        8 14      8 14     5 11 \
   --draw \
   --fix_nans \
+  --threads 2 \
   --rank_score_time_series bias mae corr fss_condensed_weighted  
 /ment_arch/pscheff/miniconda3-py3.8/envs/panelification_web/bin/python main.py \
   -n nowcasting \
@@ -62,6 +65,7 @@ else
   -l                    9 18    9 18          9 18            9 18         9 18           9 18              7 16             9 18            9 18           9 18             3 6        9 15      9 15     6 12 \
   --draw \
   --fix_nans \
+  --threads 2 \
   --rank_score_time_series bias mae corr fss_condensed_weighted  
 # UPDATE INTRANET GRAPHICS AFTER LAST PANELS FOR THE DAY ARE DONE
 /ment_arch/pscheff/miniconda3-py3.8/envs/panelification_web/bin/python main.py --intranet_update --logfile ../LOG/send2intranet.log
