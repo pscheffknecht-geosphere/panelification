@@ -325,6 +325,27 @@ experiment_configurations = {
         "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_slhd_nofhqlm_%H+%LLLL:00.grb2"],
         "color"            : "hotpink"
     },
+    "claef_1k_slhd_nolqm": {
+        "web_form_entry"   : True,
+        "init_interval"    : 24,
+        "base_experiment"  : "claef1k-control",
+        "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_slhd_%H+%LLLL:00.grb2"],
+        "color"            : "crimson"
+    },
+    "claef_1k_slhd_nolqm_slhdd": {
+        "web_form_entry"   : True,
+        "init_interval"    : 24,
+        "base_experiment"  : "claef1k-control",
+        "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_slhd_fhnoqlm_%H+%LLLL:00.grb2"],
+        "color"            : "mediumvioletred"
+    },
+    "claef_1k_preop_lshdd": {
+        "web_form_entry"   : True,
+        "init_interval"    : 24,
+        "base_experiment"  : "claef1k-control",
+        "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_slhd_nofhqlm_%H+%LLLL:00.grb2"],
+        "color"            : "hotpink"
+    },
     "claef1k-mean": {
         "web_form_entry"   : True,
         "base_experiment"  : "claef1k-control",
