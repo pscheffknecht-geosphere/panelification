@@ -149,6 +149,112 @@ def weighted_fss_condensed(sim, levels):
     return score, score_arr
 
 
+def voronoi_widths_1d(values, clip_min=0.0):
+    """Per-point Voronoi cell widths for a 1-D non-uniform grid, in raw units.
+
+    Interior cells use the half-distance to nearest neighbours. The first and
+    last cells are extrapolated by half the adjacent interval (i.e. the cell
+    is symmetric around its grid point). When `clip_min` is not None, the
+    lower edge is clamped to it — used here to prevent negative precipitation
+    thresholds or sub-zero window sizes from extending the first cell below
+    a physical floor.
+    """
+    v = np.asarray(values, dtype=float)
+    n = len(v)
+    if n == 1:
+        return np.array([1.0])
+    midpoints = 0.5 * (v[:-1] + v[1:])
+    left = v[0] - 0.5 * (v[1] - v[0])
+    if clip_min is not None:
+        left = max(clip_min, left)
+    right = v[-1] + 0.5 * (v[-1] - v[-2])
+    edges = np.concatenate([[left], midpoints, [right]])
+    return np.diff(edges)
+
+
+def weighted_fss_condensed_rect(sim, obs, levels):
+    """Linear-Voronoi (rectangle) area-weighted condensed FSS on the fixed
+    `(threshold x window)` grid, normalised to [0, 1], restricted to the
+    obs-supported integration domain.
+
+    Computes a weighted mean of the clamped-and-rescaled FSS values, with
+    weights = `cell_area * l_fac * w_fac`. The cell area is the Voronoi
+    cell area of the grid point on the raw `(t, w)` plane (Cartesian
+    grid, so this reduces to the product of per-axis half-distances to
+    nearest neighbours; corner cells extrapolated by half the adjacent
+    interval, threshold lower edge clipped at 0).
+
+    **N1 rule (obs-supported domain):** any threshold row for which the
+    observation has no grid point above the threshold
+    (`(obs > t).sum() == 0`) is skipped from both numerator and
+    denominator. FSS is ill-defined as a spatial-skill metric when the
+    observed binary field is empty, and including such cells with their
+    full weight would conflate spatial-skill signal with false-alarm
+    signal (especially severe at heavy thresholds where the cell
+    weights are largest). False-alarm signal belongs in `bias` or a FAR
+    count, not in cwFSS.
+
+    Linear (raw-unit) Voronoi is used on both axes for consistency with
+    the uniform R2 sampler in `CWFSS`: both then estimate the same
+    functional over the obs-supported range.
+
+    The result is dimensionless in [0, 1] and is directly comparable
+    to the `CWFSS.cwfss` value produced by the quasi-random sampler in
+    `ranking_check` (provided the R2 sampler is run on the same
+    integration range). It is **not** on the same numerical scale as
+    the legacy `fss_condensed_weighted` (which is an un-normalised
+    sum). The companion `score_arr` returned here holds the
+    un-normalised per-cell contributions for diagnostic use (zero for
+    skipped cells).
+    """
+    obs_field = obs['precip_data_resampled']
+
+    score_arr = np.zeros(sim['fssf'].values.shape)
+    wins = np.asarray([np.max(w) for w in sim['fss_windows']], dtype=float)
+    lvls = np.asarray(levels, dtype=float)
+
+    dl = voronoi_widths_1d(lvls, clip_min=0.0)
+    dw = voronoi_widths_1d(wins, clip_min=0.0)
+    cell_area = np.outer(dl, dw)
+
+    weighted_sum = 0.0
+    weight_sum = 0.0
+    skipped_thresholds = []
+
+    max_l = np.max(levels[0:9])
+    max_w = wins.max()
+    for ii, t in enumerate(sim['fss_thresholds']):
+        l = levels[ii]
+        if (obs_field > l).sum() == 0:
+            skipped_thresholds.append(l)
+            continue
+        a_ = sim['fss'].values[ii, :]
+        a = copy.copy(a_)
+        if t == 1.:
+            a = np.where(a == 1., 1., 0.)
+        else:
+            s = 1. / (1. - 0.5)
+            a = s * (a - 1) + 1
+        a = clamp_array(a)
+        for jj, w in enumerate(sim['fss_windows']):
+            w = np.max(w)
+            if not np.isnan(a[jj]):
+                l_fac = (max_l + l) / max_l
+                w_fac = 2. * max_w / (max_w + w)
+                weight = cell_area[ii, jj] * l_fac * w_fac
+                weighted_sum += weight * a[jj]
+                weight_sum += weight
+                score_arr[ii, jj] = weight * a[jj]
+
+    if skipped_thresholds:
+        logger.debug(
+            f"{sim['name']}: N1 skipped {len(skipped_thresholds)} thresholds "
+            f"(obs has no pixels above): {skipped_thresholds}")
+
+    cwfss = weighted_sum / weight_sum if weight_sum > 0.0 else np.nan
+    return cwfss, score_arr
+
+
 def rank_fss_all(data_list):
     """
     Add some keys to the sim dicts which indicate the
@@ -294,6 +400,7 @@ def calc_scores(sim, obs, args):
         sim['fss_success_rate_rel'] = -999
         sim['fss_condensed'] = -999
         sim['fss_condensed_weighted'] = -999
+        sim['fss_condensed_weighted_rect'] = -999
         sim['fss'] = None
         sim['fssp'] = None
         sim['fss_num'] = None
@@ -349,6 +456,10 @@ def calc_scores(sim, obs, args):
         sim['fss_overestimated'] = ovestf
         sim['fss_condensed'], sim['fss_normalized_arr'] = fss_condensed(sim)
         sim['fss_condensed_weighted'], sim['fss_normalized_weighted_arr'] = weighted_fss_condensed(sim, levels)
+        sim['fss_condensed_weighted_rect'], sim['fss_normalized_weighted_rect_arr'] = weighted_fss_condensed_rect(sim, obs, levels)
+        logger.info(
+            f"{sim['name']}: fss_condensed_weighted = {sim['fss_condensed_weighted']:.4f} (sum), "
+            f"fss_condensed_weighted_rect = {sim['fss_condensed_weighted_rect']:.4f} (cwFSS in [0, 1])")
         sim['d90'] = fss_d90(sim["precip_data_resampled"], obs["precip_data_resampled"], args)
     return(sim)
 
