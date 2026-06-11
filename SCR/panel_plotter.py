@@ -370,7 +370,7 @@ def draw_single_figure(sim, obs, r, jj, levels, cmap, norm, verification_subdoma
                     norm=norm, shading='auto')
     ax.set_facecolor("silver")
     if args.draw_p90:
-        p90 = np.percentile(np.copy(sim['precip_data_resampled']), 90) # circumvent numpy bug #21524
+        p90 = np.nanpercentile(np.copy(sim['precip_data_resampled']), 90) # circumvent numpy bug #21524
         sim['rr90'] = np.where(sim['precip_data_resampled'] > p90, 1, 0)
         sim['p90_color'] = 'black' if p90 <= 10. else 'white'
         mpl.rcParams['hatch.linewidth']=0.5
