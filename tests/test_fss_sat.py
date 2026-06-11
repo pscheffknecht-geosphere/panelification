@@ -375,3 +375,214 @@ class TestCWFSS:
         # Both should produce valid scores, but they should differ
         assert 0 <= cwfss_over.cwfss <= 1
         assert 0 <= cwfss_tol.cwfss <= 1
+
+
+# =====================================================================
+# missing-data (NaN) handling
+# =====================================================================
+
+class TestValidityMask:
+    """_validity_mask / _invalid_sat — the building blocks of the NaN path."""
+
+    def test_mask_marks_either_nan(self):
+        fcst = np.array([[1.0, 2.0], [np.nan, 4.0]])
+        obs = np.array([[1.0, np.nan], [3.0, 4.0]])
+        mask = fss_SAT._validity_mask(fcst, obs)
+        # a point is valid only when *both* fields are finite there
+        expected = np.array([[True, False], [False, True]])
+        np.testing.assert_array_equal(mask, expected)
+
+    def test_mask_all_true_when_clean(self, small_fields):
+        obs, fcst = small_fields
+        assert fss_SAT._validity_mask(fcst, obs).all()
+
+    def test_invalid_sat_counts_missing_points(self):
+        # corner of the integral table equals the total number of invalid points
+        mask = np.array([[True, False], [False, True]])
+        inv = fss_SAT._invalid_sat(mask)
+        assert inv[-1, -1] == 2.0
+        # no missing points -> all zeros
+        inv_clean = fss_SAT._invalid_sat(np.ones((4, 4), dtype=bool))
+        assert inv_clean[-1, -1] == 0.0
+
+
+class TestFssScoreMasked:
+    """_fss_score_masked — the weighted FSS over per-window valid counts."""
+
+    def test_perfect_match_scores_one(self):
+        Sf = np.array([[1.0, 2.0], [3.0, 4.0]])
+        So = Sf.copy()
+        C = np.full((2, 2), 9.0)
+        num, den, score = fss_SAT._fss_score_masked(Sf, So, C)
+        assert num == 0.0
+        assert score == pytest.approx(1.0)
+
+    def test_all_invalid_returns_nan(self):
+        Sf = np.zeros((3, 3))
+        So = np.zeros((3, 3))
+        C = np.zeros((3, 3))  # no valid points anywhere
+        num, den, score = fss_SAT._fss_score_masked(Sf, So, C)
+        assert num == 0.0 and den == 0.0
+        assert np.isnan(score)
+
+    def test_reduces_to_clean_when_no_missing(self):
+        """With a constant valid count C == area, the masked score must match
+        the clean _fss_score exactly (the documented reduction property)."""
+        rng = np.random.default_rng(0)
+        fhat = rng.random((8, 8)) * 5.0
+        ohat = rng.random((8, 8)) * 5.0
+        area = 9.0  # e.g. a 3x3 window
+        C = np.full_like(fhat, area)
+        _, _, score_masked = fss_SAT._fss_score_masked(fhat, ohat, C)
+        _, _, score_clean = fss_SAT._fss_score(fhat, ohat, 1.0 / area ** 2)
+        assert score_masked == pytest.approx(score_clean)
+
+
+class TestBuildBinarySatMasked:
+    """_build_binary_sat_masked — NaN points must be zeroed out of the sums."""
+
+    def _make_fields(self):
+        obs = np.array([[0, 5, 10], [15, 20, 25], [30, 35, 40]], dtype=float)
+        fcst = obs * 1.5
+        obs[0, 0] = np.nan          # one missing point
+        return fcst, obs
+
+    def test_over_mode_zeros_missing(self):
+        fcst, obs = self._make_fields()
+        mask = fss_SAT._validity_mask(fcst, obs)
+        t1o, t1f = 10.0, 15.0
+        mod_bin, obs_bin = fss_SAT._build_binary_sat_masked(
+            fcst, obs, 10, None, t1o, t1f, False, "over", 0.1, mask)
+        expected_obs = fss_SAT.compute_integral_table(((obs > t1o) & mask).astype(float))
+        expected_mod = fss_SAT.compute_integral_table(((fcst > t1f) & mask).astype(float))
+        np.testing.assert_array_equal(obs_bin, expected_obs)
+        np.testing.assert_array_equal(mod_bin, expected_mod)
+
+    def test_tolerance_uses_forecast_threshold(self):
+        """Regression guard: the forecast upper bound must use t1f, not t1o."""
+        fcst, obs = self._make_fields()
+        mask = fss_SAT._validity_mask(fcst, obs)
+        t1o, t1f, tol = 20.0, 30.0, 0.2
+        mod_bin, _ = fss_SAT._build_binary_sat_masked(
+            fcst, obs, 20, None, t1o, t1f, False, "tolerance", tol, mask)
+        expected_mod = fss_SAT.compute_integral_table(
+            (((fcst > 0.8 * t1f) & (fcst <= 1.2 * t1f)) & mask).astype(float))
+        np.testing.assert_array_equal(mod_bin, expected_mod)
+
+
+class TestFssThresholdMissingData:
+    """fss_threshold deterministic path with NaN in the inputs."""
+
+    def test_perfect_match_with_shared_nan_is_one(self, identical_fields):
+        obs, fcst = identical_fields
+        obs = obs.copy()
+        fcst = fcst.copy()
+        obs[10:20, 10:20] = np.nan      # same points missing in both fields
+        fcst[10:20, 10:20] = np.nan
+        windows = np.array([3, 5, 11])
+        result = fss_SAT.fss_threshold(fcst, obs, 5.0, None, windows)
+        for val in result[2]:
+            assert val == pytest.approx(1.0) or np.isnan(val)
+
+    def test_single_nan_close_to_clean(self, small_fields):
+        """One masked pixel out of 4096 should barely change the score, i.e. the
+        masked path approximately reduces to the clean path."""
+        obs, fcst = small_fields
+        windows = np.array([5, 11])
+        clean = fss_SAT.fss_threshold(fcst, obs, 5.0, None, windows)[2]
+        obs_nan = obs.copy()
+        obs_nan[0, 0] = np.nan          # forces the missing-data path
+        masked = fss_SAT.fss_threshold(fcst, obs_nan, 5.0, None, windows)[2]
+        np.testing.assert_allclose(clean, masked, atol=2e-3)
+
+    def test_all_nan_obs_yields_nan(self, small_fields):
+        obs, fcst = small_fields
+        obs_nan = np.full_like(obs, np.nan)
+        windows = np.array([5, 11])
+        result = fss_SAT.fss_threshold(fcst, obs_nan, 5.0, None, windows)
+        assert np.isnan(result[2]).all()
+
+    def test_displaced_scores_in_unit_range(self, small_fields):
+        obs, fcst = small_fields
+        obs = obs.copy()
+        fcst = fcst.copy()
+        obs[:8, :8] = np.nan            # a corner with no coverage
+        fcst[40:48, 40:48] = np.nan     # missing elsewhere in the forecast
+        windows = np.array([5, 11, 21])
+        fss_vals = fss_SAT.fss_threshold(fcst, obs, 5.0, None, windows)[2]
+        for val in fss_vals:
+            assert np.isnan(val) or 0.0 <= val <= 1.0
+
+
+class TestFssThresholdEpsMissingData:
+    """fss_threshold_eps (ensemble) path — NaN members used to raise."""
+
+    def _stack(self, field, n=3):
+        return np.repeat(field[None, :, :], n, axis=0)
+
+    def test_nan_member_no_longer_raises(self, small_fields):
+        obs, fcst = small_fields
+        ens = self._stack(fcst, 3).copy()
+        ens[0, 5:15, 5:15] = np.nan     # one member partially missing
+        windows = np.array([5, 11])
+        # previously raised NotImplementedError; now it must complete
+        result = fss_SAT.fss_threshold_eps(ens, obs, 5.0, None, windows)
+        assert len(result) == 4
+        for val in result[2]:
+            assert np.isnan(val) or 0.0 <= val <= 1.0
+
+    def test_perfect_ensemble_with_nan_obs(self, identical_fields):
+        obs, fcst = identical_fields
+        obs = obs.copy()
+        obs[20:30, 20:30] = np.nan
+        ens = self._stack(fcst, 3)        # every member equals the (clean) obs
+        windows = np.array([5, 11])
+        fss_vals = fss_SAT.fss_threshold_eps(ens, obs, 5.0, None, windows)[2]
+        for val in fss_vals:
+            assert val == pytest.approx(1.0) or np.isnan(val)
+
+    def test_clean_ensemble_still_works(self, small_fields):
+        obs, fcst = small_fields
+        ens = self._stack(fcst, 4)
+        windows = np.array([5, 11])
+        fss_vals = fss_SAT.fss_threshold_eps(ens, obs, 5.0, None, windows)[2]
+        for val in fss_vals:
+            assert np.isnan(val) or 0.0 <= val <= 1.0
+
+
+class TestCWFSSMissingData:
+    """CWFSS with NaN observations (e.g. OPERA coverage gaps)."""
+
+    def _add_gap(self, field):
+        out = field.copy()
+        out[:10, :10] = np.nan
+        return out
+
+    def test_runs_with_nan_obs(self, small_fields):
+        obs, fcst = small_fields
+        obs_gap = self._add_gap(obs)
+        cwfss = fss_SAT.CWFSS(fcst, obs_gap, nsamples=50,
+                               threshold_limiting="relative",
+                               window_limits=[3, 30])
+        assert np.isfinite(cwfss.cwfss)
+        assert 0.0 <= cwfss.cwfss <= 1.0
+
+    def test_perfect_match_with_nan_high_score(self, identical_fields):
+        obs, fcst = identical_fields
+        obs_gap = self._add_gap(obs)
+        fcst_gap = self._add_gap(fcst)
+        cwfss = fss_SAT.CWFSS(fcst_gap, obs_gap, nsamples=50,
+                               threshold_limiting="relative",
+                               window_limits=[3, 30])
+        assert cwfss.cwfss > 0.9
+
+    def test_percentile_limiting_with_nan(self, small_fields):
+        """threshold_limiting='percentiles' must use nanpercentile internally."""
+        obs, fcst = small_fields
+        obs_gap = self._add_gap(obs)
+        cwfss = fss_SAT.CWFSS(fcst, obs_gap, nsamples=50,
+                               threshold_limiting="percentiles",
+                               threshold_limits=(10., 99.),
+                               window_limits=[3, 30])
+        assert np.isfinite(cwfss.tmin) and np.isfinite(cwfss.tmax)
+        assert np.isfinite(cwfss.cwfss)
