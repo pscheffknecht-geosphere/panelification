@@ -616,7 +616,6 @@ def get_sims_and_file_list(data_list, args):
             if mod.valid:
                 lon, lat, mod_field_data = mod.get_data(args.parameter)
                 sim = {
-                    "case": args.case[0],
                     "exp": model_name,
                     "conf": model_name,
                     "type": "model",
