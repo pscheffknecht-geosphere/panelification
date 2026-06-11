@@ -115,8 +115,9 @@ def parse_arguments():
         help = 'parameter to verify/plot')
     parser.add_argument('--verif_dataset', type=str, default = 'INCAPlus',
         help = """select precip data set:
-            INCA ... INCA analysis over Austria
-            OPERA .. OPERA analysis over Europ (MUST be in ../OBS!!)""")
+            INCA ........... INCA analysis over Austria
+            INCA_Slovenia .. 5-minute INCA analysis over Slovenia (in ../OBS/INCA_Slovenia)
+            OPERA .......... OPERA analysis over Europ (MUST be in ../OBS!!)""")
     parser.add_argument('--region', type=str, default='Austria',
         help = 'select region for plot')
     parser.add_argument('--name', '-n', type=str, default='',
@@ -446,6 +447,8 @@ def read_obs(start_date, end_date, data_list, args):
             data_list = inca.read_INCAPlus_ANA(data_list, start_date, end_date, args)
         elif args.verif_dataset == "INCA_archive":
             data_list = inca.read_inca_netcdf_archive(data_list, start_date, end_date, args)
+        elif args.verif_dataset == "INCA_Slovenia":
+            data_list = inca.read_INCA_Slovenia(data_list, start_date, end_date, args)
         elif args.verif_dataset == "OPERA":
                 data_list = opera.read_OPERA(data_list, start_date, end_date, args)
         elif args.verif_dataset == "ANTILOPE":
