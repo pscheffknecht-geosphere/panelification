@@ -186,6 +186,56 @@ def read_INCAPlus_ANA(data_list, start_date, end_date, args):
     return data_list
 
 
+def read_INCA_Slovenia(data_list, start_date, end_date, args):
+    """Read 5-minute INCA Slovenia precip grib files and accumulate over the
+    verification window.
+
+    The files hold 5-minute precip sums under the time stamp of the END of the
+    interval (e.g. inca2_sc_5min_20260609-0005.grb is the 00:00-00:05 sum), so
+    we read every 5-minute step from start_date+5min through end_date inclusive,
+    consistent with the other INCA readers. lat/lon come straight from the grib
+    message. Missing files are skipped with a warning.
+    """
+    inca_dir = os.path.join(PAN_DIR_OBS, "INCA_Slovenia")
+    rr = None
+    lat = None
+    lon = None
+    n_read = 0
+    n_missing = 0
+    for read_time in loop_datetime(start_date + dt(minutes=5), end_date, dt(minutes=5)):
+        read_time_str = read_time.strftime("%Y%m%d-%H%M")
+        fnam = os.path.join(inca_dir, f"inca2_sc_5min_{read_time_str}.grb")
+        if not os.path.isfile(fnam):
+            logger.warning(f"could not find INCA Slovenia file {fnam}")
+            n_missing += 1
+            continue
+        logger.info(f"reading INCA Slovenia from {fnam}")
+        grb = pygrib.open(fnam)
+        if rr is None:
+            rr, lat, lon = grb[2].data()
+        else:
+            rr_tmp, _, _ = grb[2].data()
+            rr += rr_tmp
+        grb.close()
+        n_read += 1
+    if rr is None:
+        logger.critical(f"No INCA Slovenia files found in {inca_dir} for "
+                        f"{start_date} - {end_date}! Exiting...")
+        sys.exit(1)
+    if n_missing:
+        logger.warning(f"{n_missing} INCA Slovenia 5-minute files were missing in "
+                       f"the accumulation window")
+    logger.info(f"accumulated {n_read} INCA Slovenia fields, max precip {rr.max():.2f} mm")
+    data_list.insert(0, {
+        'conf': 'INCA_Slovenia',
+        'type': 'obs',
+        'name': 'INCA_Slovenia',
+        'lat': np.asarray(lat),
+        'lon': np.asarray(lon),
+        'precip_data': rr})
+    return data_list
+
+
 def read_inca_fc_accum(sim, args):
     inca_file = sim['inca_file']
     k_start, k_end = sim['inca_indices']
