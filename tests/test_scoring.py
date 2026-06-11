@@ -278,6 +278,101 @@ class TestFssD90:
         # surplus is zero for identical fields → d90 should be 0 or NaN
         assert result == 0.0 or np.isnan(result)
 
+    # --- NaN / missing-data handling -------------------------------------
+
+    @staticmethod
+    def _gauss(ny, nx, cx, cy, s=12.0, a=50.0):
+        y, x = np.mgrid[0:ny, 0:nx]
+        return a * np.exp(-((x - cx) ** 2 + (y - cy) ** 2) / (2 * s ** 2))
+
+    def test_all_nan_obs_returns_nan(self, make_test_args, small_fields):
+        args = make_test_args()
+        _, fcst = small_fields
+        result = scoring.fss_d90(fcst, np.full_like(fcst, np.nan), args)
+        assert np.isnan(result)
+
+    def test_all_nan_model_returns_nan(self, make_test_args, small_fields):
+        args = make_test_args()
+        obs, _ = small_fields
+        result = scoring.fss_d90(np.full_like(obs, np.nan), obs, args)
+        assert np.isnan(result)
+
+    def test_model_intense_only_in_unobserved_returns_nan(self, make_test_args):
+        """Intense forecast precip located only where the obs is unobserved must
+        be discarded (the obs_unobserved masking), leaving no model events."""
+        args = make_test_args()
+        ny = nx = 64
+        obs = self._gauss(ny, nx, 40, 40)   # obs precip in the lower-right
+        obs[:25, :25] = np.nan              # upper-left corner unobserved
+        mod = self._gauss(ny, nx, 8, 8, s=3.0, a=100.0)  # forecast only in corner
+        result = scoring.fss_d90(mod, obs, args)
+        assert np.isnan(result)
+
+    def test_nan_gap_far_from_precip_matches_clean(self, make_test_args):
+        """A coverage gap away from the precipitation should barely change d90
+        (nanpercentile path), not collapse it to a degenerate sentinel."""
+        args = make_test_args()
+        ny = nx = 128
+        obs = self._gauss(ny, nx, 64, 64)
+        mod = self._gauss(ny, nx, 80, 64)   # shifted 16 px east
+        clean = scoring.fss_d90(mod.copy(), obs.copy(), args)
+        obs_gap = obs.copy()
+        obs_gap[:20, :20] = np.nan          # gap far from both blobs
+        gapped = scoring.fss_d90(mod.copy(), obs_gap, args)
+        assert np.isfinite(clean) and np.isfinite(gapped)
+        assert gapped == pytest.approx(clean, rel=0.05)
+
+
+# =====================================================================
+# calc_scores — NaN-aware point statistics
+# =====================================================================
+
+class TestCalcScoresMissingData:
+
+    def _make_dict(self, field, entry_type="model", name="sim"):
+        ny, nx = field.shape
+        return {
+            "case": "t", "exp": "t", "conf": "t", "type": entry_type,
+            "init": "2024-01-01", "lead": 1, "name": name,
+            "lon": np.zeros((ny, nx)), "lat": np.zeros((ny, nx)),
+            "precip_data": field, "precip_data_resampled": field.copy(),
+            "color": None, "ensemble": None,
+        }
+
+    def test_point_stats_over_jointly_valid_pixels(self, make_test_args, identical_fields):
+        """bias/mae/rms/corr must be computed over the jointly-valid pixels only,
+        ignoring NaN coverage gaps in the observation."""
+        args = make_test_args()
+        base, _ = identical_fields
+        obs_field = base.copy()
+        obs_field[10:25, 10:25] = np.nan        # observation coverage gap
+        model_field = base + 2.0                 # finite everywhere, +2 offset
+        obs = self._make_dict(obs_field, entry_type="obs", name="OBS")
+        scoring.calc_scores(obs, obs, args)
+        sim = self._make_dict(model_field, name="M0")
+        scoring.calc_scores(sim, obs, args)
+        # over the valid pixels model - obs == 2.0 exactly
+        assert sim["bias_real"] == pytest.approx(2.0)
+        assert sim["mae"] == pytest.approx(2.0)
+        assert sim["rms"] == pytest.approx(2.0)
+        assert sim["corr"] == pytest.approx(1.0)
+
+    def test_insufficient_valid_pixels_gives_nan(self, make_test_args, identical_fields):
+        """When fewer than 2 pixels are jointly valid, point scores are NaN
+        instead of crashing or returning garbage."""
+        args = make_test_args()
+        base, fcst = identical_fields
+        obs_field = np.full_like(base, np.nan)
+        obs_field[32, 32] = 5.0                   # a single valid pixel
+        obs = self._make_dict(obs_field, entry_type="obs", name="OBS")
+        scoring.calc_scores(obs, obs, args)
+        sim = self._make_dict(fcst.copy(), name="M0")
+        scoring.calc_scores(sim, obs, args)
+        assert np.isnan(sim["mae"])
+        assert np.isnan(sim["rms"])
+        assert np.isnan(sim["corr"])
+        assert np.isnan(sim["bias_real"])
+
 
 # =====================================================================
 # write_scores_to_csv
