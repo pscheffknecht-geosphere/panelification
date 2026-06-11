@@ -30,6 +30,7 @@ import prepare_for_web
 import parameter_settings
 import ensembles
 import ranking_check
+import austria_mask
 
 # try avoiding hanging during parallelized portions of the program
 os.environ['MKL_NUM_THREADS'] = '1'
@@ -144,8 +145,6 @@ def parse_arguments():
                              observation panel always stays first.""")
     parser.add_argument('--draw_subdomain', nargs='?', default=True, const=True, type=str2bool,
         help = "Draw a rectangle to show the verification subdomain")
-    parser.add_argument('--case', '-c', type=str, nargs='+', default="austria_2022",
-        help = "Select case to verify")
     parser.add_argument('--custom_experiment_file', type=str, 
         default = "custom_experiments.py",
         help = """file which contains information on model experiments""")
@@ -170,6 +169,9 @@ def parse_arguments():
         help = 'draw panels for all subdomains, no matter how much rain was observed')
     parser.add_argument('--clean', nargs='?', default=False, const=True, type=str2bool,
         help = 'do not draw/write verification metrics on the panels')
+    parser.add_argument('--mask_plot_to_obs', nargs='?', default=False, const=True, type=str2bool,
+        help = 'when plotting, mask model fields with NaN wherever the observation '
+               'is NaN, so panels show only the area used for scoring')
     parser.add_argument('--mode', default='normal', type=str,
         help = """ Drawing mode:
             'normal' (default) ... Draw model data as-is
@@ -387,6 +389,7 @@ def main():
                 sim["lon_resampled"] = _lon
                 sim["lat_resampled"] = _lat
                 sim["precip_data_resampled"] = _data
+            austria_mask.mask_data_list_to_austria(data_list)
             if args.fss_calc_mode and args.fss_method != "legacy":
                 logging.warning(f"fss_mode was set to {args.fss_calc_mode}, this is ignored unless fss_method is set to legacy!")
             Parallel(n_jobs=args.threads,backend='threading')(delayed(scoring.calc_scores)(sim, data_list[0], args) for ii, sim in enumerate(data_list))
@@ -407,6 +410,16 @@ def main():
         if dom['score']:
             scoring.write_scores_to_csv(data_list, start_date, end_date, args, subdomain_name, windows, thresholds)
         if dom['draw']:
+            if args.mask_plot_to_obs:
+                # display only the scored area: blank out model pixels where the
+                # observation has no data. Applied after scoring/CSV so it only
+                # affects the plots, not the metrics.
+                obs_nan = np.isnan(data_list[0]['precip_data_resampled'])
+                for sim in data_list[1:]:
+                    sim['precip_data_resampled'] = np.where(
+                        obs_nan, np.nan, sim['precip_data_resampled'])
+                logging.info("Masked %d obs-NaN pixels in %d model fields for plotting",
+                             int(obs_nan.sum()), len(data_list) - 1)
             if args.ensemble_scores:
                 logging.info("Plotting pFSS for ensembles")
                 levels = parameter_settings.get_fss_thresholds(args)
