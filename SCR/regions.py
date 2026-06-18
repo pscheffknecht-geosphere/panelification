@@ -148,6 +148,19 @@ regions = {
                 "x_size": 1000, "y_size": 500}
         },
     },
+    "Slovenia": {
+        "central_longitude": 15.,
+        "central_latitude": 46.,
+        "extent": [13., 17., 45.33, 47.],
+        "verification_subdomains": {
+            "Default": {
+                "central_longitude": 15., "central_latitude": 46.17,
+                "x_size": 270, "y_size": 175},
+            "NorthWest": {
+                "central_longitude": 14.10, "central_latitude": 46.22,
+                "x_size": 120, "y_size":  80}
+        },
+    },
 
 
 
