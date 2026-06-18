@@ -436,7 +436,7 @@ experiment_configurations = {
         "ensemble"         : "claef1k",
         "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_10_%H+%LLLL.grb",
                               "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_10_%H+%LLLL.grb2",
-                              "/mnt/ment_arch3/aladsteelin/PRECIP_ARCH/%Y%m%d/claef_1k_10_%H+%LLLL.grb2",
+                              "/mnt/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_10_%H+%LLLL.grb2",
                               "/ment_arch2/aneduncheran/%Y%m%d_%H/MEM_10/CLAEF10+%LLLL.grb"]
     },
     "claef1k-m11": {
