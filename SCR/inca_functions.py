@@ -188,6 +188,56 @@ def read_INCAPlus_ANA(data_list, start_date, end_date, args):
     return data_list
 
 
+def read_INCA_Slovenia(data_list, start_date, end_date, args):
+    """Read 5-minute INCA Slovenia precip grib files and accumulate over the
+    verification window.
+
+    The files hold 5-minute precip sums under the time stamp of the END of the
+    interval (e.g. inca2_sc_5min_20260609-0005.grb is the 00:00-00:05 sum), so
+    we read every 5-minute step from start_date+5min through end_date inclusive,
+    consistent with the other INCA readers. lat/lon come straight from the grib
+    message. Missing files are skipped with a warning.
+    """
+    inca_dir = os.path.join(PAN_DIR_OBS, "INCA_Slovenia")
+    rr = None
+    lat = None
+    lon = None
+    n_read = 0
+    n_missing = 0
+    for read_time in loop_datetime(start_date + dt(minutes=5), end_date, dt(minutes=5)):
+        read_time_str = read_time.strftime("%Y%m%d-%H%M")
+        fnam = os.path.join(inca_dir, f"inca2_sc_5min_{read_time_str}.grb")
+        if not os.path.isfile(fnam):
+            logger.warning(f"could not find INCA Slovenia file {fnam}")
+            n_missing += 1
+            continue
+        logger.info(f"reading INCA Slovenia from {fnam}")
+        grb = pygrib.open(fnam)
+        if rr is None:
+            rr, lat, lon = grb[2].data()
+        else:
+            rr_tmp, _, _ = grb[2].data()
+            rr += rr_tmp
+        grb.close()
+        n_read += 1
+    if rr is None:
+        logger.critical(f"No INCA Slovenia files found in {inca_dir} for "
+                        f"{start_date} - {end_date}! Exiting...")
+        sys.exit(1)
+    if n_missing:
+        logger.warning(f"{n_missing} INCA Slovenia 5-minute files were missing in "
+                       f"the accumulation window")
+    logger.info(f"accumulated {n_read} INCA Slovenia fields, max precip {rr.max():.2f} mm")
+    data_list.insert(0, {
+        'conf': 'INCA_Slovenia',
+        'type': 'obs',
+        'name': 'INCA_Slovenia',
+        'lat': np.asarray(lat),
+        'lon': np.asarray(lon),
+        'precip_data': rr})
+    return data_list
+
+
 def read_inca_fc_accum(sim, args):
     inca_file = sim['inca_file']
     k_start, k_end = sim['inca_indices']
@@ -221,6 +271,8 @@ def read_INCA_BIL(fname, bilfac=100., dom="L", twodim=False, verbose=True, dtype
 
     # check if file exists
     if not glob.glob(fname):
+        logging.critical("Could not find file: " + fname)
+        exit(1)
         logging.critical("Could not find file: " + fname)
         exit(1)
 
@@ -282,6 +334,8 @@ def read_INCA_plus(inca_file, k_start, k_end):
     except:
         logging.critical("Could not open "+inca_file)
         exit(1)
+        logging.critical("Could not open "+inca_file)
+        exit(1)
     grib_handle = grib_handles.GRIB_indicators['inca_plus-fc']['precip']
     for kk in range(k_start, k_end):
         first = True
@@ -292,6 +346,7 @@ def read_INCA_plus(inca_file, k_start, k_end):
         else:
             rr_tmp += f.select(**grib_handle)[0]
     return rr_tmp.values
+
 
 
 def fetch_inca(month):
@@ -326,15 +381,25 @@ def read_inca_netcdf_archive(data_list, start_date, end_date, args):
         # the fetch logic and the hour index.
         read_time = tt + dt(hours=1)
         tt_str = read_time.strftime("%Y%m")
+        # INCA stores each hourly accumulation under the time stamp of the END
+        # of the interval, so the hour from 23 UTC to 00 UTC belongs to the next
+        # month's file. Use that end-of-interval time consistently for the file,
+        # the fetch logic and the hour index.
+        read_time = tt + dt(hours=1)
+        tt_str = read_time.strftime("%Y%m")
         read_file = f"{PAN_DIR_OBS}/INCA_netcdf/INCAL_HOURLY_RR_{tt_str}.nc"
         if not read_file == previous_file:
+            if datetime(read_time.year, read_time.month, 1) == this_month and not fetched_current:
+                fetch_inca(read_time)
             if datetime(read_time.year, read_time.month, 1) == this_month and not fetched_current:
                 fetch_inca(read_time)
                 fetched_current = True
             elif not os.path.isfile(read_file):
                 fetch_inca(read_time)
+                fetch_inca(read_time)
             data_tmp = Dataset(read_file, "r")
             previous_file = read_file
+        read_hour = int((read_time - datetime(read_time.year, read_time.month, 1)).total_seconds() / 3600)
         read_hour = int((read_time - datetime(read_time.year, read_time.month, 1)).total_seconds() / 3600)
         if first:
             rr_tmp = data_tmp.variables['RR'][read_hour, :, :]
