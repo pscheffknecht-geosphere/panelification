@@ -512,6 +512,16 @@ experiment_configurations = {
         "path_template"    : "/ment_arch2/aneduncheran/ectransallskyseivri/%Y%m%d%H/CLAEF00+%LLLL:00.grb2",
         "color"            : "red"
     },
+    "AllSky": {
+        "base_experiment"  : "arome",
+        "path_template"    : "/ment_arch2/aneduncheran/summer2026_fci_allsky00/%Y%m%d/%H/CLAEF00+%LLLL:00.grb2",
+        "color"            : "red"
+    },
+    "ClearSky": {
+        "base_experiment"  : "arome",
+        "path_template"    : "/ment_arch2/aneduncheran/summer2026_fci_clrsky00/%Y%m%d/%H/CLAEF00+%LLLL:00.grb2",
+        "color"            : "red"
+    },
     "claef1k-enVar": {
         "web_form_entry"   : True,
         "base_experiment"  : "claef1k-control",
