@@ -17,3 +17,19 @@ NOTE: Users have reported problems in getting the environment to build from the 
 `python main.py -s YYYYMMDDHH -d H -l H (H) --case [case as in DCMDB] --experiments [experiment names as in DCMDB]`
 
 Documentation will be added shortly.
+
+# Output
+
+For every verification run and subdomain the scores are written to one NetCDF file:
+
+`SCORES/{name}{parameter}_scores_{YYYYMMDD_HH}UTC_{DD}h_acc_{region}_{subdomain}.nc`
+
+The file contains
+- run metadata as global attributes: parameter and its units, verification dataset, region and subdomain, accumulation period, FSS settings, code version and command line
+- scalar scores, ranks and statistics of the forecast fields on the dimensions `(valid_time, conf, subdomain, lead_hours)`, e.g. `bias`, `mae`, `rms`, `corr`, `d90`, `fss_condensed_weighted_rect`, `rank_mae`, `forecast_max`, `forecast_percentile`
+- statistics of the observed field, `obs_max`, `obs_mean` and `obs_percentile`, on `(valid_time, subdomain)`
+- the full FSS arrays `fss`, `fss_num` and `fss_den` on `(valid_time, conf, subdomain, lead_hours, threshold, window)`, and `fssp`, `fssp_num` and `fssp_den` for the percentile thresholds on `(..., pct_threshold, window)`, unless `--save_full_fss False` is set
+
+`valid_time` is the start of the accumulation window and `lead_hours` the lead time at that point, so the forecast init time is `valid_time - lead_hours`. Combinations of `conf` and `lead_hours` without a forecast are NaN. Windows are given in grid points of the ~1 km verification grid, and `fss = 1 - fss_num / fss_den`.
+
+Combining and aggregating score files is left to downstream tools. The old CSV score files and FSS pickles can still be written with `--legacy_output`.

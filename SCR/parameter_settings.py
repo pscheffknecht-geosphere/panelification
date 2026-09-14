@@ -47,6 +47,20 @@ def colorbar_label(args):
     }
     return colorbar_labels[args.parameter]
 
+# units of the parameter, used in the metadata of the score files
+def get_units(args):
+    units = {
+        'precip': 'mm',
+        'precip2': 'mm',
+        'precip3': 'mm',
+        'sunshine': 'h',
+        'lightning': 'km-2',
+        'gusts': 'm s-1',
+        'hail': '1',
+        'cma': 'h',
+    }
+    return units.get(args.parameter, '')
+
 # thresholds for the calculation of the FSS depending on the parameter
 def get_fss_thresholds(args):
     thresholds_for_fss = {

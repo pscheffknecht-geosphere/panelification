@@ -10,6 +10,7 @@ Usage:
 """
 
 import numpy as np
+import xarray as xr
 import argparse
 import logging
 import os
@@ -17,10 +18,10 @@ import sys
 from datetime import datetime, timedelta
 
 import scoring
-import parameter_settings
 import regions
 import panel_plotter
 import ranking_check
+import io_scores
 from paths import PAN_DIR_SCORES, PAN_DIR_PLOTS, PAN_DIR_TMP
 
 logging.basicConfig(
@@ -433,29 +434,27 @@ def validate(data_list, meta):
 
 
 # ---------------------------------------------------------------------------
-# CSV output test
+# score file output test
 # ---------------------------------------------------------------------------
 
-def test_csv_output(data_list, args):
-    """Write CSV and verify the file was created."""
-    os.makedirs(PAN_DIR_SCORES, exist_ok=True)
+def test_score_file_output(data_list, args):
+    """Write the NetCDF score file and verify a score can be read back."""
     start_date = datetime(2024, 7, 15, 0, 0, 0)
     end_date = datetime(2024, 7, 15, 1, 0, 0)
-    windows = parameter_settings.get_windows(args)
-    thresholds = parameter_settings.get_fss_thresholds(args)
-    scoring.write_scores_to_csv(
-        data_list, start_date, end_date, args, "TestDomain", windows, thresholds
-    )
-    expected_csv = os.path.join(
-        PAN_DIR_SCORES,
-        f"{args.name}RR_score_20240715_00UTC_{args.duration:02d}h_acc_TestDomain.csv",
-    )
-    if os.path.isfile(expected_csv):
-        logger.info("CSV written successfully: %s", expected_csv)
-        return True
-    else:
-        logger.error("CSV not found at expected path: %s", expected_csv)
+    score_file = io_scores.save_scores(data_list, start_date, end_date, "TestDomain", args)
+    if not os.path.isfile(score_file):
+        logger.error("Score file not found at expected path: %s", score_file)
         return False
+    sim = data_list[1]
+    lead_hours = int((start_date - sim["init"]).total_seconds() // 3600)
+    with xr.open_dataset(score_file) as ds:
+        stored_mae = ds["mae"].sel(conf=sim["conf"], lead_hours=lead_hours).item()
+    if not np.isclose(stored_mae, sim["mae"]):
+        logger.error("Score file %s holds mae %s for %s, expected %s",
+                     score_file, stored_mae, sim["name"], sim["mae"])
+        return False
+    logger.info("Score file written successfully: %s", score_file)
+    return True
 
 
 # ---------------------------------------------------------------------------
@@ -485,7 +484,7 @@ def deep_copy_data_list(data_list):
 
 
 def run_mode(data_list, meta, region, mode, tolerance=0.1):
-    """Run scoring, ranking, validation, CSV, and plotting for one FSS mode."""
+    """Run scoring, ranking, validation, score file output, and plotting for one FSS mode."""
     mode_label = mode.upper()
     name_prefix = f"TEST_{mode_label}_"
     logger.info("=" * 60)
@@ -508,10 +507,10 @@ def run_mode(data_list, meta, region, mode, tolerance=0.1):
     logger.info("[%s] Validating results ...", mode_label)
     v = validate(data_list, meta)
 
-    # --- CSV output ---
-    logger.info("[%s] Testing CSV output ...", mode_label)
-    csv_ok = test_csv_output(data_list, args)
-    v.check(csv_ok, f"[{mode_label}] CSV output file created successfully")
+    # --- score file output ---
+    logger.info("[%s] Testing score file output ...", mode_label)
+    score_file_ok = test_score_file_output(data_list, args)
+    v.check(score_file_ok, f"[{mode_label}] Score file written and readable")
 
     # --- panel plot (includes time series) ---
     logger.info("[%s] Drawing panel plot ...", mode_label)
