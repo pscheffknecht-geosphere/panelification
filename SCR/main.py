@@ -181,7 +181,7 @@ def parse_arguments():
     #         'diff' ............. Draw interpolated rain field difference to INCA analysis\n
     parser.add_argument('--fix_nans', nargs='?', default=False, const=True, type=str2bool,
         help = 'Fix NaNs in OBS and Model fields by setting them to 0.')
-    parser.add_argument('--save', nargs='?', default=True, const=True, type=str2bool,
+    parser.add_argument('--save', nargs='?', default=False, const=True, type=str2bool,
         help = 'save full fields to pickle files')
     parser.add_argument('--fss_mode', type=str, default='ranks')
     parser.add_argument('--fss_calc_mode', type=str, default='same')
@@ -239,7 +239,7 @@ def parse_arguments():
         help = 'Treat multiple init times of the same ensemble as one ensemble')
     parser.add_argument('--merge_ens_init_times', nargs='?', default=False, const=True, type=str2bool,
         help = 'Treat multiple init times of the same ensemble as one ensemble')
-    parser.add_argument('--colormap', type=str, default='default',
+    parser.add_argument('--colormap', type=str, default='new',
         choices=['default', 'new', 'print'],
         help = 'Precip colormap variant: default (original screen), new (L*-stretched for screen), print (print-optimised pastel)')
     parser.add_argument('--save_percentiles', nargs='?', default=False, const=True, type=str2bool,
