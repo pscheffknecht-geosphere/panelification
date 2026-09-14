@@ -33,3 +33,9 @@ The file contains
 `valid_time` is the start of the accumulation window and `lead_hours` the lead time at that point, so the forecast init time is `valid_time - lead_hours`. Combinations of `conf` and `lead_hours` without a forecast are NaN. Windows are given in grid points of the ~1 km verification grid, and `fss = 1 - fss_num / fss_den`.
 
 Combining and aggregating score files is left to downstream tools. The old CSV score files and FSS pickles can still be written with `--legacy_output`.
+
+Existing legacy output (score CSV files and FSS pickles) can be converted to NetCDF score files with the standalone script `convert_legacy_output.py`. It uses no other panelification module and keeps its own copy of the score file layout, which is not updated with `io_scores.py`. Parameter and region are not stored in the legacy files and have to be given:
+
+`python convert_legacy_output.py --region Austria --name INCAOptAndSAMOS --scores_dir /path/to/SCORES --data_dir /path/to/DATA`
+
+Legacy files are not changed, existing NetCDF files are only replaced with `--overwrite`, and `--dry_run` lists the conversions without writing anything.
