@@ -643,7 +643,8 @@ def save_data(data_list, verification_subdomain, start_date, end_date, args):
 
 
 def save_fss(data_list, verification_subdomain, start_date, end_date, args):
-    """ write all data to a pickle file """
+    """ legacy pickle output of the FSS, only written with --legacy_output,
+    replaced by io_scores.save_scores """
     start_date_str = start_date.strftime("%Y%m%d_%HUTC_")
     outfilename = f"{PAN_DIR_DATA}/{args.name}FSS_data_{start_date_str}{args.duration:02d}h_acc_{verification_subdomain}.p"
     fss_dict = {}

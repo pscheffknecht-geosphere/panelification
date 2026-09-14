@@ -24,6 +24,7 @@ import read_esp as esp
 import panel_plotter
 import ens_plotter
 import io_main as io
+import io_scores
 import scan_obs
 import regions
 import prepare_for_web
@@ -196,7 +197,9 @@ def parse_arguments():
         fss_condensed ........................ condensed FSS value, uniform weight
         fss_condensed_weighted (default) ..... condensed FSS value, higher weight smaller windows and higher precipitation""")
     parser.add_argument('--save_full_fss', nargs='?', default=True, const=True, type=str2bool,
-        help = 'save full FSS, including numerator and denominator')
+        help = 'include the full FSS arrays (score, numerator, denominator) in the NetCDF score file')
+    parser.add_argument('--legacy_output', nargs='?', default=False, const=True, type=str2bool,
+        help = 'also write the old CSV score file and FSS pickle (deprecated)')
     parser.add_argument('--hidden', nargs='?', default=False, const=True, type=str2bool,
         help = 'clean panels, with names hidden and numbers used instead')
     parser.add_argument('--panel_rows_columns', nargs='+', default=None, type=int,
@@ -240,7 +243,7 @@ def parse_arguments():
         choices=['default', 'new', 'print'],
         help = 'Precip colormap variant: default (original screen), new (L*-stretched for screen), print (print-optimised pastel)')
     parser.add_argument('--save_percentiles', nargs='?', default=False, const=True, type=str2bool,
-        help = 'Save all percentiles to CSV')
+        help = 'Store all percentiles 0..100 of the fields in the score file instead of 50, 75, 90, 95, 99')
     parser.add_argument('--threads', type=int, default=8,
         help = 'Number of threads used for parallel processing (joblib)')
     parser.add_argument('--opera_qi_threshold', type=float, default=0.8,
@@ -409,7 +412,9 @@ def main():
         else:
             logging.info("Skipping "+dom['name']+", nothing is requested.")
         if dom['score']:
-            scoring.write_scores_to_csv(data_list, start_date, end_date, args, subdomain_name, windows, thresholds)
+            io_scores.save_scores(data_list, start_date, end_date, subdomain_name, args)
+            if args.legacy_output:
+                scoring.write_scores_to_csv(data_list, start_date, end_date, args, subdomain_name, windows, thresholds)
         if dom['draw']:
             if args.mask_plot_to_obs:
                 # display only the scored area: blank out model pixels where the
@@ -436,7 +441,7 @@ def main():
         if dom['score']:
             if args.save:
                 io.save_data(data_list, subdomain_name, start_date, end_date, args)
-            if args.save_full_fss:
+            if args.save_full_fss and args.legacy_output:
                 io.save_fss(data_list, subdomain_name, start_date, end_date, args)
 
 def read_obs(start_date, end_date, data_list, args):

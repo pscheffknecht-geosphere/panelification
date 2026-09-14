@@ -19,6 +19,7 @@ MODEL/*
 OBS_archive/*
 PLOTS/*.png
 SCORES/*.csv
+SCORES/*.nc
 SCR/*.asc
 SCR/*.ipynb
 SCR/*.pyc

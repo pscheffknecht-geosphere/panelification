@@ -320,6 +320,8 @@ def rank_scores(data_list):
 
 
 def write_scores_to_csv(data_list, start_date, end_date, args, verification_subdomain, windows, thresholds):
+    """ legacy CSV output of the scores, only written with --legacy_output,
+    replaced by io_scores.save_scores """
     name_part = '' # if args.mode == 'None' else args.mode+'_'
     csv_file = "../SCORES/"+args.name+"RR_"+name_part+"score_"+start_date.strftime("%Y%m%d_%HUTC_")+'{:02d}h_acc_'.format(args.duration)+verification_subdomain+'.csv'
     logging.info("Saving {csv_file}")
