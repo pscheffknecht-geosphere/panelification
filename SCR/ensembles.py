@@ -17,8 +17,14 @@ import pickle
 # TODO: organize this better, remove code duplication, redundancies
 # this is bad, but we had no time
 
+# an ensemble needs at least this many members to be scored: the spread-based
+# metrics (dFSS over member pairs, CRPS, the member box plots) are undefined for
+# a single member, and mean/median pseudo-members would just duplicate it
+MIN_ENSEMBLE_MEMBERS = 2
+
+
 # prepare a dictionary of ensemble names in the data and member count
-def detect_ensembles(data_list):
+def detect_ensembles(data_list, min_members=MIN_ENSEMBLE_MEMBERS):
     ensembles = {}
     for idx, sim in enumerate(data_list):
         if 'ensemble' in sim.keys():
@@ -34,6 +40,16 @@ def detect_ensembles(data_list):
                     ensembles[sim['ensemble']]['data_indices'].append(idx)
         else:
             logger.info(f"Model {sim['name']} has NO ensemble key")
+    undersized = [key for key, ens in ensembles.items()
+                  if ens['member_count'] < min_members]
+    for key in undersized:
+        names = [data_list[idx]['name'] for idx in ensembles[key]['data_indices']]
+        logger.warning(
+            f"Ensemble {key} has only {ensembles[key]['member_count']} member(s) "
+            f"({', '.join(names)}), at least {min_members} are required. "
+            "Dropping it: no pseudo-members, ensemble scores or ensemble plots "
+            "will be produced for it.")
+        del ensembles[key]
     for key, ens in ensembles.items():
         logger.info(f"Found ensemble {key} with {ens['member_count']} members in input data.")
         logger.info(f"  Indices are: {ens['data_indices']}")

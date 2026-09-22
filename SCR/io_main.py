@@ -233,8 +233,13 @@ class ModelConfiguration:
         """ if the experiment is deried from a base experiment, not all keys
         need values, only experiments which do not refer to a base_experiment
         need all their values filled"""
+        # NOTE: "ensemble" is deliberately NOT inherited. Ensemble membership is a
+        # property of the individual run, not of the configuration it borrows its
+        # paths/timing/units from. Inheriting it made every experiment derived from
+        # an ensemble-tagged base (e.g. all claef1k-* derived from claef1k-control)
+        # silently join that ensemble.
         keys = ["init_interval", "max_leadtime", 
-                "output_interval", "unit_factor", "accumulated", "color", "ensemble"]
+                "output_interval", "unit_factor", "accumulated", "color"]
         for key in keys:
             logger.debug(f"Setting key {key}")
             if not key in cmc.keys():

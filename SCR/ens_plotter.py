@@ -432,6 +432,10 @@ def ens_fss_plot(ens_data, windows, levels, verification_subdomain, args):
     Upper triangle: pFSS[i] - pFSS[j] for i < j.
     Lower triangle: empty (the lower half is just the sign-flipped upper)."""
     n_members = len(ens_data)
+    if n_members == 0:
+        logger.warning("No ensembles available for ens_fss_plot.")
+        return None
+
     keep = np.array([l < 1000. for l in levels])
     plot_levels = [l for l, k in zip(levels, keep) if k]
     n_lev = len(plot_levels)
