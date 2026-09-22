@@ -3,20 +3,15 @@
 source /ment_arch/pscheff/miniconda3-py3.8/bin/activate panelification_web
 set -x
 if [ $# == 0 ]; then
-  rundate1=$(date "+%Y%m%d%H" --date "now -16 hours")
-  rundate2=$(date "+%Y%m%d%H" --date "now -15 hours")
-  rundate3=$(date "+%Y%m%d%H" --date "now -14 hours")
-  rundate4=$(date "+%Y%m%d%H" --date "now -13 hours")
-elif [ $# == 2 ]; then
-  rundate1=$1$2
-  rundate2=$(date "+%Y%m%d%H" --date "$1 $2 +1 hours")
-  rundate3=$(date "+%Y%m%d%H" --date "$1 $2 +2 hours")
-  rundate4=$(date "+%Y%m%d%H" --date "$1 $2 +3 hours")
+  rundate1="$(date "+%Y%m%d" --date "now -1 day")15"
+  rundate2="$(date "+%Y%m%d" --date "now -1 day")16"
+  rundate3="$(date "+%Y%m%d" --date "now -1 day")17"
+  rundate4="$(date "+%Y%m%d" --date "now -1 day")18"
 else
-  echo "nowcast.sh needs either no arguments or YYYYMMDD HH"
-    exit 1 
-  fi  
-  #   
+  echo "nowcast.sh takes no arguments!"
+  exit 1 
+fi  
+#   
 # 2021-06-28
 # REPLACED cosmo1e with cosmo1ee and icond2 with icond2
 /ment_arch/pscheff/miniconda3-py3.8/envs/panelification_web/bin/python main.py \
