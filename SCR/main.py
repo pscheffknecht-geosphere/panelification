@@ -288,7 +288,7 @@ def parse_arguments():
             if entry == "claef1k-all-members":
                 logging.info(f"Found cleaf1k-all-members at position {ii}, replacing...")
                 args.custom_experiments[ii] = "claef1k-m16"
-                for jj in range(15, 0, -1):
+                for jj in range(15, 1, -1):
                     args.custom_experiments.insert(ii, f"claef1k-m{jj:02d}")
                 args.custom_experiments.insert(ii, f"claef1k-control")
         # if the robust score is requested, make sure to also calculate it
