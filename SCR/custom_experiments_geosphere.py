@@ -282,6 +282,7 @@ experiment_configurations = {
                               "/mnt/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_00_%H+%LLLL.grb2",
                               "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_%H+%LLLL.grb2"],
         # "grib_handles"     : {'precip': [{'shortName': 'tp', 'forecastTime': 0}]},
+        "ensemble"         : "claef1k",
         "color"            : "dodgerblue"
     },
     "claef1k-esuite": {
@@ -367,15 +368,17 @@ experiment_configurations = {
         "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_slhd_kappa_90_A0_%H+%LLLL:00.grb2"],
         "color"            : "hotpink"
     },
-    "claef1k-mean": {
+    "claef1k-mean2": {
         "web_form_entry"   : True,
         "base_experiment"  : "claef1k-control",
-        "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef1k-mean_%H+%LLLL.grb",
+        "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef1k-mean_%H+%LLLL.grb",
+                              "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_mean_%H+%LLLL.grb2"],
     },
-    "claef1k-median": {
+    "claef1k-median2": {
         "web_form_entry"   : True,
         "base_experiment"  : "claef1k-control",
-        "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef1k-median_%H+%LLLL.grb",
+        "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef1k-median_%H+%LLLL.grb",
+                              "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_median_%H+%LLLL.grb2"],
     },
     "claef1k-all-members": {
         "web_form_entry"   : True,

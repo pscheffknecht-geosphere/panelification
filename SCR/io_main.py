@@ -233,8 +233,13 @@ class ModelConfiguration:
         """ if the experiment is deried from a base experiment, not all keys
         need values, only experiments which do not refer to a base_experiment
         need all their values filled"""
+        # NOTE: "ensemble" is deliberately NOT inherited. Ensemble membership is a
+        # property of the individual run, not of the configuration it borrows its
+        # paths/timing/units from. Inheriting it made every experiment derived from
+        # an ensemble-tagged base (e.g. all claef1k-* derived from claef1k-control)
+        # silently join that ensemble.
         keys = ["init_interval", "max_leadtime", 
-                "output_interval", "unit_factor", "accumulated", "color", "ensemble"]
+                "output_interval", "unit_factor", "accumulated", "color"]
         for key in keys:
             logger.debug(f"Setting key {key}")
             if not key in cmc.keys():
@@ -643,7 +648,8 @@ def save_data(data_list, verification_subdomain, start_date, end_date, args):
 
 
 def save_fss(data_list, verification_subdomain, start_date, end_date, args):
-    """ write all data to a pickle file """
+    """ legacy pickle output of the FSS, only written with --legacy_output,
+    replaced by io_scores.save_scores """
     start_date_str = start_date.strftime("%Y%m%d_%HUTC_")
     outfilename = f"{PAN_DIR_DATA}/{args.name}FSS_data_{start_date_str}{args.duration:02d}h_acc_{verification_subdomain}.p"
     fss_dict = {}
