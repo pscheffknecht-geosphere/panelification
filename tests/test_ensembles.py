@@ -30,10 +30,26 @@ class TestDetectEnsembles:
             _sim('x',  'ens_b', dt.datetime(2026, 1, 1), np.full((4, 4), 5.)),
         ]
         out = ensembles.detect_ensembles(data)
-        assert set(out.keys()) == {'ens_a', 'ens_b'}
+        # ens_b holds a single member and is dropped
+        assert set(out.keys()) == {'ens_a'}
         assert out['ens_a']['member_count'] == 2
         assert out['ens_a']['data_indices'] == [1, 2]
-        assert out['ens_b']['member_count'] == 1
+
+    def test_single_member_ensemble_dropped(self):
+        data = [
+            _sim('obs', None, dt.datetime(2026, 1, 1), np.zeros((4, 4))),
+            _sim('lonely', 'ens_a', dt.datetime(2026, 1, 1), np.ones((4, 4))),
+        ]
+        assert ensembles.detect_ensembles(data) == {}
+
+    def test_min_members_is_configurable(self):
+        data = [
+            _sim('obs', None, dt.datetime(2026, 1, 1), np.zeros((4, 4))),
+            _sim('m1', 'ens_a', dt.datetime(2026, 1, 1), np.ones((4, 4))),
+            _sim('m2', 'ens_a', dt.datetime(2026, 1, 1, 6), np.full((4, 4), 2.)),
+        ]
+        assert ensembles.detect_ensembles(data, min_members=3) == {}
+        assert ensembles.detect_ensembles(data, min_members=1).keys() == {'ens_a'}
 
     def test_no_ensemble_key_ignored(self):
         data = [_sim('a', None, dt.datetime(2026, 1, 1), np.zeros((4, 4)))]
@@ -103,3 +119,12 @@ class TestAddEnsemblePseudoMembers:
         data = [_sim('obs', None, dt.datetime(2026, 1, 1), np.zeros((2, 2)))]
         ensembles.add_ensemble_pseudo_members(data, {})
         assert len(data) == 1
+
+    def test_single_member_gets_no_pseudo_members(self):
+        data = [
+            _sim('obs', None, dt.datetime(2026, 1, 1), np.zeros((2, 2))),
+            _sim('lonely', 'e', dt.datetime(2026, 1, 1), np.ones((2, 2))),
+        ]
+        ens = ensembles.detect_ensembles(data)
+        ensembles.add_ensemble_pseudo_members(data, ens)
+        assert len(data) == 2
