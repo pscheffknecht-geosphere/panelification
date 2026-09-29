@@ -18,6 +18,7 @@ from matplotlib.patches import Rectangle
 import numpy as np
 from model_parameters import verification_subdomains
 import parameter_settings
+import weather_regimes
 from joblib import Parallel, delayed
 from multiprocessing import Pool
 import pickle
@@ -398,6 +399,8 @@ def draw_single_figure(sim, obs, r, jj, levels, cmap, norm, verification_subdoma
         part1 = sim['name'].split(' ')[0]
         part2 = sim['init'].strftime("%Y-%m-%d %H") + f" UTC ({int(sim['rank_'+args.rank_by_fss_metric])})"
         panel_title_fc = rank_colors[sim['rank_'+args.rank_by_fss_metric]]
+    if sim["type"] == "obs" and sim.get('weather_regime_label'):
+        part2 = sim['weather_regime_label']
     part1_y_pos = 0.7 if part2 else 0.5
     if part2:
         txt1 = ax_title.text(0.5, 0.25, part2, va='center', ha='center',
@@ -550,6 +553,8 @@ def draw_panels(data_list,start_date, end_date, verification_subdomain, args):
         plot_extent = args.region.extent
     for sim in data_list:
         sim['plot_extent'] = plot_extent
+    regime = weather_regimes.weather_regime(start_date, end_date, getattr(args, "weather_regime_file", None))
+    data_list[0]['weather_regime_label'] = weather_regimes.label(*regime)
     r, cols, lins, nplots = define_panel_and_plot_dimensions(data_list, args)
     if args.panel_rows_columns:
         lins_new, cols_new = args.panel_rows_columns
