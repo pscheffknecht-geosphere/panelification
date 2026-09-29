@@ -242,7 +242,7 @@ def parse_arguments():
     parser.add_argument('--colormap', type=str, default='new',
         choices=['default', 'new', 'print'],
         help = 'Precip colormap variant: default (original screen), new (L*-stretched for screen), print (print-optimised pastel)')
-    parser.add_argument('--save_percentiles', nargs='?', default=False, const=True, type=str2bool,
+    parser.add_argument('--save_percentiles', nargs='?', default=True, const=True, type=str2bool,
         help = 'Store all percentiles 0..100 of the fields in the score file instead of 50, 75, 90, 95, 99')
     parser.add_argument('--threads', type=int, default=8,
         help = 'Number of threads used for parallel processing (joblib)')
