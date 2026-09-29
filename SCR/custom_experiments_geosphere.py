@@ -70,7 +70,7 @@ experiment_configurations = {
         "color"            : "darkmagenta"
         },
     "inca-opt-grib": {
-        "init_interval"    : 1,
+        "init_interval"    : 3,
         "output_interval"  : 1,
         "max_leadtime"     : 48,
         "accumulated"      : True, # technically not, but does not matter
@@ -81,17 +81,37 @@ experiment_configurations = {
     },
     "inca-opt": {
         "web_form_entry"   : True,
-        "init_interval"    : 1,
+        "init_interval"    : 3,
         "output_interval"  : 1,
         "max_leadtime"     : 48,
         "accumulated"      : False, # technically not, but does not matter
         "unit_factor"      : 1.,
         # "path_template"    : "/incaplus_arch1/iplus/out/INCA_15m/2024/09/13/INCA_15m_RR_FC_202409130000.grb2"
-        "path_template"    : ["/incaplus_arch1/iplus/out/INCAPlus_1h/inca/%Y/%m/%d/INCAPlus_1h_RR_15m_FC_%Y%m%d%H00.nc",
-                              "/incaplus_arch1/iplus/out/INCAPlus_15m/inca/%Y/%m/%d/INCAPlus_15m_RR_FC_%Y%m%d%H00.nc"],
+        # "path_template"    : ["/incaplus_arch1/iplus/out/INCAPlus_1h/inca/%Y/%m/%d/INCAPlus_1h_RR_15m_FC_%Y%m%d%H00.nc",
+        #                       "/incaplus_arch1/iplus/out/INCAPlus_15m/inca/%Y/%m/%d/INCAPlus_15m_RR_FC_%Y%m%d%H00.nc"],
+		# new INCA path       /perm/anamod/iplus/output/incaplus_arch1/INCAPlus_1h/inca/2026/08/31/INCAPlus_1h_RR_FC_202608311200.nc
+
+        "path_template"    : "/perm/anamod/iplus/output/incaplus_arch1/INCAPlus_1h/inca/%Y/%m/%d/INCAPlus_1h_RR_FC_%Y%m%d%H00.nc",
         "netcdf_variable"  : "RR",
         "netcdf_one_file"  : "True",
         "color"            : "firebrick"
+    },
+    "inca-not-lagged": {
+        "web_form_entry"   : True,
+        "init_interval"    : 3,
+        "output_interval"  : 1,
+        "max_leadtime"     : 48,
+        "accumulated"      : False, # technically not, but does not matter
+        "unit_factor"      : 1.,
+        # "path_template"    : "/incaplus_arch1/iplus/out/INCA_15m/2024/09/13/INCA_15m_RR_FC_202409130000.grb2"
+        # "path_template"    : ["/incaplus_arch1/iplus/out/INCAPlus_1h/inca/%Y/%m/%d/INCAPlus_1h_RR_15m_FC_%Y%m%d%H00.nc",
+        #                       "/incaplus_arch1/iplus/out/INCAPlus_15m/inca/%Y/%m/%d/INCAPlus_15m_RR_FC_%Y%m%d%H00.nc"],
+		# new INCA path       /perm/anamod/iplus/output/incaplus_arch1/INCAPlus_1h/inca/2026/08/31/INCAPlus_1h_RR_FC_202608311200.nc
+
+        "path_template"    : "/perm/anamod/iplus/output/incaplus_arch1/INCAPlus_1h_notimelagged/inca/%Y/%m/%d/INCAPlus_1h_RR_FC_%Y%m%d%H00.nc",
+        "netcdf_variable"  : "RR",
+        "netcdf_one_file"  : "True",
+        "color"            : "tomato"
     },
     "samos": {
         "web_form_entry"   : True,
