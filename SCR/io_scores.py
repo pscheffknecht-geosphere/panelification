@@ -21,12 +21,13 @@ import numpy as np
 import xarray as xr
 
 import parameter_settings
+import weather_regimes
 from paths import PAN_DIR_SCORES, PAN_DIR_SCR
 
 import logging
 logger = logging.getLogger(__name__)
 
-SCHEMA_VERSION = "1.0"
+SCHEMA_VERSION = "1.1"
 
 # thresholds from this value upwards are dummy rows separating the absolute and
 # percentile thresholds in the FSS plots, they carry no information
@@ -39,6 +40,10 @@ D90_UNDEFINED = 9999.
 DEFAULT_PERCENTILES = [50, 75, 90, 95, 99]
 
 SCORE_DIMS = ("valid_time", "conf", "subdomain", "lead_hours")
+
+# weather regime variables, stored as int8 with this fill value
+WEATHER_REGIME_VARIABLES = ("weather_regime", "cyclonality_925", "cyclonality_500")
+WEATHER_REGIME_FILL = -1
 
 # scalar scores of each forecast: file variable, key in the sim dict, long_name, units
 # ("parameter" is replaced by the units of the verified parameter)
@@ -104,6 +109,8 @@ def save_scores(data_list, start_date, end_date, subdomain, args):
         encoding[name] = {"zlib": True, "complevel": 4}
         if name in fss_variables:
             encoding[name]["dtype"] = "float32"
+        if name in WEATHER_REGIME_VARIABLES:
+            encoding[name].update(dtype="int8", _FillValue=WEATHER_REGIME_FILL)
     # coordinates are never missing and need no fill value
     for name in ds.coords:
         if ds[name].dtype.kind == "f":
@@ -180,6 +187,7 @@ def build_run_dataset(data_list, start_date, end_date, subdomain, args):
         "obs_percentile": (obs_dims + ("percentile",), obs_percentile[np.newaxis, np.newaxis, :],
                            {"long_name": "percentiles of the observed field", "units": units}),
     })
+    data_vars.update(_weather_regime_vars(start_date, end_date, args))
 
     coords = {
         "valid_time": ("valid_time", np.array([start_date], dtype="datetime64[ns]"),
@@ -235,6 +243,30 @@ def build_run_dataset(data_list, start_date, end_date, subdomain, args):
         "created": created,
     }
     return xr.Dataset(data_vars, coords=coords, attrs=_netcdf_attrs(attrs))
+
+
+def _weather_regime_vars(start_date, end_date, args):
+    """ Weather regime and cyclonality of the day of the accumulation window, NaN if the
+    window extends over more than one day or the day is not classified """
+    date, classification = weather_regimes.weather_regime(
+        start_date, end_date, getattr(args, "weather_regime_file", None))
+    values = classification if classification is not None else (np.nan,) * 3
+    if date is None:
+        comment = "missing, the accumulation window extends over more than one day"
+    else:
+        comment = f"daily classification of {date.isoformat()} 12 UTC"
+    regime_flags = np.arange(len(weather_regimes.REGIME_NAMES), dtype=np.int8)
+    cyclonality_flags = np.arange(len(weather_regimes.CYCLONALITY_NAMES), dtype=np.int8)
+    attrs = {
+        "weather_regime": {"long_name": "weather regime (WLK)", "flag_values": regime_flags,
+                           "flag_meanings": " ".join(weather_regimes.REGIME_NAMES), "comment": comment},
+        "cyclonality_925": {"long_name": "cyclonality at 925 hPa (WLK)", "flag_values": cyclonality_flags,
+                            "flag_meanings": " ".join(weather_regimes.CYCLONALITY_NAMES), "comment": comment},
+        "cyclonality_500": {"long_name": "cyclonality at 500 hPa (WLK)", "flag_values": cyclonality_flags,
+                            "flag_meanings": " ".join(weather_regimes.CYCLONALITY_NAMES), "comment": comment},
+    }
+    return {name: (("valid_time",), np.array([value], dtype=float), attrs[name])
+            for name, value in zip(WEATHER_REGIME_VARIABLES, values)}
 
 
 def _fss_arrays(forecasts, indices, grid_shape, arrays, row_dim):

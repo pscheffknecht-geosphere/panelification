@@ -249,6 +249,9 @@ def parse_arguments():
     parser.add_argument('--opera_qi_threshold', type=float, default=0.8,
         help = 'Minimum OPERA quality index (0..1) to keep a pixel; lower-QI '
                'pixels are masked as NaN. Set to 0.0 to mask only QI==0 cells.')
+    parser.add_argument('--weather_regime_file', type=str, default=None,
+        help = 'Daily weather regime classification (WLK) stored with the scores, default '
+               '/modelle/prod/mgruppe/ZAMG/ECMWF/WLK/WLK.txt if it exists, else DATA/WLK.txt')
 
     args = parser.parse_args()
     init_logging(args)
