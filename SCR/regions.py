@@ -1,5 +1,6 @@
 # DEFINE REGIONS FOR PLOTTING
 import os
+import hashlib
 import cartopy.crs as ccrs
 import pyproj
 import numpy as np
@@ -364,6 +365,13 @@ class Region():
         self.plot_rojection = None
         self.__set_projection(region_name)
         self.__prep_subdomains(region_name, subdomains)
+        # nearest-neighbour info per (source grid, subdomain); building the
+        # kd-tree dominates resampling and models share their grid across
+        # init times, so it only needs to be done once per source grid
+        self._neighbour_cache = {}
+        # grid hash per (lon, lat) array pair, so the same arrays are only
+        # hashed once and not again for every subdomain
+        self._grid_hash_cache = {}
 
     def __set_projection(self, region_name="Europe"):
         self.plot_projection = ccrs.LambertConformal(
@@ -408,14 +416,11 @@ class Region():
     def resample_to_subdomain(self, data, lon, lat, subdomain_name, fix_nans=False):
         logger.info("Resampling onto subdomain {:s} requested".format(
             subdomain_name))
-        targ_def = pyresample.geometry.SwathDefinition(
-            lons = self.subdomains[subdomain_name]["lon"],
-            lats = self.subdomains[subdomain_name]["lat"])
-        orig_def = pyresample.geometry.SwathDefinition(
-            lons=lon, lats=lat)
-        data_resampled =  pyresample.kd_tree.resample_nearest(
-            orig_def, data, targ_def, reduce_data=False,
-            radius_of_influence=25000.)
+        valid_input_index, valid_output_index, index_array, target_shape = \
+            self.__get_neighbour_info(lon, lat, subdomain_name)
+        data_resampled = pyresample.kd_tree.get_sample_from_neighbour_info(
+            'nn', target_shape, data, valid_input_index, valid_output_index,
+            index_array, fill_value=0)
         data_resampled = np.where(data_resampled > 9999., np.nan, data_resampled)
         if np.isnan(data_resampled).sum() > 0:
             if fix_nans:
@@ -426,6 +431,43 @@ class Region():
             else:
                 logging.warning("""Your resampled data contains missing values! you can use --fix_nans to set them to 0., but this can change scores!""")
         return data_resampled, self.subdomains[subdomain_name]["lon"], self.subdomains[subdomain_name]["lat"]
+
+
+    def __grid_hash(self, lon, lat):
+        """ Hash of the grid coordinates, memoized per array object. The arrays
+        are kept in the cache so their ids cannot be reused by other arrays."""
+        cached = self._grid_hash_cache.get((id(lon), id(lat)))
+        if cached is not None and cached[0] is lon and cached[1] is lat:
+            return cached[2]
+        grid_hash = hashlib.blake2b(digest_size=16)
+        grid_hash.update(str((np.shape(lon), np.shape(lat))).encode())
+        grid_hash.update(np.ascontiguousarray(lon, dtype=np.float64))
+        grid_hash.update(np.ascontiguousarray(lat, dtype=np.float64))
+        digest = grid_hash.hexdigest()
+        self._grid_hash_cache[(id(lon), id(lat))] = (lon, lat, digest)
+        return digest
+
+
+    def __get_neighbour_info(self, lon, lat, subdomain_name):
+        """ Return the (cached) nearest-neighbour mapping from the grid given by
+        lon/lat onto the subdomain. Equivalent to what resample_nearest does
+        internally, but the kd-tree is only built once per source grid."""
+        key = (subdomain_name, self.__grid_hash(lon, lat))
+        if key not in self._neighbour_cache:
+            targ_def = pyresample.geometry.SwathDefinition(
+                lons = self.subdomains[subdomain_name]["lon"],
+                lats = self.subdomains[subdomain_name]["lat"])
+            orig_def = pyresample.geometry.SwathDefinition(
+                lons=lon, lats=lat)
+            valid_input_index, valid_output_index, index_array, _ = \
+                pyresample.kd_tree.get_neighbour_info(
+                    orig_def, targ_def, radius_of_influence=25000.,
+                    neighbours=1, reduce_data=False)
+            self._neighbour_cache[key] = (valid_input_index, valid_output_index,
+                                          index_array, targ_def.shape)
+        else:
+            logger.debug("Reusing neighbour info for subdomain {:s}".format(subdomain_name))
+        return self._neighbour_cache[key]
 
 
     def __make_subdomain_key(self, subdomain_data):
