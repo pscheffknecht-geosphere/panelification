@@ -477,7 +477,7 @@ def calc_scores(sim, obs, args):
         sim['fss_condensed'], sim['fss_normalized_arr'] = fss_condensed(sim)
         sim['fss_condensed_weighted'], sim['fss_normalized_weighted_arr'] = weighted_fss_condensed(sim, levels)
         sim['fss_condensed_weighted_rect'], sim['fss_normalized_weighted_rect_arr'] = weighted_fss_condensed_rect(sim, obs, levels)
-        logger.info(
+        logger.debug(
             f"{sim['name']}: fss_condensed_weighted = {sim['fss_condensed_weighted']:.4f} (sum), "
             f"fss_condensed_weighted_rect = {sim['fss_condensed_weighted_rect']:.4f} (cwFSS in [0, 1])")
         sim['d90'] = fss_d90(sim["precip_data_resampled"], obs["precip_data_resampled"], args)
