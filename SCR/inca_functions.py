@@ -381,26 +381,37 @@ def read_inca_netcdf_archive(data_list, start_date, end_date, args):
         # the fetch logic and the hour index.
         read_time = tt + dt(hours=1)
         tt_str = read_time.strftime("%Y%m")
-        # INCA stores each hourly accumulation under the time stamp of the END
-        # of the interval, so the hour from 23 UTC to 00 UTC belongs to the next
-        # month's file. Use that end-of-interval time consistently for the file,
-        # the fetch logic and the hour index.
-        read_time = tt + dt(hours=1)
-        tt_str = read_time.strftime("%Y%m")
         read_file = f"{PAN_DIR_OBS}/INCA_netcdf/INCAL_HOURLY_RR_{tt_str}.nc"
         if not read_file == previous_file:
-            if datetime(read_time.year, read_time.month, 1) == this_month and not fetched_current:
-                fetch_inca(read_time)
+            if data_tmp is not None:
+                data_tmp.close()
+            refetched = False
             if datetime(read_time.year, read_time.month, 1) == this_month and not fetched_current:
                 fetch_inca(read_time)
                 fetched_current = True
+                refetched = True
             elif not os.path.isfile(read_file):
                 fetch_inca(read_time)
-                fetch_inca(read_time)
+                refetched = True
             data_tmp = Dataset(read_file, "r")
             previous_file = read_file
         read_hour = int((read_time - datetime(read_time.year, read_time.month, 1)).total_seconds() / 3600)
-        read_hour = int((read_time - datetime(read_time.year, read_time.month, 1)).total_seconds() / 3600)
+        n_hours = data_tmp.variables['RR'].shape[0]
+        if read_hour >= n_hours and not refetched:
+            # file was downloaded while its month was still running, so it is
+            # partial; replace it with a fresh copy from the archive
+            logger.warning(f"{read_file} is incomplete ({n_hours} hours stored, "
+                           f"need index {read_hour} for {read_time}), deleting and re-downloading it")
+            data_tmp.close()
+            os.remove(read_file)
+            fetch_inca(read_time)
+            refetched = True
+            data_tmp = Dataset(read_file, "r")
+            n_hours = data_tmp.variables['RR'].shape[0]
+        if read_hour >= n_hours:
+            logger.error(f"INCA data for {read_time} not available: {read_file} only contains "
+                         f"{n_hours} hours (need index {read_hour}), even after re-downloading it")
+            sys.exit(1)
         if first:
             rr_tmp = data_tmp.variables['RR'][read_hour, :, :]
             first = False
