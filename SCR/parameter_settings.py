@@ -195,10 +195,7 @@ def get_cma_ydict(args):
     for x in range(args.duration):
         cma_ydict[ii] = f"{int(x+1):d} h"
         ii += 1
-    cma_ydict[ii] = ""
-    ii += 1
-    for idx, s in enumerate(['25%', '50%', '75%', '90%', '95%']):
-        cma_ydict[ii + idx] = s
+    cma_ydict[ii] = "" # placeholder threshold, no percentile thresholds for clouds
     return cma_ydict
 
 def get_cma_xdict(args):

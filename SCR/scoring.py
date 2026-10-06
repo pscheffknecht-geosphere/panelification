@@ -381,7 +381,7 @@ def calc_scores(sim, obs, args):
     the ranking later on
     """
     logger.info('Calculating scores for '+sim['name'])
-    percs=[25, 50, 75, 90, 95]
+    percs = [] if args.parameter == 'cma' else [25, 50, 75, 90, 95] # no percentile thresholds for clouds
     levels = parameter_settings.get_fss_thresholds(args)
     #windows=[10,20,30,40,60,80,100,120,140,160,180,200] # itt inkább térjen vissza egy függvénnyel 
     windows = parameter_settings.get_windows(args)
@@ -456,13 +456,17 @@ def calc_scores(sim, obs, args):
             obs["precip_data_resampled"],
             windows,levels,percentiles=False, mode=args.fss_calc_mode.replace("_adaptive", ""),
             threshold_mode=threshold_mode, tolerance=tolerance)
-        fssp_num, fssp_den, fssp, ovestp = fss_calc_func(
-            np.copy(sim["precip_data_resampled"]), # circumvent numpy issue #21524
-            np.copy(obs["precip_data_resampled"]), # circumvent numpy issue #21524
-            windows,percs,percentiles=True, mode=args.fss_calc_mode.replace("_adaptive", ""),
-            threshold_mode=threshold_mode, tolerance=tolerance)
-        fssf = pd.concat((fss, fssp), axis=0)
-        ovestf = pd.concat((ovest, ovestp), axis=0)
+        if percs:
+            fssp_num, fssp_den, fssp, ovestp = fss_calc_func(
+                np.copy(sim["precip_data_resampled"]), # circumvent numpy issue #21524
+                np.copy(obs["precip_data_resampled"]), # circumvent numpy issue #21524
+                windows,percs,percentiles=True, mode=args.fss_calc_mode.replace("_adaptive", ""),
+                threshold_mode=threshold_mode, tolerance=tolerance)
+            fssf = pd.concat((fss, fssp), axis=0)
+            ovestf = pd.concat((ovest, ovestp), axis=0)
+        else:
+            fssp_num, fssp_den, fssp = None, None, None
+            fssf, ovestf = fss, ovest
         sim['bias'] = np.abs(bias)
         sim['bias_real'] = bias
         sim['mae'] = mae
