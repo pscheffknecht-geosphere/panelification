@@ -94,6 +94,11 @@ def read_SAF_obs(data_list, start_date, end_date, args):# is it the data_list fr
 
     logging.info("Finished reading SAF data.")
     logging.info(f"  SAF data shape: {saf_data.shape}")
+    # TODO: saf_data is a masked array and np.where uses its underlying data, so masked pixels
+    # (space outside the earth disk, missing data) are kept as values instead of NaN: partial sums
+    # of the hours that are valid, or the raw fill value 255. The crop to the region extent below
+    # removes the space pixels, but missing pixels inside the cut-out would still be scored.
+    # np.ma.filled(saf_data, np.nan) would turn all of them into NaN.
     valid_mask = saf_data != nc_fill_value
     saf_data = np.where(valid_mask, saf_data, np.nan)
     logging.info(f"  Valid data points: {np.sum(valid_mask)} / {saf_data.size}")
