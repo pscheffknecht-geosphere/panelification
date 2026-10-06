@@ -32,11 +32,13 @@ def get_interesting_subdomains(obs_data, args):
         RR_means.append(RR_obs_subdomain_mean)
         RR_maxes.append(RR_obs_subdomain_max)
         RR_names.append(subdomain_name)
-        if ((RR_obs_subdomain_mean >  draw_avg or RR_obs_subdomain_max > draw_max) and args.draw) or args.forcedraw:
+        # the thresholds are meant for precipitation, clouds are always scored and drawn if requested
+        no_thresholds = args.parameter == 'cma'
+        if ((no_thresholds or RR_obs_subdomain_mean >  draw_avg or RR_obs_subdomain_max > draw_max) and args.draw) or args.forcedraw:
             RR_draw.append(True)
         else:
             RR_draw.append(False)
-        if (RR_obs_subdomain_mean > score_avg or RR_obs_subdomain_max > score_max) or args.forcescore:
+        if (no_thresholds or RR_obs_subdomain_mean > score_avg or RR_obs_subdomain_max > score_max) or args.forcescore:
             RR_score.append(True)
         else:
             RR_score.append(False)
