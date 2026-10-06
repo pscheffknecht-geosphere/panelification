@@ -203,6 +203,7 @@ class TestConvertRun:
         assert ds.attrs["valid_start"] == START.isoformat()
         assert ds.attrs["converted_from"] == f"TEST_RR_score_{STEM}.csv TEST_FSS_data_{STEM}.p"
         assert "fss_threshold_mode" not in ds.attrs
+        assert "fss_window_note" not in ds.attrs
 
     def test_percentiles_file(self, tmp_path):
         ds = _convert(_write_legacy_run(tmp_path, percentiles=True))
@@ -249,9 +250,49 @@ class TestConvertRun:
         assert np.isnan(ds["forecast_max"]).all()
         assert "fss_rank_score" not in ds
 
+    def test_old_space_aligned_score_file(self, tmp_path):
+        """Some score files before September 2025 are aligned with spaces instead of comma separated."""
+        (tmp_path / "old_RR_score_20250102_00UTC_12h_acc_Default.csv").write_text(
+            "name                 bias      mae      d90        rank_bias  fss_rank_score\n"
+            "arome_2025-01-01_00  0.22710   0.24075  144.68356  2          1.81096\n"
+            "ecmwf_2025-01-01_12  -0.25000  1.50000  9999.00000 1          1.00000\n")
+        ds = _convert(str(tmp_path))
+        assert ds["conf"].values.tolist() == ["arome", "ecmwf"]
+        assert ds["lead_hours"].values.tolist() == [12, 24]
+        assert _at(ds, "mae", "arome", 24) == 0.24075
+        assert _at(ds, "bias", "ecmwf", 12) == -0.25
+        assert np.isnan(_at(ds, "d90", "ecmwf", 12))
+
     def test_duplicate_forecasts_raise(self, tmp_path):
         with pytest.raises(ValueError, match="same conf and lead time"):
             _convert(_write_legacy_run(tmp_path, forecasts=FORECASTS + [FORECASTS[0]]))
+
+    def test_window_indices_get_default_widths(self, tmp_path):
+        """Older FSS pickles have the window indices 0 ... 11 as columns."""
+        directory = _write_legacy_run(tmp_path)
+        path = tmp_path / f"TEST_FSS_data_{STEM}.p"
+        frames = pd.read_pickle(path)
+        for forecast in frames.values():
+            for name, frame in forecast.items():
+                forecast[name] = frame.set_axis(pd.RangeIndex(len(WINDOWS)), axis=1)
+        pd.to_pickle(frames, path)
+        ds = _convert(directory)
+        assert ds["window"].values.tolist() == WINDOWS
+        np.testing.assert_array_equal(_at(ds, "fss_num", "M0", 3).values, _fss_frames(0)["fss_num"].to_numpy()[:-1])
+        assert "window indices" in ds.attrs["fss_window_note"]
+
+    def test_window_indices_of_other_number_are_left_out(self, tmp_path, caplog):
+        directory = _write_legacy_run(tmp_path)
+        path = tmp_path / f"TEST_FSS_data_{STEM}.p"
+        frames = pd.read_pickle(path)
+        for forecast in frames.values():
+            for name, frame in forecast.items():
+                forecast[name] = frame.iloc[:, :5].set_axis(pd.RangeIndex(5), axis=1)
+        pd.to_pickle(frames, path)
+        ds = _convert(directory)
+        assert "fss_num" not in ds
+        assert "mae" in ds
+        assert "FSS of 3 forecasts left out" in caplog.text
 
     def test_warns_about_thresholds_of_other_parameter(self, tmp_path, caplog):
         directory = _write_legacy_run(tmp_path)

@@ -6,9 +6,11 @@ Legacy runs wrote their results to
     {name}FSS_data_{YYYYMMDD_HH}UTC_{DD}h_acc_{subdomain}.p ................ FSS, in DATA
 All files of one run are converted into one NetCDF score file in the layout of
 io_scores.py (schema version 1.0). Score files from before September 2025 are
-comma separated, carry the drawing mode in their name (RR_normal_score_...) and
+comma separated or aligned with spaces, carry the drawing mode in their name (RR_normal_score_...) and
 have no conf, init and lead columns and no observation row; they are converted
-as far as their content allows, missing values are NaN.
+as far as their content allows, missing values are NaN. Older FSS pickles have
+window indices instead of window widths, the default widths of the parameter
+are assumed for them.
 
 This script is standalone: it imports no panelification module and keeps its
 own copy of the score file layout, which is not updated with io_scores.py.
@@ -192,9 +194,11 @@ def convert_run(run, region, parameter="precip", verif_dataset=None):
             "statistics": _statistics(row, percentile_rows, percentiles),
             "fss": {},
         })
+    windows_assumed = False
     if run.fss_pickle:
         _add_fss(run, forecasts)
         _check_thresholds(run, forecasts, parameter)
+        windows_assumed = _label_windows(run, forecasts, parameter)
 
     created = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     attrs = {
@@ -211,6 +215,8 @@ def convert_run(run, region, parameter="precip", verif_dataset=None):
         "valid_end": (run.start + dt.timedelta(hours=run.duration)).isoformat(),
         "source": f"legacy panelification output, converted by convert_legacy_output.py ({_code_version()})",
         "converted_from": " ".join(os.path.basename(path) for path in run.files),
+        "fss_window_note": ("the legacy FSS pickle has window indices only, the default window widths "
+                            "of the parameter are assumed" if windows_assumed else None),
         "history": f"{created} {' '.join(sys.argv)}",
         "created": created,
     }
@@ -351,11 +357,12 @@ def _fss_arrays(forecasts, indices, grid_shape, arrays, row_dim):
 
 
 def _read_csv(path):
-    """ Score files are separated by ; since September 2025 and by , before. The
-    round trip float parser reads the written values exactly. """
+    """ Score files are separated by ; since September 2025 and by , or aligned with
+    spaces before. The round trip float parser reads the written values exactly. """
     with open(path) as f:
         header = f.readline()
-    return pd.read_csv(path, sep=";" if ";" in header else ",", float_precision="round_trip")
+    sep = ";" if ";" in header else "," if "," in header else r"\s+"
+    return pd.read_csv(path, sep=sep, float_precision="round_trip")
 
 
 def _identity(row):
@@ -450,6 +457,34 @@ def _check_thresholds(run, forecasts, parameter):
     if found.shape != (len(expected),) or not np.allclose(found, np.asarray(expected, dtype=float)):
         logger.warning(f"{run.fss_pickle}: FSS thresholds {found.tolist()} differ from the thresholds of "
                        f"parameter {parameter} {list(expected)}, check --parameter")
+
+
+def _fss_windows(parameter):
+    """ Default FSS window widths of a parameter in grid points, copied from parameter_settings.py """
+    return [5, 10, 30, 50, 100] if parameter == 'cma' else [10, 20, 30, 40, 60, 80, 100, 120, 140, 160, 180, 200]
+
+
+def _label_windows(run, forecasts, parameter):
+    """ Older FSS pickles have the window indices 0 ... n-1 as columns instead of the
+    window widths. They are replaced by the default widths of the parameter if their
+    number matches, otherwise the FSS of these forecasts is left out. Returns True if
+    widths were assumed. """
+    expected = _fss_windows(parameter)
+    assumed, dropped = False, 0
+    for fc in forecasts:
+        frames = fc["fss"]
+        if not any(frame.columns.equals(pd.RangeIndex(len(frame.columns))) for frame in frames.values()):
+            continue
+        if all(len(frame.columns) == len(expected) for frame in frames.values()):
+            fc["fss"] = {name: frame.set_axis(expected, axis=1) for name, frame in frames.items()}
+            assumed = True
+        else:
+            fc["fss"] = {}
+            dropped += 1
+    if dropped:
+        logger.warning(f"{run.fss_pickle}: FSS windows are indices and their number differs from the "
+                       f"{len(expected)} default windows of parameter {parameter}, FSS of {dropped} forecasts left out")
+    return assumed
 
 
 @functools.lru_cache(maxsize=None)
