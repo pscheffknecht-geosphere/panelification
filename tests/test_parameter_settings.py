@@ -64,6 +64,17 @@ class TestGetWindows:
 
 
 # =====================================================================
+# get_cma_ydict
+# =====================================================================
+
+class TestGetCmaYdict:
+
+    def test_no_percentile_rows(self):
+        ydict = parameter_settings.get_cma_ydict(_args(parameter="cma", duration=3))
+        assert list(ydict.values()) == ["1 h", "2 h", "3 h", ""]
+
+
+# =====================================================================
 # get_cmap_and_levels
 # =====================================================================
 

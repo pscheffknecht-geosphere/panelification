@@ -155,6 +155,28 @@ class TestFssCondensed:
 
 
 # =====================================================================
+# weighted_fss_condensed_rect
+# =====================================================================
+
+class TestWeightedFssCondensedRect:
+
+    def _sim(self, fss_rows):
+        fss = pd.DataFrame(fss_rows)
+        return {'name': 'test_sim', 'fss': fss, 'fssf': fss, 'fss_windows': [5, 10, 30],
+                'fss_thresholds': [0.5] * len(fss_rows)}
+
+    def test_placeholder_threshold_has_no_weight(self):
+        """The 99999 placeholder must not change the weights of the real thresholds."""
+        obs = {'precip_data_resampled': np.full((4, 4), 3.)}
+        rows = [[1., 1., 1.], [0.9, 0.95, 1.], [0.6, 0.7, 0.8]]
+        with_placeholder, _ = scoring.weighted_fss_condensed_rect(
+            self._sim(rows + [[np.nan] * 3]), obs, [0.5, 1.5, 2.5, 99999])
+        without_placeholder, _ = scoring.weighted_fss_condensed_rect(
+            self._sim(rows), obs, [0.5, 1.5, 2.5])
+        assert with_placeholder == pytest.approx(without_placeholder)
+
+
+# =====================================================================
 # calc_scores
 # =====================================================================
 
@@ -204,6 +226,16 @@ class TestCalcScores:
         assert sim["rms"] == 0.0
         assert sim["corr"] == pytest.approx(1.0)
         assert sim["bias_real"] == 0.0
+
+    def test_cma_has_no_percentile_fss(self, make_test_args, small_fields):
+        args = make_test_args(parameter="cma", duration=3, d_windows=[3, 5, 11])
+        obs_f, fcst_f = small_fields
+        obs = self._make_sim_dict(obs_f, entry_type="obs")
+        scoring.calc_scores(obs, obs, args)
+        sim = self._make_sim_dict(fcst_f)
+        scoring.calc_scores(sim, obs, args)
+        assert sim["fssp"] is None
+        assert sim["fssf"].shape[0] == len(parameter_settings.get_fss_thresholds(args))
 
 
 # =====================================================================
