@@ -125,7 +125,7 @@ def weighted_fss_condensed(sim, levels):
     score = 0.
     score_arr = np.zeros(sim['fssf'].values.shape)
     wins = np.asarray(sim['fss_windows'])
-    max_l = np.max(levels[0:9])
+    max_l = np.max([l for l in levels if l < 99999]) # exclude the placeholder threshold
     max_w = wins.max()
     for ii, t in enumerate(sim['fss_thresholds']):
         a_ = sim['fss'].values[ii, :]
@@ -221,7 +221,7 @@ def weighted_fss_condensed_rect(sim, obs, levels):
     weight_sum = 0.0
     skipped_thresholds = []
 
-    max_l = np.max(levels[0:9])
+    max_l = np.max([l for l in levels if l < 99999]) # exclude the placeholder threshold
     max_w = wins.max()
     for ii, t in enumerate(sim['fss_thresholds']):
         l = levels[ii]
