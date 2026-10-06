@@ -147,6 +147,8 @@ class ModelConfiguration:
             logger.debug(f"   {tmpl}")
         for anam in ["init_interval", "max_leadtime", "output_interval", "accumulated", "unit_factor"]:
             setattr(self, anam, self.__pick_value_by_parameter(cmc[anam], anam))
+        if self.parameter == "cma":
+            self.accumulated = False # cloud cover is instantaneous, whatever the configuration says
         for anam in ["ensemble", "grib_handles", "lagged_ensemble", "color", "file_type", "netcdf_variable",
                      "use_datetime_for_netcdf"]:
             setattr(self, anam, self.__pick_value_by_parameter(cmc[anam], anam) if anam in cmc else None)
@@ -284,7 +286,9 @@ class ModelConfiguration:
         if not self.lead_end%self.output_interval == 0:
             logger.debug(f"Discarding {self.experiment_name} {self.init} +{self.lead}h because last lead time is not a multiple of output interval {self.output_interval}h")
             return False
-        if not self.lead_end <= self.max_leadtime:
+        # cma reads the instantaneous fields at the start of each hour, the last one is at lead_end - 1
+        last_lead = self.lead_end - 1 if self.parameter == "cma" else self.lead_end
+        if not last_lead <= self.max_leadtime:
             logger.debug(f"Discarding {self.experiment_name} {self.init} +{self.lead}h because lead time is greater than max lead time {self.max_leadtime}h")
             return False
         logger.debug(f"Times OK for {self.experiment_name} {self.init} +{self.lead}h")
