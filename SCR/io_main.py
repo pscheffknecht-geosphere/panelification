@@ -379,16 +379,18 @@ class ModelConfiguration:
         for ii, fil in enumerate(self.file_list):
             logger.info("  Reading file ({:d}): {:s}".format(ii, fil))
             if first:
-                lon, lat, tmp_data = self.read_data(fil, self.parameter, 0, **self.read_kwargs, 
-                    grib_handles=self.grib_handles)
+                lon, lat, tmp_data = self.read_data(fil, self.parameter, 0, **self.read_kwargs)
                 self.read_kwargs["get_lonlat_data"] = False
                 first = False
             else:
-                td2 = self.read_data(fil, self.parameter, 0, **self.read_kwargs, 
-                    grib_handles=self.grib_handles)
+                td2 = self.read_data(fil, self.parameter, 0, **self.read_kwargs)
                 tmp_data = np.dstack((tmp_data, td2))
         if self.parameter == "cma":
-            tmp_data = np.where(tmp_data >= 0.2, 1, 0)
+            # missing cloud cover stays missing instead of counting as clear sky
+            n_missing = np.isnan(tmp_data).sum()
+            if n_missing > 0:
+                logger.warning(f"{self.experiment_name} {self.init}: {n_missing} missing cloud cover values, these are kept as missing")
+            tmp_data = np.where(np.isnan(tmp_data), np.nan, np.where(tmp_data >= 0.2, 1., 0.))
             logger.debug(f"tmp_data has shape {tmp_data.shape} before summing cloud fraction")
             if tmp_data.ndim == 2:
                 logger.debug(f"Array is 2D, contains only 1 time step, no summing needed")
@@ -541,7 +543,8 @@ class ModelConfiguration:
               - url_template has a value"""
         logger.debug(f"Getting file path for model {self.experiment_name}")
         path = None
-        if lead == 0:
+        # accumulated fields need no start file at +0000, instantaneous fields (cma) are read from it
+        if lead == 0 and self.accumulated:
             return None
         # 1. path from given template
         for path_template in self.path_template:
