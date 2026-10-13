@@ -4,6 +4,7 @@ import nclcmaps
 import numpy as np
 import matplotlib.cm as cm
 import matplotlib.colors as mplcolors
+import general_settings
 import logging
 logger = logging.getLogger(__name__)
 logging.getLogger('matplotlib').setLevel(logging.WARNING)
@@ -75,16 +76,18 @@ def get_fss_thresholds(args):
     }
     return thresholds_for_fss[args.parameter]
 
+# cloud mask (cma): a grid point is cloudy at a cloud fraction of at least this
+CLOUD_FRACTION_THRESHOLD = 0.2
+
 # percentile thresholds for the calculation of the FSS, none for the cloud mask
 def get_fss_percentiles(args):
     return [] if args.parameter == 'cma' else [25, 50, 75, 90, 95]
 
 # FSS window widths in grid points of the ~1 km verification grid, the same for all
-# parameters unless set with --d_windows; all window lists are taken from here
-DEFAULT_WINDOWS = [10, 20, 30, 40, 60, 80, 100, 120, 140, 160, 180, 200]
-
+# parameters unless set with --d_windows (default in general_settings.py); all
+# window lists are taken from here
 def get_windows(args):
-    return list(args.d_windows) if args.d_windows else list(DEFAULT_WINDOWS)
+    return list(args.d_windows) if args.d_windows else list(general_settings.DEFAULT_WINDOWS)
 
 
 # tick labels of the FSS rank plot, rows are the thresholds and, after an empty

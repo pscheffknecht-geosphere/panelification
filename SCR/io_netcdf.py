@@ -4,6 +4,7 @@ import logging
 import datetime as dt
 import os
 import re
+import parameter_settings
 
 
 import datetime as dt
@@ -129,8 +130,7 @@ def read_HungaroMet_netcdf(nc_file_paths, netcdf_variable_name):
         with nc.Dataset(nc_file_path, "r") as ds:
             data_tmp = ds.variables[netcdf_variable_name][0, :, :]
             data_tmp = np.where(data_tmp == ds.variables[netcdf_variable_name]._FillValue, np.nan, data_tmp)
-            threshold = 0.2
-            data_tmp = np.where(data_tmp >= threshold, 1, 0)
+            data_tmp = np.where(data_tmp >= parameter_settings.CLOUD_FRACTION_THRESHOLD, 1, 0)
             if first:
                 ny = ds.dimensions["maxLatPoints"].size
                 nx = ds.dimensions["maxLonPoints"].size

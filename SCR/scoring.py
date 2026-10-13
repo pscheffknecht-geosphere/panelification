@@ -5,6 +5,7 @@ import pandas as pd
 import fss_FFT
 import fss_SAT
 import parameter_settings
+import general_settings
 import csv
 
 
@@ -105,6 +106,7 @@ def fss_condensed(sim):
     assign 0 to 1 points per window/threshold combo where RSS values from 0 to f0
     geet 0 points and values between f0 and 1 are mapped to 0 ... 1
     """
+    f0 = general_settings.FSS_SKILL_THRESHOLD
     score = 0.
     score_arr = np.zeros(sim['fss'].values.shape)
     for ii, t in enumerate(sim['fss_thresholds']):
@@ -113,7 +115,7 @@ def fss_condensed(sim):
         if t == 1.: #catch cases where the entire domain is above the precip threshold
             a = np.where(a == 1., 1. ,0.) #???
         else:
-            s = 1. / (1. - 0.5)
+            s = 1. / (1. - f0)
             a = s * (a - 1) + 1
         a = clamp_array(a)
         score_arr [ii, :] = a
@@ -122,6 +124,9 @@ def fss_condensed(sim):
 
 
 def weighted_fss_condensed(sim, levels):
+    f0 = general_settings.FSS_SKILL_THRESHOLD
+    l_max_weight = general_settings.CWFSS_THRESHOLD_MAX_WEIGHT
+    w_max_weight = general_settings.CWFSS_WINDOW_MAX_WEIGHT
     score = 0.
     score_arr = np.zeros(sim['fssf'].values.shape)
     wins = np.asarray(sim['fss_windows'])
@@ -133,17 +138,16 @@ def weighted_fss_condensed(sim, levels):
         if t == 1.: #catch cases where the entire domain is above the precip threshold
             a = np.where(a == 1., 1. ,0.) #???
         else:
-            s = 1. / (1. - 0.5)
+            s = 1. / (1. - f0)
             a = s * (a - 1) + 1
         a = clamp_array(a)
         l = levels[ii]
         for jj, w in enumerate(sim['fss_windows']):
             w = np.max(w) # reduce the x and y and take only the larger one
-            # linear weighting where smallest window is roughlty 2x the weight of the largest
-            # and smallest threshold is roughtly 2x the weight of the largest
+            # the largest threshold and the smallest window get the highest weights
             if not np.isnan(a[jj]):
-                l_fac = (max_l + l) / max_l      # 2 for max precip, 1 for 0.
-                w_fac = 2. * max_w / (max_w + w) # 2 for window size of 0, 1 for max window size
+                l_fac = (max_l + (l_max_weight - 1.) * l) / max_l      # l_max_weight for max precip, 1 for 0.
+                w_fac = w_max_weight * max_w / (max_w + (w_max_weight - 1.) * w) # w_max_weight for window size of 0, 1 for max window size
                 score += l_fac * w_fac * a[jj]
                 score_arr [ii, jj] = l_fac * w_fac * a[jj]
     return score, score_arr
@@ -208,6 +212,9 @@ def weighted_fss_condensed_rect(sim, obs, levels):
     skipped cells).
     """
     obs_field = obs['precip_data_resampled']
+    f0 = general_settings.FSS_SKILL_THRESHOLD
+    l_max_weight = general_settings.CWFSS_THRESHOLD_MAX_WEIGHT
+    w_max_weight = general_settings.CWFSS_WINDOW_MAX_WEIGHT
 
     score_arr = np.zeros(sim['fssf'].values.shape)
     wins = np.asarray([np.max(w) for w in sim['fss_windows']], dtype=float)
@@ -232,14 +239,14 @@ def weighted_fss_condensed_rect(sim, obs, levels):
         if t == 1.:
             a = np.where(a == 1., 1., 0.)
         else:
-            s = 1. / (1. - 0.5)
+            s = 1. / (1. - f0)
             a = s * (a - 1) + 1
         a = clamp_array(a)
         for jj, w in enumerate(sim['fss_windows']):
             w = np.max(w)
             if not np.isnan(a[jj]):
-                l_fac = (max_l + l) / max_l
-                w_fac = 2. * max_w / (max_w + w)
+                l_fac = (max_l + (l_max_weight - 1.) * l) / max_l
+                w_fac = w_max_weight * max_w / (max_w + (w_max_weight - 1.) * w)
                 weight = cell_area[ii, jj] * l_fac * w_fac
                 weighted_sum += weight * a[jj]
                 weight_sum += weight
@@ -410,10 +417,10 @@ def calc_scores(sim, obs, args):
     thresholds = []
     thresholds_percs = []
     for level in levels:
-        thresholds.append(0.5)
+        thresholds.append(general_settings.FSS_SKILL_THRESHOLD)
         # thresholds.append((1+float((obs["precip_data_resampled"] > level).sum())/float(obs["precip_data_resampled"].size)))
     for perc in percs:
-        thresholds_percs.append(0.5)
+        thresholds_percs.append(general_settings.FSS_SKILL_THRESHOLD)
         # thresholds_percs.append(0.5*(1+perc/100.))
     sim['fss_thresholds'] = thresholds
     sim['fss_thresholds_percs'] = thresholds_percs
@@ -488,7 +495,8 @@ def fss_d90(rrm, rro, args):
 
     Computes the FSS between the surplus (non-overlapping) parts of the
     binary p90 fields at increasing window sizes, and finds the half-window
-    at which the FSS reaches 0.5 via linear interpolation.
+    at which the FSS reaches 0.5 via linear interpolation. The percentile,
+    windows and FSS value are set in general_settings.py.
 
     Returns the displacement in km (half-window size), or np.nan if no
     displacement can be determined.
@@ -497,7 +505,8 @@ def fss_d90(rrm, rro, args):
     if args.fss_method == 'legacy':
         logger.info("FSS method is set to legacy, using old FFT approximation for D90!")
         fss_calc_func = fss_FFT.fss_frame
-    windows = [3, 5, 7, 11, 21, 31, 41, 51, 61, 81, 101, 121, 141, 181, 251, 351, 501, 701]
+    windows = general_settings.D90_WINDOWS
+    target = general_settings.D90_FSS
     ny, nx = rrm.shape
     windows_2d = prep_windows(windows, args.fss_calc_mode, nx, ny, args.fss_method)
     levels = [0.5]
@@ -512,8 +521,8 @@ def fss_d90(rrm, rro, args):
         return np.nan
     rro = np.where(missing, np.nan, rro)
     rrm = np.where(missing, np.nan, rrm)
-    p90_obs = np.nanpercentile(rro, 90)
-    p90_mod = np.nanpercentile(rrm, 90)
+    p90_obs = np.nanpercentile(rro, general_settings.D90_PERCENTILE)
+    p90_mod = np.nanpercentile(rrm, general_settings.D90_PERCENTILE)
     # comparisons against NaN yield False, so missing points become 0 here
     _rro = np.where(rro >= p90_obs, 1, 0)
     _rrm = np.where(rrm >= p90_mod, 1, 0) # circumvent numpy issue #21524
@@ -543,19 +552,19 @@ def fss_d90(rrm, rro, args):
     logger.debug(arr)
     # monotonicity check with tolerance for numerical noise
     for ii in range(1, len(arr)):
-        if arr[ii] - arr[ii-1] < -0.01:
+        if arr[ii] - arr[ii-1] < -general_settings.D90_MONOTONICITY_TOLERANCE:
             logger.info("non-monotonous FSS array in D90, returning no d90!")
             return np.nan
-    if arr[0] >= 0.5:
+    if arr[0] >= target:
         return 0.
-    # find where the array exceeds 0.5 and interpolate
+    # find where the array exceeds the target FSS and interpolate
     ii = 0
-    while arr[ii] < 0.5:
+    while arr[ii] < target:
         ii += 1
         if ii == len(arr) - 1:
-            logger.info("FSS never reaches 0.5, returning no d90!")
+            logger.info(f"FSS never reaches {target}, returning no d90!")
             return np.nan
-    t = (0.5 - arr[ii-1]) / (arr[ii] - arr[ii-1])
+    t = (target - arr[ii-1]) / (arr[ii] - arr[ii-1])
     d = windows[ii-1] + t * float(windows[ii] - windows[ii-1])
     if d < 0:
         d = 0.

@@ -6,6 +6,7 @@ import matplotlib.colors as colors
 from joblib import Parallel, delayed
 import fss_SAT as fss
 import parameter_settings
+import general_settings
 
 from paths import PAN_DIR_PLOTS
 
@@ -20,13 +21,14 @@ def add_rank_robustness_info(data_list, args):
     cwfss_tmp = Parallel(n_jobs=args.threads, backend='threading')(
         delayed(fss.CWFSS)(
         sim["precip_data_resampled"], data_list[0]['precip_data_resampled'],
-        nsamples=1250, threshold_limiting="relative",
+        nsamples=general_settings.RANKING_CHECK_SAMPLES, threshold_limiting="relative",
+        threshold_limits=general_settings.RANKING_CHECK_THRESHOLD_LIMITS,
         window_limits=[min(windows), max(windows)],
         threshold_mode=threshold_mode, tolerance=tolerance) for sim in data_list[1::])
     logger.info("Done. Bootstrapping results")
     for cwfss, sim in zip(cwfss_tmp, data_list[1::]):
-        logger.debug(f"Bootstraping {sim['name']}, N = {10000}")
-        cwfss.bootstrap(N=10000)
+        logger.debug(f"Bootstraping {sim['name']}, N = {general_settings.RANKING_CHECK_BOOTSTRAP}")
+        cwfss.bootstrap(N=general_settings.RANKING_CHECK_BOOTSTRAP)
         sim[f"cwfss"] = cwfss
         sim[f"cwfss_robust"] = cwfss.cwfss
         

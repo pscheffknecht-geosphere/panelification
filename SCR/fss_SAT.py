@@ -1,6 +1,7 @@
 import numpy as np
 import time
 import pandas as pd
+import general_settings
 
 import logging
 logger = logging.getLogger(__name__)
@@ -378,7 +379,8 @@ def R2(N):
 
 class CWFSS:
     def __init__(self, fcst, obs, nsamples=500, threshold_limits=(0.1, 100.), window_limits=(1, 601),
-                threshold_max_weight=2., window_max_weight=2., threshold_limiting="relative",
+                threshold_max_weight=general_settings.CWFSS_THRESHOLD_MAX_WEIGHT,
+                window_max_weight=general_settings.CWFSS_WINDOW_MAX_WEIGHT, threshold_limiting="relative",
                 threshold_mode="over", tolerance=0.1):
         self.wmin = int(window_limits[0])
         self.wmax = int(window_limits[1])
@@ -394,6 +396,8 @@ class CWFSS:
             self.tmin = np.nanpercentile(obs, threshold_limits[0])
             self.tmax = np.nanpercentile(obs, threshold_limits[1])
         self.nsamples = nsamples
+        self.threshold_max_weight = threshold_max_weight
+        self.window_max_weight = window_max_weight
         self.threshold_mode = threshold_mode
         self.tolerance = tolerance
         self.denominators = np.zeros(nsamples)
@@ -459,19 +463,23 @@ class CWFSS:
                 self.numerators[N], self.denominators[N], self.values[N] = \
                     _fss_score_masked(Sf, So, C)
 
-    def __calc_cwfss(self):
-        t_factor = (self.tmax + self.thresholds) / self.tmax
-        w_factor = 2. * self.wmax / (self.wmax + self.windows)
-        weighted_fss = (2. * (self.values - 0.5)).clip(0., 1.) * t_factor * w_factor
+    def __weighted_fss(self):
+        """ rescaled FSS of the samples (0 up to f0, 1 for a perfect forecast) times their
+        weights, and the weights; the largest threshold and the smallest window weigh most """
+        f0 = general_settings.FSS_SKILL_THRESHOLD
+        t_factor = (self.tmax + (self.threshold_max_weight - 1.) * self.thresholds) / self.tmax
+        w_factor = self.window_max_weight * self.wmax / (self.wmax + (self.window_max_weight - 1.) * self.windows)
+        weighted_fss = ((self.values - f0) / (1. - f0)).clip(0., 1.) * t_factor * w_factor
         weighted_fss_max = t_factor * w_factor
+        return weighted_fss, weighted_fss_max
+
+    def __calc_cwfss(self):
+        weighted_fss, weighted_fss_max = self.__weighted_fss()
         self.cwfss = np.nanmean(weighted_fss) / np.nanmean(weighted_fss_max)
 
     def bootstrap(self, N=500):
         self.bootstrap_info = np.zeros(N)
-        t_factor = (self.tmax + self.thresholds) / self.tmax
-        w_factor = 2. * self.wmax / (self.wmax + self.windows)
-        weighted_fss = (2. * (self.values - 0.5)).clip(0., 1.) * t_factor * w_factor
-        weighted_fss_max = t_factor * w_factor
+        weighted_fss, weighted_fss_max = self.__weighted_fss()
         for ii in range(N):
             idx = (self.nsamples * np.random.rand(self.nsamples)).astype(int)
             self.bootstrap_info[ii] = np.nanmean(weighted_fss[idx]) / np.nanmean(weighted_fss_max[idx])

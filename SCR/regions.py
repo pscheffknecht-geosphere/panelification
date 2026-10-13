@@ -6,6 +6,7 @@ import pyproj
 import numpy as np
 import pyresample 
 import pickle
+import general_settings
 from math import sin, cos, sqrt, atan2, radians
 
 # ADD YOUR REGION HERE
@@ -425,13 +426,13 @@ class Region():
         data_resampled = pyresample.kd_tree.get_sample_from_neighbour_info(
             'nn', target_shape, data, valid_input_index, valid_output_index,
             index_array, fill_value=np.nan)
-        data_resampled = np.where(data_resampled > 9999., np.nan, data_resampled)
+        data_resampled = np.where(data_resampled > general_settings.IMPLAUSIBLE_VALUE, np.nan, data_resampled)
         if np.isnan(data_resampled).sum() > 0:
             if fix_nans:
                 logging.warning("--fix_nans is set to True, replaced {:d} NaNs with 0.!".format(
                     np.isnan(data_resampled).sum()))
                 data_resampled = np.where(np.isnan(data_resampled), 0., data_resampled)
-                data_resampled = np.where(data_resampled > 2500., 0., data_resampled)
+                data_resampled = np.where(data_resampled > general_settings.FIX_NANS_IMPLAUSIBLE_VALUE, 0., data_resampled)
             else:
                 logging.warning("""Your resampled data contains missing values! you can use --fix_nans to set them to 0., but this can change scores!""")
         return data_resampled, self.subdomains[subdomain_name]["lon"], self.subdomains[subdomain_name]["lat"]
@@ -465,7 +466,7 @@ class Region():
                 lons=lon, lats=lat)
             valid_input_index, valid_output_index, index_array, _ = \
                 pyresample.kd_tree.get_neighbour_info(
-                    orig_def, targ_def, radius_of_influence=25000.,
+                    orig_def, targ_def, radius_of_influence=general_settings.RESAMPLING_RADIUS,
                     neighbours=1, reduce_data=False)
             self._neighbour_cache[key] = (valid_input_index, valid_output_index,
                                           index_array, targ_def.shape)

@@ -3,6 +3,7 @@ import numpy as np
 import pyproj
 import datetime as dt
 from misc import loop_datetime
+import general_settings
 
 import logging
 logger = logging.getLogger(__name__)
@@ -155,11 +156,12 @@ def read_OPERA(data_list, start_date, end_date, args):
     # a pixel masked in any hour stays NaN so we never under-count coverage gaps
     valid_all_hours = ~np.any(np.isnan(data), axis=0)
     tmp_precip = np.where(valid_all_hours, np.nansum(data, 0), np.nan)
-    n_clamped = int(np.sum(tmp_precip > 2000.))
+    max_accumulation = general_settings.OPERA_MAX_ACCUMULATION
+    n_clamped = int(np.sum(tmp_precip > max_accumulation))
     if n_clamped:
-        logger.warning("Clamping %d OPERA pixels with accumulation > 2000 mm to NaN",
-                       n_clamped)
-    tmp_precip = np.where(tmp_precip>2000., np.nan, tmp_precip)
+        logger.warning("Clamping %d OPERA pixels with accumulation > %g mm to NaN",
+                       n_clamped, max_accumulation)
+    tmp_precip = np.where(tmp_precip>max_accumulation, np.nan, tmp_precip)
     tmp_precip = np.flip(tmp_precip, 0)
     nan_frac = np.mean(np.isnan(tmp_precip))
     logger.info("OPERA accumulated field: {:d} valid pixels ({:.1%}), NaN fraction {:.1%}".format(

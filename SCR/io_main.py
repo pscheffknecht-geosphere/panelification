@@ -13,6 +13,7 @@ from io_gdal import read_data_gdal
 from io_netcdf import read_data_netcdf, read_inca_plus_netcdf
 from io_netcdf import read_HungaroMet_netcdf
 
+import parameter_settings
 from paths import PAN_DIR_TMP, PAN_DIR_MODEL, PAN_DIR_MODEL2, PAN_DIR_DATA
 
 import logging
@@ -86,7 +87,7 @@ def scale_hail(data_list):
             sim['precip_data'] = new_arr
     return data_list
 
-def cloud_fraction_to_cma(data_list, threshold=0.2): # is this datalist in the argumentum the return of read_HungaroMet_netcdf? 
+def cloud_fraction_to_cma(data_list, threshold=parameter_settings.CLOUD_FRACTION_THRESHOLD): # is this datalist in the argumentum the return of read_HungaroMet_netcdf? 
     for sim in data_list:
         new_arr = np.array(sim['precip_data'], copy=False)
         sim['precip_data'] = np.where(new_arr >= threshold, 1, 0)
@@ -397,7 +398,7 @@ class ModelConfiguration:
             n_missing = np.isnan(tmp_data).sum()
             if n_missing > 0:
                 logger.warning(f"{self.experiment_name} {self.init}: {n_missing} missing cloud cover values, these are kept as missing")
-            tmp_data = np.where(np.isnan(tmp_data), np.nan, np.where(tmp_data >= 0.2, 1., 0.))
+            tmp_data = np.where(np.isnan(tmp_data), np.nan, np.where(tmp_data >= parameter_settings.CLOUD_FRACTION_THRESHOLD, 1., 0.))
             logger.debug(f"tmp_data has shape {tmp_data.shape} before summing cloud fraction")
             if tmp_data.ndim == 2:
                 logger.debug(f"Array is 2D, contains only 1 time step, no summing needed")
