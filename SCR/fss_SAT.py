@@ -477,9 +477,11 @@ class CWFSS:
         weighted_fss, weighted_fss_max = self.__weighted_fss()
         self.cwfss = np.nanmean(weighted_fss) / np.nanmean(weighted_fss_max)
 
-    def bootstrap(self, N=500):
+    def bootstrap(self, N=500, seed=None):
+        """ N draws of the cwFSS from resampled samples, reproducible with a seed """
+        rng = np.random.default_rng(seed)
         self.bootstrap_info = np.zeros(N)
         weighted_fss, weighted_fss_max = self.__weighted_fss()
         for ii in range(N):
-            idx = (self.nsamples * np.random.rand(self.nsamples)).astype(int)
+            idx = (self.nsamples * rng.random(self.nsamples)).astype(int)
             self.bootstrap_info[ii] = np.nanmean(weighted_fss[idx]) / np.nanmean(weighted_fss_max[idx])

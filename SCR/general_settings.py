@@ -38,7 +38,12 @@ OPERA_MAX_ACCUMULATION = 2000.
 # used to compare and colour forecasts, so this is the accepted trade-off for
 # being too lenient at low thresholds with widespread rain.
 FSS_SKILL_THRESHOLD = 0.5
-# FSS windows, unless --d_windows is set
+# FSS windows, unless --d_windows is set. Points outside the subdomain count
+# as dry, so once a window is twice the subdomain size every window contains
+# the whole subdomain: the FSS then only compares the total rain areas (a bias
+# measure) and stays constant for all larger windows. Several subdomains in
+# regions.py are much smaller than 200 km (e.g. 40 x 40 km, where 80 ... 200
+# all give the same FSS), but these windows still count in the cwFSS.
 DEFAULT_WINDOWS = [10, 20, 30, 40, 60, 80, 100, 120, 140, 160, 180, 200]
 
 # cwFSS
@@ -52,6 +57,10 @@ CWFSS_WINDOW_MAX_WEIGHT = 2.
 RANKING_CHECK_SAMPLES = 1250
 # number of bootstrap draws from these samples
 RANKING_CHECK_BOOTSTRAP = 10000
+# seed of the bootstrap, so repeated runs give the same result. All forecasts
+# use the same seed, so each draw resamples the same (threshold, window) pairs
+# for every forecast and the ranks of a draw compare like with like
+RANKING_CHECK_SEED = 0
 # threshold range of the samples in percent of the observed maximum,
 # the window range is that of the FSS windows
 RANKING_CHECK_THRESHOLD_LIMITS = (0.1, 100.)

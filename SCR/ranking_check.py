@@ -28,7 +28,7 @@ def add_rank_robustness_info(data_list, args):
     logger.info("Done. Bootstrapping results")
     for cwfss, sim in zip(cwfss_tmp, data_list[1::]):
         logger.debug(f"Bootstraping {sim['name']}, N = {general_settings.RANKING_CHECK_BOOTSTRAP}")
-        cwfss.bootstrap(N=general_settings.RANKING_CHECK_BOOTSTRAP)
+        cwfss.bootstrap(N=general_settings.RANKING_CHECK_BOOTSTRAP, seed=general_settings.RANKING_CHECK_SEED)
         sim[f"cwfss"] = cwfss
         sim[f"cwfss_robust"] = cwfss.cwfss
         
@@ -36,7 +36,7 @@ def add_rank_robustness_info(data_list, args):
 
 def extract_cwfss_array(data_list):
     logger.debug("Extracting FSS sample info.")
-    fss_scores = np.zeros((len(data_list)-1, 10000))
+    fss_scores = np.zeros((len(data_list)-1, general_settings.RANKING_CHECK_BOOTSTRAP))
     for ii, sim in enumerate(data_list[1::]):
         for key in [f"cwfss"]:
             c = sim[key]
