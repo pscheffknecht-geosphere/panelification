@@ -67,13 +67,17 @@ def get_fss_thresholds(args):
         'precip' :  [0.1, 1.,   5., 10.,  25.,  35.,  50.,  75., 100., 99999.],
         'precip2' : [1.0, 5.,  10., 20.,  50., 100., 150., 200., 250., 99999.],
         'precip3' : [5.0, 10., 20., 50., 100., 150., 200., 300., 400., 99999.], # for EXTREME events or LONG windows
-        'sunshine' : list(np.arange(0., 1., 1/6.)) + [999999],
-        'hail' : [1, 2, 5, 10, 25, 35, 50, 75, 100, 99999],
+        'sunshine' : [float(x) for x in range(args.duration)] + [99999], # full hours, the duration cannot be exceeded
+        'hail' : [0.5 * x for x in range(1, 9)] + [99999], # the hail fields are scaled to 0 ... 4
         'gusts' : [5, 10, 15, 20, 25, 30, 40, 50, 70, 99999],
         'lightning' : [0.1*x for x in [1, 2, 5, 10, 25, 35, 50, 75, 100]] + [99999],
         'cma': [x + 0.5 for x in range(args.duration)] + [99999]
     }
     return thresholds_for_fss[args.parameter]
+
+# percentile thresholds for the calculation of the FSS, none for the cloud mask
+def get_fss_percentiles(args):
+    return [] if args.parameter == 'cma' else [25, 50, 75, 90, 95]
 
 # FSS window widths in grid points of the ~1 km verification grid, the same for all
 # parameters unless set with --d_windows; all window lists are taken from here
@@ -83,87 +87,26 @@ def get_windows(args):
     return list(args.d_windows) if args.d_windows else list(DEFAULT_WINDOWS)
 
 
-# customize the tick labels for each parameter
-def make_fss_axis_sunshine(args):
-    ydict = {}
-    for idx, val in enumerate(get_fss_thresholds(args)[:-1]):
-        ydict[idx] = str(int(args.duration*val))
-        maxval = val
-    ydict[maxval+1] = ''
-    for idx, val in enumerate(['25%', '50%', '75%', '90%', '95%']):
-        ydict[maxval+2+idx] = val
-    return ydict
-
+# tick labels of the FSS rank plot, rows are the thresholds, the separator row
+# (DUMMY_THRESHOLD) and the percentile thresholds, columns are the windows
+DUMMY_THRESHOLD = 99999.
 
 def get_axes_for_fss_rank_plot(args):
-    cma_ydict = get_cma_ydict(args)
     window_xdict = get_window_xdict(args)
-    
-    ax_ticks = {
-    'precip' : {
+    threshold_ydict = get_threshold_ydict(args)
+    return {
         'xticks' : range(len(window_xdict)),
-        'yticks' : range(15),
-        'ydict': {
-            0 : '0.1', 1 : '1', 2 : '5', 3 : '10', 4 : '25', 5 : '35', 6 : '50', 7 : '75', 
-            8 : '100', 9 : '', 10 : '25%', 11 : '50%', 12 : '75%', 13 : '90%', 14 : '95%'},
-        'xdict' : window_xdict
-        },
-    'cma' : {
-        'xticks' : range(len(window_xdict)),
-        'yticks' : range(len(cma_ydict)),
-        'ydict': cma_ydict,
-        'xdict' : window_xdict
-        },
-    'precip2' : {
-        'xticks' : range(len(window_xdict)),
-        'yticks' : range(15),
-        'ydict': {
-            0 : '1', 1 : '5', 2 : '10', 3 : '20', 4 : '50', 5 : '100', 6 : '150', 7 : '200',
-            8 : '250', 9 : '', 10 : '25%', 11 : '50%', 12 : '75%', 13 : '90%', 14 : '95%'},
-        'xdict' : window_xdict
-        },
-    'precip3' : {
-        'xticks' : range(len(window_xdict)),
-        'yticks' : range(15),
-        'ydict': {
-            0 : '5', 1 : '10', 2 : '20', 3 : '50', 4 : '100', 5 : '150', 6 : '200', 7 : '300', 
-            8 : '400', 9 : '', 10 : '25%', 11 : '50%', 12 : '75%', 13 : '90%', 14 : '95%'},
-        'xdict' : window_xdict
-        },
-    'sunshine' : {
-        'xticks' : range(len(window_xdict)),
-        'yticks' : range(14),
-        'ydict': make_fss_axis_sunshine(args),
-        'xdict' : window_xdict
-        },
-    'hail' : {
-        'xticks' : range(len(window_xdict)),
-        'yticks' : range(14),
-        'ydict': {
-            0 : '0.5', 1 : '1.0', 2 : '1.5', 3 : '2.0', 4 : '2.5', 5 : '3.0', 6 : '3.5', 7 : '4.0', 
-            8 : '', 9 : '25%', 10 : '50%', 11 : '75%', 12 : '90%', 13 : '95%'},
-        'xdict' : window_xdict
-        },
-    'lightning' : {
-        'xticks' : range(len(window_xdict)),
-        'yticks' : range(15),
-        'ydict': {
-            0 : '0.1', 1 : '0.2', 2 : '.5', 3 : '1', 4 : '2.5', 5 : '3.5', 6 : '5.0', 7 : '7.5', 
-            8 : '10.0', 9 : '', 10 : '25%', 11 : '50%', 12 : '75%', 13 : '90%', 14 : '95%'},
-        'xdict' : window_xdict
-        }
-    }
-    return ax_ticks[args.parameter]
+        'yticks' : range(len(threshold_ydict)),
+        'xdict' : window_xdict,
+        'ydict' : threshold_ydict}
 
 
-def get_cma_ydict(args):
-    cma_ydict = {}
-    ii = 0
-    for x in range(args.duration):
-        cma_ydict[ii] = f"{int(x+1):d} h"
-        ii += 1
-    cma_ydict[ii] = "" # placeholder threshold, no percentile thresholds for clouds
-    return cma_ydict
+def get_threshold_ydict(args):
+    """ FSS plot labels of the thresholds and percentile thresholds """
+    labels = ['' if t >= DUMMY_THRESHOLD else f"{t:g}" for t in get_fss_thresholds(args)]
+    labels += [f"{p:d}%" for p in get_fss_percentiles(args)]
+    return dict(enumerate(labels))
+
 
 def get_window_xdict(args):
     """ FSS plot labels of the windows """

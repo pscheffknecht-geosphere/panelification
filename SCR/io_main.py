@@ -78,7 +78,7 @@ def scale_hail(data_list):
     New Scale:   0 ............... 1 ................ 2 ...................... >3"""
     for sim in data_list:
         new_arr = sim['precip_data']
-        if sim['conf'] == ['INCA']:
+        if sim['conf'] == 'INCA':
             new_arr = sim['precip_data'] = 0.04 * new_arr # scale to [0, 4]
         else:
             new_arr = np.where(new_arr<16., 0.0625 * new_arr, new_arr)

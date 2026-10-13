@@ -64,14 +64,30 @@ class TestGetWindows:
 
 
 # =====================================================================
-# get_cma_ydict
+# FSS rank plot labels
 # =====================================================================
 
-class TestGetCmaYdict:
+class TestThresholdLabels:
 
-    def test_no_percentile_rows(self):
-        ydict = parameter_settings.get_cma_ydict(_args(parameter="cma", duration=3))
-        assert list(ydict.values()) == ["1 h", "2 h", "3 h", ""]
+    def test_cma_no_percentile_rows(self):
+        ydict = parameter_settings.get_threshold_ydict(_args(parameter="cma", duration=3))
+        assert list(ydict.values()) == ["0.5", "1.5", "2.5", ""]
+
+    def test_precip_labels(self):
+        ydict = parameter_settings.get_threshold_ydict(_args())
+        assert list(ydict.values()) == ["0.1", "1", "5", "10", "25", "35", "50", "75", "100", "",
+                                        "25%", "50%", "75%", "90%", "95%"]
+
+    def test_one_label_per_fss_row(self):
+        """ every parameter gets one label per threshold, separator and percentile threshold """
+        for param in ["precip", "precip2", "precip3", "sunshine",
+                      "hail", "gusts", "lightning", "cma"]:
+            args = _args(parameter=param, duration=6)
+            axes = parameter_settings.get_axes_for_fss_rank_plot(args)
+            n_rows = (len(parameter_settings.get_fss_thresholds(args))
+                      + len(parameter_settings.get_fss_percentiles(args)))
+            assert len(axes["ydict"]) == len(axes["yticks"]) == n_rows
+            assert len(axes["xdict"]) == len(axes["xticks"]) == len(parameter_settings.get_windows(args))
 
 
 # =====================================================================

@@ -384,7 +384,7 @@ def calc_scores(sim, obs, args):
     the ranking later on
     """
     logger.info('Calculating scores for '+sim['name'])
-    percs = [] if args.parameter == 'cma' else [25, 50, 75, 90, 95] # no percentile thresholds for clouds
+    percs = parameter_settings.get_fss_percentiles(args)
     levels = parameter_settings.get_fss_thresholds(args)
     windows = parameter_settings.get_windows(args)
 
