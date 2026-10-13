@@ -98,8 +98,8 @@ class Ensemble:
         self.member_count = single_ens_dict['member_count']
         self.name = single_ens_dict['name']
         self.data_indices = single_ens_dict['data_indices']
-        nx, ny = data_list[self.data_indices[0]]['precip_data_resampled'].shape
-        self.precip_field_shape = (self.member_count, nx, ny)
+        ny, nx = data_list[self.data_indices[0]]['precip_data_resampled'].shape
+        self.precip_field_shape = (self.member_count, ny, nx)
         self.precip_data_resampled = np.zeros(self.precip_field_shape)
         for ii, idx in enumerate(self.data_indices):
             self.precip_data_resampled[ii, :, :] = data_list[idx]['precip_data_resampled']
@@ -110,7 +110,7 @@ class Ensemble:
         logger.info(f"Created ensemble {self.name} with {self.member_count} members")
         self.thresholds = parameter_settings.get_fss_thresholds(args)
         ww = [10,20,30,40,60,80,100,120,140,160,180,200]
-        self.windows = prep_windows(ww, args.fss_calc_mode, nx, ny)
+        self.windows = prep_windows(ww, args.fss_calc_mode, nx, ny, args.fss_method)
         self.fss_method = args.fss_method
         self.threads = args.threads
         self.collect_member_scores(data_list)

@@ -2,10 +2,13 @@
 
 import copy
 import os
+from unittest.mock import patch
+
 import numpy as np
 import pandas as pd
 import pytest
 
+import fss_SAT
 import scoring
 import parameter_settings
 
@@ -111,14 +114,21 @@ class TestPrepWindows:
         np.testing.assert_array_equal(result[:, 0], [10, 20, 30])
         np.testing.assert_array_equal(result[:, 1], [10, 20, 30])
 
-    def test_valid_adaptive_clamps(self):
+    def test_valid_adaptive_clamps_legacy(self):
         ww = [10, 200, 500]
-        result = scoring.prep_windows(ww, "valid_adaptive", 100, 80)
+        result = scoring.prep_windows(ww, "valid_adaptive", 100, 80, fss_method="legacy")
         # 200 > ny=80 → clamped to 80; 200 > nx=100 → clamped to 100
         assert result[1, 0] == 80   # ny
         assert result[1, 1] == 100  # nx
         assert result[2, 0] == 80
         assert result[2, 1] == 100
+
+    def test_valid_adaptive_no_clamp_sat(self):
+        """ the SAT method handles windows larger than the field, they are not clipped """
+        ww = [10, 200, 500]
+        result = scoring.prep_windows(ww, "valid_adaptive", 100, 80)
+        np.testing.assert_array_equal(result[:, 0], ww)
+        np.testing.assert_array_equal(result[:, 1], ww)
 
 
 # =====================================================================
@@ -396,6 +406,38 @@ class TestFssD90:
         assert np.mean(small > 0) < 0.1 < np.mean(large > 0)
         obs, mod = (small, large) if dry_field == "obs" else (large, small)
         assert np.isnan(scoring.fss_d90(mod, obs, args))
+
+    @pytest.mark.parametrize("fss_method", ["default", "legacy"])
+    def test_valid_adaptive_mode(self, make_test_args, fss_method):
+        """d90 follows --fss_calc_mode, valid_adaptive works for both FSS methods."""
+        args = make_test_args(fss_method=fss_method, fss_calc_mode="valid_adaptive")
+        ny, nx = 96, 160
+        obs = self._gauss(ny, nx, 70, 48)
+        mod = self._gauss(ny, nx, 86, 48)
+        assert np.isfinite(scoring.fss_d90(mod, obs, args))
+
+    @pytest.mark.parametrize("fss_method, func", [("default", "fss_SAT.fss_cumsum_frame"),
+                                                  ("legacy", "fss_FFT.fss_frame")])
+    def test_valid_adaptive_windows(self, make_test_args, fss_method, func):
+        """With the legacy FFT method windows larger than the field are clipped to ny
+        along y and nx along x, the SAT method gets them unclipped."""
+        args = make_test_args(fss_method=fss_method, fss_calc_mode="valid_adaptive")
+        ny, nx = 96, 160
+        calls = []
+        module, name = func.split(".")
+        original = getattr(scoring, module).__dict__[name]
+        def record(fcst, obs, windows, levels, **kwargs):
+            calls.append((windows, kwargs["mode"]))
+            return original(fcst, obs, windows, levels, **kwargs)
+        with patch(f"scoring.{func}", side_effect=record):
+            scoring.fss_d90(self._gauss(ny, nx, 86, 48), self._gauss(ny, nx, 70, 48), args)
+        windows, mode = calls[0]
+        assert mode == "valid"
+        if fss_method == "legacy":
+            assert windows[:, 0].max() == ny
+            assert windows[:, 1].max() == nx
+        else:
+            assert windows[:, 0].max() == windows[:, 1].max() == 701
 
     def test_gaps_in_both_fields_are_symmetric(self, make_test_args):
         """The same gap gives the same d90 whether it is in the obs or the model."""

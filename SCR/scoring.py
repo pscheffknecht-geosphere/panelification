@@ -365,12 +365,15 @@ def write_scores_to_csv(data_list, start_date, end_date, args, verification_subd
                 score_writer.writerow(write_data)
 
 
-def prep_windows(ww, mode, nx, ny):
+def prep_windows(ww, mode, nx, ny, fss_method="default"):
+    """ (y, x) window sizes. With the legacy FFT method and mode valid_adaptive, windows
+    larger than the field are clipped to it, the SAT method handles any window size """
+    clip = mode == 'valid_adaptive' and fss_method == 'legacy'
     windows_shape = (len(ww), 2)
     windows_ret = np.zeros(windows_shape, dtype=int)
     for idx, w in enumerate(ww):
-        windows_ret[idx, 0] = ny if mode == 'valid_adaptive' and w > ny else w
-        windows_ret[idx, 1] = nx if mode == 'valid_adaptive' and w > nx else w
+        windows_ret[idx, 0] = ny if clip and w > ny else w
+        windows_ret[idx, 1] = nx if clip and w > nx else w
     return windows_ret
         
 def calc_scores(sim, obs, args):
@@ -387,7 +390,7 @@ def calc_scores(sim, obs, args):
     windows = parameter_settings.get_windows(args)
 
     ny, nx = sim["precip_data_resampled"].shape
-    windows = prep_windows(windows, args.fss_calc_mode, nx, ny)
+    windows = prep_windows(windows, args.fss_calc_mode, nx, ny, args.fss_method)
     fss_calc_func = fss_SAT.fss_cumsum_frame
     if args.fss_method == 'legacy':
         logger.info("FSS method is set to legacy, using old FFT approximation!")
@@ -507,7 +510,8 @@ def fss_d90(rrm, rro, args):
         logger.info("FSS method is set to legacy, using old FFT approximation for D90!")
         fss_calc_func = fss_FFT.fss_frame
     windows = [3, 5, 7, 11, 21, 31, 41, 51, 61, 81, 101, 121, 141, 181, 251, 351, 501, 701]
-    windows_2d = prep_windows(windows, args.mode, *rrm.shape)
+    ny, nx = rrm.shape
+    windows_2d = prep_windows(windows, args.fss_calc_mode, nx, ny, args.fss_method)
     levels = [0.5]
     # NaN-aware: observation fields (e.g. OPERA) may contain NaN where there is
     # no radar coverage, model fields where the model domain does not cover the
@@ -545,7 +549,7 @@ def fss_d90(rrm, rro, args):
     rrm_s = np.where(missing, np.nan, np.maximum(_rrm - _rro, 0))
     _, _, _arr, _ = fss_calc_func(
         rro_s, rrm_s, windows_2d, levels,
-        mode=args.fss_calc_mode)
+        mode=args.fss_calc_mode.replace("_adaptive", ""))
     arr = _arr.values.flatten()
     logger.debug("FSS array for D90 calculation:")
     logger.debug(arr)
