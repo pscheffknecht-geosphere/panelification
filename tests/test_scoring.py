@@ -317,6 +317,12 @@ class TestFssD90:
         y, x = np.mgrid[0:ny, 0:nx]
         return a * np.exp(-((x - cx) ** 2 + (y - cy) ** 2) / (2 * s ** 2))
 
+    @staticmethod
+    def _dry(field, limit=0.1):
+        """ no precipitation below the measurable limit, instead of the Gaussian tail,
+        so the p90 area of the jointly valid points cannot fall into the tail """
+        return np.where(field < limit, 0., field)
+
     def test_all_nan_obs_returns_nan(self, make_test_args, small_fields):
         args = make_test_args()
         _, fcst = small_fields
@@ -336,7 +342,7 @@ class TestFssD90:
         ny = nx = 64
         obs = self._gauss(ny, nx, 40, 40)   # obs precip in the lower-right
         obs[:25, :25] = np.nan              # upper-left corner unobserved
-        mod = self._gauss(ny, nx, 8, 8, s=3.0, a=100.0)  # forecast only in corner
+        mod = self._dry(self._gauss(ny, nx, 8, 8, s=3.0, a=100.0))  # forecast only in corner
         result = scoring.fss_d90(mod, obs, args)
         assert np.isnan(result)
 
@@ -353,6 +359,54 @@ class TestFssD90:
         gapped = scoring.fss_d90(mod.copy(), obs_gap, args)
         assert np.isfinite(clean) and np.isfinite(gapped)
         assert gapped == pytest.approx(clean, rel=0.05)
+
+    def test_obs_intense_only_where_model_missing_returns_nan(self, make_test_args):
+        """Intense observed precip located only where the model is missing (outside
+        the model domain) must be discarded, leaving no observed events."""
+        args = make_test_args()
+        ny = nx = 64
+        mod = self._gauss(ny, nx, 40, 40)   # forecast precip in the lower-right
+        mod[:25, :25] = np.nan              # upper-left corner outside the model domain
+        obs = self._dry(self._gauss(ny, nx, 8, 8, s=3.0, a=100.0))  # observed only in that corner
+        result = scoring.fss_d90(mod, obs, args)
+        assert np.isnan(result)
+
+    @pytest.mark.parametrize("fss_method", ["default", "legacy"])
+    def test_model_gap_far_from_precip_matches_clean(self, make_test_args, fss_method):
+        """A model gap away from the precipitation should barely change d90."""
+        args = make_test_args(fss_method=fss_method)
+        ny = nx = 128
+        obs = self._gauss(ny, nx, 64, 64)
+        mod = self._gauss(ny, nx, 80, 64)   # shifted 16 px east
+        clean = scoring.fss_d90(mod.copy(), obs.copy(), args)
+        mod_gap = mod.copy()
+        mod_gap[:20, :20] = np.nan          # gap far from both blobs
+        gapped = scoring.fss_d90(mod_gap, obs.copy(), args)
+        assert np.isfinite(clean) and np.isfinite(gapped)
+        assert gapped == pytest.approx(clean, rel=0.05)
+
+    @pytest.mark.parametrize("dry_field", ["obs", "mod"])
+    def test_mostly_dry_field_returns_nan(self, make_test_args, dry_field):
+        """With more than 90 % dry points the p90 threshold equals the field
+        minimum and every point would count as intense, in either field."""
+        args = make_test_args()
+        ny = nx = 128
+        small = self._dry(self._gauss(ny, nx, 64, 64, s=5.0))   # well below 10 % wet
+        large = self._dry(self._gauss(ny, nx, 70, 64, s=30.0))  # mostly wet
+        assert np.mean(small > 0) < 0.1 < np.mean(large > 0)
+        obs, mod = (small, large) if dry_field == "obs" else (large, small)
+        assert np.isnan(scoring.fss_d90(mod, obs, args))
+
+    def test_gaps_in_both_fields_are_symmetric(self, make_test_args):
+        """The same gap gives the same d90 whether it is in the obs or the model."""
+        args = make_test_args()
+        ny = nx = 128
+        obs = self._gauss(ny, nx, 64, 64)
+        mod = self._gauss(ny, nx, 80, 64)
+        obs_gap, mod_gap = obs.copy(), mod.copy()
+        obs_gap[:, :30] = np.nan
+        mod_gap[:, :30] = np.nan
+        assert scoring.fss_d90(mod.copy(), obs_gap, args) == scoring.fss_d90(mod_gap, obs.copy(), args)
 
 
 # =====================================================================

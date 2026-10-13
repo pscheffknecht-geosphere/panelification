@@ -510,20 +510,21 @@ def fss_d90(rrm, rro, args):
     windows_2d = prep_windows(windows, args.mode, *rrm.shape)
     levels = [0.5]
     # NaN-aware: observation fields (e.g. OPERA) may contain NaN where there is
-    # no radar coverage. A plain np.percentile would return NaN and silently
-    # turn the binary intense field into all-zeros. Use nanpercentile and treat
-    # unobserved pixels as non-events in both fields so they add no displacement.
-    obs_unobserved = np.isnan(rro)
-    if obs_unobserved.all() or np.isnan(rrm).all():
-        logger.warning("Observation or model field is entirely NaN, returning no d90!")
+    # no radar coverage, model fields where the model domain does not cover the
+    # subdomain. Points missing in either field are masked in both, so the p90
+    # areas refer to the same jointly valid area and missing points add no
+    # displacement.
+    missing = np.isnan(rro) | np.isnan(rrm)
+    if missing.all():
+        logger.warning("Observation and model field have no jointly valid points, returning no d90!")
         return np.nan
-    p90_obs = np.nanpercentile(np.copy(rro), 90)
-    p90_mod = np.nanpercentile(np.copy(rrm), 90)
-    # comparisons against NaN yield False, so NaN pixels become 0 (non-event)
+    rro = np.where(missing, np.nan, rro)
+    rrm = np.where(missing, np.nan, rrm)
+    p90_obs = np.nanpercentile(rro, 90)
+    p90_mod = np.nanpercentile(rrm, 90)
+    # comparisons against NaN yield False, so missing points become 0 here
     _rro = np.where(rro >= p90_obs, 1, 0)
     _rrm = np.where(rrm >= p90_mod, 1, 0) # circumvent numpy issue #21524
-    # do not credit/penalise displacement where the obs is unobserved
-    _rrm[obs_unobserved] = 0
     if np.sum(_rrm) == 0:
         logger.warning("No precipitation in model array, returning no d90!")
         return np.nan
@@ -533,15 +534,17 @@ def fss_d90(rrm, rro, args):
         return np.nan
     # if p90 threshold equals the field minimum, the percentile cannot
     # distinguish intense from non-intense pixels (e.g. constant or all-zero field)
-    if p90_mod <= np.nanmin(rrm):
-        logger.warning("Model p90 threshold (%.4f) equals field minimum — "
-                        "cannot identify intense precipitation area, returning no d90!", p90_mod)
-        return np.nan
-    # surplus fields: non-overlapping parts of the binary p90 fields
-    rro_s = np.maximum(_rro - _rrm, 0)
-    rrm_s = np.maximum(_rrm - _rro, 0)
+    for label, p90, field in (("Model", p90_mod, rrm), ("Observation", p90_obs, rro)):
+        if p90 <= np.nanmin(field):
+            logger.warning("%s p90 threshold (%.4f) equals field minimum — "
+                           "cannot identify intense precipitation area, returning no d90!", label, p90)
+            return np.nan
+    # surplus fields: non-overlapping parts of the binary p90 fields,
+    # missing points stay NaN so the FSS excludes them from the windows
+    rro_s = np.where(missing, np.nan, np.maximum(_rro - _rrm, 0))
+    rrm_s = np.where(missing, np.nan, np.maximum(_rrm - _rro, 0))
     _, _, _arr, _ = fss_calc_func(
-        rro_s.astype(float), rrm_s.astype(float), windows_2d, levels,
+        rro_s, rrm_s, windows_2d, levels,
         mode=args.fss_calc_mode)
     arr = _arr.values.flatten()
     logger.debug("FSS array for D90 calculation:")

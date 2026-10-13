@@ -27,8 +27,8 @@ def get_interesting_subdomains(obs_data, args):
         logger.debug(RR_obs)
         
         RR_obs_subdomain, _, _ = args.region.resample_to_subdomain(RR_obs, lon_o, lat_o, subdomain_name, fix_nans=args.fix_nans)
-        RR_obs_subdomain_mean = np.mean(RR_obs_subdomain)
-        RR_obs_subdomain_max = np.max(RR_obs_subdomain)
+        RR_obs_subdomain_mean = np.nanmean(RR_obs_subdomain)
+        RR_obs_subdomain_max = np.nanmax(RR_obs_subdomain)
         RR_means.append(RR_obs_subdomain_mean)
         RR_maxes.append(RR_obs_subdomain_max)
         RR_names.append(subdomain_name)

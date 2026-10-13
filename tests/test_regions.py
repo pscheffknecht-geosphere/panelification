@@ -95,3 +95,31 @@ class TestRegion:
         valid = result[~np.isnan(result)]
         if len(valid) > 0:
             np.testing.assert_allclose(valid, 42.0, atol=0.5)
+
+    @staticmethod
+    def _west_half_grid():
+        """ Source grid that ends at the centre of the subdomain """
+        return np.meshgrid(np.linspace(6.0, 13.0, 200), np.linspace(43.0, 52.0, 200))
+
+    def test_uncovered_pixels_are_nan(self, test_region):
+        lon, lat = self._west_half_grid()
+        result, rlon, _ = test_region.resample_to_subdomain(
+            np.ones_like(lon) * 5.0, lon, lat, "Default", fix_nans=False)
+        assert np.isnan(result[rlon > 13.5]).all()
+        np.testing.assert_array_equal(result[rlon < 12.5], 5.0)
+
+    def test_uncovered_pixels_zero_with_fix_nans(self, test_region):
+        lon, lat = self._west_half_grid()
+        result, rlon, _ = test_region.resample_to_subdomain(
+            np.ones_like(lon) * 5.0, lon, lat, "Default", fix_nans=True)
+        assert not np.isnan(result).any()
+        np.testing.assert_array_equal(result[rlon > 13.5], 0.)
+
+    def test_integer_field(self, test_region):
+        """ integer fields such as cloud masks are resampled as float with NaN outside the source grid """
+        lon, lat = self._west_half_grid()
+        result, rlon, _ = test_region.resample_to_subdomain(
+            np.ones(lon.shape, dtype=int), lon, lat, "Default", fix_nans=False)
+        assert result.dtype.kind == "f"
+        assert np.isnan(result[rlon > 13.5]).all()
+        np.testing.assert_array_equal(result[rlon < 12.5], 1.)

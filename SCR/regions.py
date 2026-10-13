@@ -418,9 +418,13 @@ class Region():
             subdomain_name))
         valid_input_index, valid_output_index, index_array, target_shape = \
             self.__get_neighbour_info(lon, lat, subdomain_name)
+        # subdomain pixels not covered by the source grid are missing (NaN), which
+        # needs a float array, e.g. the integer cloud masks
+        if not np.issubdtype(data.dtype, np.floating):
+            data = data.astype(float)
         data_resampled = pyresample.kd_tree.get_sample_from_neighbour_info(
             'nn', target_shape, data, valid_input_index, valid_output_index,
-            index_array, fill_value=0)
+            index_array, fill_value=np.nan)
         data_resampled = np.where(data_resampled > 9999., np.nan, data_resampled)
         if np.isnan(data_resampled).sum() > 0:
             if fix_nans:
