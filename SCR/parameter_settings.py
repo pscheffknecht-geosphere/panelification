@@ -64,14 +64,14 @@ def get_units(args):
 # thresholds for the calculation of the FSS depending on the parameter
 def get_fss_thresholds(args):
     thresholds_for_fss = {
-        'precip' :  [0.1, 1.,   5., 10.,  25.,  35.,  50.,  75., 100., 99999.],
-        'precip2' : [1.0, 5.,  10., 20.,  50., 100., 150., 200., 250., 99999.],
-        'precip3' : [5.0, 10., 20., 50., 100., 150., 200., 300., 400., 99999.], # for EXTREME events or LONG windows
-        'sunshine' : [float(x) for x in range(args.duration)] + [99999], # full hours, the duration cannot be exceeded
-        'hail' : [0.5 * x for x in range(1, 9)] + [99999], # the hail fields are scaled to 0 ... 4
-        'gusts' : [5, 10, 15, 20, 25, 30, 40, 50, 70, 99999],
-        'lightning' : [0.1*x for x in [1, 2, 5, 10, 25, 35, 50, 75, 100]] + [99999],
-        'cma': [x + 0.5 for x in range(args.duration)] + [99999]
+        'precip' :  [0.1, 1.,   5., 10.,  25.,  35.,  50.,  75., 100.],
+        'precip2' : [1.0, 5.,  10., 20.,  50., 100., 150., 200., 250.],
+        'precip3' : [5.0, 10., 20., 50., 100., 150., 200., 300., 400.], # for EXTREME events or LONG windows
+        'sunshine' : [float(x) for x in range(args.duration)], # full hours, the duration cannot be exceeded
+        'hail' : [0.5 * x for x in range(1, 9)], # the hail fields are scaled to 0 ... 4
+        'gusts' : [5, 10, 15, 20, 25, 30, 40, 50, 70],
+        'lightning' : [0.1*x for x in [1, 2, 5, 10, 25, 35, 50, 75, 100]],
+        'cma': [x + 0.5 for x in range(args.duration)]
     }
     return thresholds_for_fss[args.parameter]
 
@@ -87,10 +87,8 @@ def get_windows(args):
     return list(args.d_windows) if args.d_windows else list(DEFAULT_WINDOWS)
 
 
-# tick labels of the FSS rank plot, rows are the thresholds, the separator row
-# (DUMMY_THRESHOLD) and the percentile thresholds, columns are the windows
-DUMMY_THRESHOLD = 99999.
-
+# tick labels of the FSS rank plot, rows are the thresholds and, after an empty
+# separator row, the percentile thresholds, columns are the windows
 def get_axes_for_fss_rank_plot(args):
     window_xdict = get_window_xdict(args)
     threshold_ydict = get_threshold_ydict(args)
@@ -103,8 +101,10 @@ def get_axes_for_fss_rank_plot(args):
 
 def get_threshold_ydict(args):
     """ FSS plot labels of the thresholds and percentile thresholds """
-    labels = ['' if t >= DUMMY_THRESHOLD else f"{t:g}" for t in get_fss_thresholds(args)]
-    labels += [f"{p:d}%" for p in get_fss_percentiles(args)]
+    labels = [f"{t:g}" for t in get_fss_thresholds(args)]
+    percentiles = get_fss_percentiles(args)
+    if percentiles:
+        labels += [''] + [f"{p:d}%" for p in percentiles]
     return dict(enumerate(labels))
 
 

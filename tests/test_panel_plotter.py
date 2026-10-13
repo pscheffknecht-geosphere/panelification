@@ -96,3 +96,30 @@ class TestPrepPlotData:
         data, lon, lat = panel_plotter.prep_plot_data(sim, sim, "resampled")
         assert data.shape == (8, 8)
         assert data[0, 0] == 2.0
+
+
+# =====================================================================
+# fss_plot_rows — separator row of the FSS rank plot
+# =====================================================================
+
+class TestFssPlotRows:
+
+    @staticmethod
+    def _sim(n_thresholds, n_percentiles):
+        import pandas as pd
+        n_rows = n_thresholds + n_percentiles
+        return {"fss_ranks": np.full((n_rows, 4), 3), "fssf": pd.DataFrame(np.full((n_rows, 4), 0.8)),
+                "fss_rel": np.zeros((n_rows, 4)), "fss_overestimated": pd.DataFrame(np.zeros((n_rows, 4))),
+                "fss_thresholds": [0.5] * n_thresholds, "fss_thresholds_percs": [0.5] * n_percentiles}
+
+    def test_separator_between_thresholds_and_percentiles(self):
+        ranks, fssf, fss_rel, ovest, separator = panel_plotter.fss_plot_rows(self._sim(3, 2))
+        assert separator == 3
+        assert ranks.shape == fssf.shape == fss_rel.shape == ovest.shape == (6, 4)
+        assert (ranks[3] == 0).all() and np.isnan(fssf[3]).all()
+        assert (ranks[[0, 1, 2, 4, 5]] == 3).all()
+
+    def test_no_separator_without_percentiles(self):
+        ranks, _, _, _, separator = panel_plotter.fss_plot_rows(self._sim(3, 0))
+        assert separator is None
+        assert ranks.shape == (3, 4)

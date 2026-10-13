@@ -80,9 +80,7 @@ class TestStructure:
         data_list, args = scored_run
         ds = _build(data_list, args)
         sim = data_list[1]
-        # the last threshold is the dummy row separating the sections of the FSS plots
-        assert sim["fss"].index[-1] >= io_scores.DUMMY_THRESHOLD
-        np.testing.assert_array_equal(ds["threshold"].values, sim["fss"].index[:-1])
+        np.testing.assert_array_equal(ds["threshold"].values, sim["fss"].index)
         np.testing.assert_array_equal(ds["window"].values, sim["fss"].columns)
         np.testing.assert_array_equal(ds["pct_threshold"].values, sim["fssp"].index)
 
@@ -141,7 +139,7 @@ class TestValues:
         for sim in data_list[1:]:
             conf, lead = sim["conf"], sim["lead"]
             for var in ["fss", "fss_num", "fss_den"]:
-                np.testing.assert_array_equal(_at(ds, var, conf, lead).values, sim[var].to_numpy()[:-1])
+                np.testing.assert_array_equal(_at(ds, var, conf, lead).values, sim[var].to_numpy())
             for var in ["fssp", "fssp_num", "fssp_den"]:
                 np.testing.assert_array_equal(_at(ds, var, conf, lead).values, sim[var].to_numpy())
 

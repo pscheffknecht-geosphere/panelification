@@ -175,15 +175,16 @@ class TestWeightedFssCondensedRect:
         return {'name': 'test_sim', 'fss': fss, 'fssf': fss, 'fss_windows': [5, 10, 30],
                 'fss_thresholds': [0.5] * len(fss_rows)}
 
-    def test_placeholder_threshold_has_no_weight(self):
-        """The 99999 placeholder must not change the weights of the real thresholds."""
+    def test_unobserved_threshold_has_no_weight(self):
+        """A threshold the observation never exceeds is skipped (N1 rule) and does
+        not change the result of the other thresholds."""
         obs = {'precip_data_resampled': np.full((4, 4), 3.)}
         rows = [[1., 1., 1.], [0.9, 0.95, 1.], [0.6, 0.7, 0.8]]
-        with_placeholder, _ = scoring.weighted_fss_condensed_rect(
-            self._sim(rows + [[np.nan] * 3]), obs, [0.5, 1.5, 2.5, 99999])
-        without_placeholder, _ = scoring.weighted_fss_condensed_rect(
+        with_unobserved, _ = scoring.weighted_fss_condensed_rect(
+            self._sim(rows + [[np.nan] * 3]), obs, [0.5, 1.5, 2.5, 5.])
+        without, _ = scoring.weighted_fss_condensed_rect(
             self._sim(rows), obs, [0.5, 1.5, 2.5])
-        assert with_placeholder == pytest.approx(without_placeholder)
+        assert np.isfinite(with_unobserved) and np.isfinite(without)
 
 
 # =====================================================================

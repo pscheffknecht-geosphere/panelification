@@ -20,14 +20,14 @@ def _args(**overrides):
 
 class TestGetFssThresholds:
 
-    def test_precip_returns_10_values(self):
+    def test_precip_returns_9_values(self):
         result = parameter_settings.get_fss_thresholds(_args())
-        assert len(result) == 10
-        assert result[-1] == 99999.0
+        assert len(result) == 9
+        assert result[-1] == 100.0
 
     def test_precip2(self):
         result = parameter_settings.get_fss_thresholds(_args(parameter="precip2"))
-        assert len(result) == 10
+        assert len(result) == 9
         assert result[0] == 1.0
 
     def test_all_parameters_non_empty(self):
@@ -71,7 +71,7 @@ class TestThresholdLabels:
 
     def test_cma_no_percentile_rows(self):
         ydict = parameter_settings.get_threshold_ydict(_args(parameter="cma", duration=3))
-        assert list(ydict.values()) == ["0.5", "1.5", "2.5", ""]
+        assert list(ydict.values()) == ["0.5", "1.5", "2.5"]
 
     def test_precip_labels(self):
         ydict = parameter_settings.get_threshold_ydict(_args())
@@ -79,13 +79,14 @@ class TestThresholdLabels:
                                         "25%", "50%", "75%", "90%", "95%"]
 
     def test_one_label_per_fss_row(self):
-        """ every parameter gets one label per threshold, separator and percentile threshold """
+        """ every parameter gets one label per threshold and, after a separator, per percentile threshold """
         for param in ["precip", "precip2", "precip3", "sunshine",
                       "hail", "gusts", "lightning", "cma"]:
             args = _args(parameter=param, duration=6)
             axes = parameter_settings.get_axes_for_fss_rank_plot(args)
+            n_percentiles = len(parameter_settings.get_fss_percentiles(args))
             n_rows = (len(parameter_settings.get_fss_thresholds(args))
-                      + len(parameter_settings.get_fss_percentiles(args)))
+                      + (1 + n_percentiles if n_percentiles else 0))
             assert len(axes["ydict"]) == len(axes["yticks"]) == n_rows
             assert len(axes["xdict"]) == len(axes["xticks"]) == len(parameter_settings.get_windows(args))
 

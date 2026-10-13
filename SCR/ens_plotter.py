@@ -436,8 +436,7 @@ def ens_fss_plot(ens_data, windows, levels, verification_subdomain, args):
         logger.warning("No ensembles available for ens_fss_plot.")
         return None
 
-    keep = np.array([l < 1000. for l in levels])
-    plot_levels = [l for l, k in zip(levels, keep) if k]
+    plot_levels = list(levels)
     n_lev = len(plot_levels)
     n_rows = n_members + 2  # two extra rows: dFSSmean and dFSSstdev overviews
     row_dfm = n_members       # index of the dFSSmean row
@@ -446,9 +445,9 @@ def ens_fss_plot(ens_data, windows, levels, verification_subdomain, args):
         figsize=(4 * n_members, 4 * n_rows), sharex=True, sharey=True, dpi=args.dpi,
         squeeze=False)
     vmax = 1. if n_members < 2 else get_value_range(ens_data)
-    pfss = [np.asarray(e.pFSS[2])[keep, :] for e in ens_data]
-    dfss_mean = [np.asarray(e.dFSSmean)[keep, :] for e in ens_data]
-    dfss_std = [np.asarray(e.dFSSstdev)[keep, :] for e in ens_data]
+    pfss = [np.asarray(e.pFSS[2]) for e in ens_data]
+    dfss_mean = [np.asarray(e.dFSSmean) for e in ens_data]
+    dfss_std = [np.asarray(e.dFSSstdev) for e in ens_data]
 
     levels1 = np.arange(0., 1.01, 0.1)
     levels2, step = _diff_levels(vmax)

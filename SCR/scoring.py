@@ -125,7 +125,7 @@ def weighted_fss_condensed(sim, levels):
     score = 0.
     score_arr = np.zeros(sim['fssf'].values.shape)
     wins = np.asarray(sim['fss_windows'])
-    max_l = np.max([l for l in levels if l < 99999]) # exclude the placeholder threshold
+    max_l = np.max(levels)
     max_w = wins.max()
     for ii, t in enumerate(sim['fss_thresholds']):
         a_ = sim['fss'].values[ii, :]
@@ -212,11 +212,7 @@ def weighted_fss_condensed_rect(sim, obs, levels):
     score_arr = np.zeros(sim['fssf'].values.shape)
     wins = np.asarray([np.max(w) for w in sim['fss_windows']], dtype=float)
     lvls = np.asarray(levels, dtype=float)
-    # exclude the placeholder threshold from the weighting, its cell gets no width
-    real_lvls = lvls < 99999
-
-    dl = np.zeros(len(lvls))
-    dl[real_lvls] = voronoi_widths_1d(lvls[real_lvls], clip_min=0.0)
+    dl = voronoi_widths_1d(lvls, clip_min=0.0)
     dw = voronoi_widths_1d(wins, clip_min=0.0)
     cell_area = np.outer(dl, dw)
 
@@ -224,7 +220,7 @@ def weighted_fss_condensed_rect(sim, obs, levels):
     weight_sum = 0.0
     skipped_thresholds = []
 
-    max_l = np.max(lvls[real_lvls])
+    max_l = np.max(lvls)
     max_w = wins.max()
     for ii, t in enumerate(sim['fss_thresholds']):
         l = levels[ii]

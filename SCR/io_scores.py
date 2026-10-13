@@ -29,10 +29,6 @@ logger = logging.getLogger(__name__)
 
 SCHEMA_VERSION = "1.1"
 
-# thresholds from this value upwards are dummy rows separating the absolute and
-# percentile thresholds in the FSS plots, they carry no information
-DUMMY_THRESHOLD = 99999.
-
 # value returned by scoring.fss_d90 when no displacement can be determined
 D90_UNDEFINED = 9999.
 
@@ -287,14 +283,13 @@ def _weather_regime_vars(start_date, end_date, args):
 
 
 def _fss_arrays(forecasts, indices, grid_shape, arrays, row_dim):
-    """ Place the FSS data frames of all forecasts on the (conf, lead_hours) grid,
-    without the dummy threshold rows. Returns the row and window values and the
-    data variables, or no variables if no forecast has FSS data. """
+    """ Place the FSS data frames of all forecasts on the (conf, lead_hours) grid.
+    Returns the row and window values and the data variables, or no variables if
+    no forecast has FSS data. """
     reference = next((sim[arrays[0][1]] for sim in forecasts if sim.get(arrays[0][1]) is not None), None)
     if reference is None:
         return None, None, {}
-    keep = np.asarray(reference.index, dtype=float) < DUMMY_THRESHOLD
-    rows = np.asarray(reference.index)[keep]
+    rows = np.asarray(reference.index)
     windows = np.asarray(reference.columns)
     data_vars = {}
     for name, key, attrs in arrays:
@@ -305,7 +300,7 @@ def _fss_arrays(forecasts, indices, grid_shape, arrays, row_dim):
                 continue
             if not (frame.index.equals(reference.index) and frame.columns.equals(reference.columns)):
                 raise ValueError(f"{sim['name']}: thresholds or windows of {key} differ from the other forecasts")
-            values[ii, jj] = frame.to_numpy(dtype=float)[keep, :]
+            values[ii, jj] = frame.to_numpy(dtype=float)
         data_vars[name] = (SCORE_DIMS + (row_dim, "window"), values[np.newaxis, :, np.newaxis, ...], attrs)
     return rows, windows, data_vars
 

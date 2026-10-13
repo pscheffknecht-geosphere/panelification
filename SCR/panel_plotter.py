@@ -135,9 +135,8 @@ def make_triangle(x0, y0, scale_in):
     return xt - 0.5, yt - 0.5
 
 
-def add_skill_outline(ax, sim):
-    ny, nx = sim['fss_ranks'].shape
-    ranks = sim['fss_ranks']
+def add_skill_outline(ax, ranks):
+    ny, nx = ranks.shape
     for yy in range(0, ny):
         for xx in range(0, nx):
             if yy < ny-1:
@@ -147,6 +146,22 @@ def add_skill_outline(ax, sim):
                 if any(ranks[yy, xx:xx+2] == 1) and ranks[yy, xx] != ranks[yy, xx+1]:
                     ax.plot([xx+0.5, xx+0.5], [yy-0.5, yy+0.5], 'k', lw=.5, zorder=999)
 
+def fss_plot_rows(sim):
+    """ FSS ranks, scores, relative scores and overestimation of the rank plot and the
+    index of the row separating thresholds and percentile thresholds (None without
+    percentile thresholds). The separator row is drawn like a missing value (rank 0). """
+    ranks = np.asarray(sim['fss_ranks'])
+    fssf = np.asarray(sim['fssf'].values, dtype=float)
+    fss_rel = np.asarray(sim['fss_rel'], dtype=float)
+    ovest = np.asarray(sim['fss_overestimated'].to_numpy(), dtype=float)
+    if not sim['fss_thresholds_percs']:
+        return ranks, fssf, fss_rel, ovest, None
+    separator = len(sim['fss_thresholds'])
+    return (np.insert(ranks, separator, 0, axis=0), np.insert(fssf, separator, np.nan, axis=0),
+            np.insert(fss_rel, separator, 10., axis=0), np.insert(ovest, separator, np.nan, axis=0),
+            separator)
+
+
 def add_fss_plot_new(ax, sim, rank_vmax, jj, args):
     fss_rank_cols = ['white']*rank_vmax
     fss_rank_cols[0:5] = ['black', 'firebrick', 'limegreen', 'gold', 'silver', 'darkorange']
@@ -155,8 +170,8 @@ def add_fss_plot_new(ax, sim, rank_vmax, jj, args):
     elif args.fss_mode == 'ranks':
         fss_cmap = mplcolors.ListedColormap(fss_rank_cols)
     # add rank diagram for FSS
-    extent = (0, sim['fss_ranks'].shape[1], sim['fss_ranks'].shape[0], 0)
-    ny, nx = sim['fss_ranks'].shape
+    ranks, fssf, fss_rel_arr, ovest, separator = fss_plot_rows(sim)
+    ny, nx = ranks.shape
     pad = 0.05
     g_norm = bnorm(np.arange(0.5, 1.01, 0.1), ncolors=mpl.colormaps['Greens'].N)
     rb_norm = bnorm(np.arange(-.22, .221, .04), ncolors=mpl.colormaps['RdBu'].N)
@@ -164,8 +179,7 @@ def add_fss_plot_new(ax, sim, rank_vmax, jj, args):
     cmapBR = mpl.colormaps['RdBu']
     doing_percentile = False
     for yy in range(ny):
-        yaxis_value = sim["fssf"].index[yy]
-        if yaxis_value > 90000:
+        if yy == separator:
             doing_percentile = True
         for xx in range(nx):
             xedge = -0.5 + np.array([xx+pad, xx+pad, xx+1-pad, xx+1-pad, xx+pad])
@@ -174,38 +188,38 @@ def add_fss_plot_new(ax, sim, rank_vmax, jj, args):
             yedge_rank = -0.5 + np.array([yy+pad, yy+1-pad, yy+pad, yy+pad])
             col = (1, 1, 1, 1) # white
             if args.greens:
-                if sim['fss_ranks'][yy, xx] > 1: # and sim['fssf'][yy, xx] >= sim['fssf_thresholds'][yy]:
-                    col = cmapG(g_norm(sim['fssf'].values[yy, xx]))
+                if ranks[yy, xx] > 1: # and sim['fssf'][yy, xx] >= sim['fssf_thresholds'][yy]:
+                    col = cmapG(g_norm(fssf[yy, xx]))
             if args.fss_mode == 'relative':
-                fss_rel = sim['fss_rel'][yy, xx] 
+                fss_rel = fss_rel_arr[yy, xx]
                 pos_in_cmap = np.clip(0.5 + fss_rel * 10., -1., 1.) # map [-.05, .05] to [0, 1]
                 col = fss_cmap(pos_in_cmap)
-            elif args.fss_mode == 'ranks' and sim['fss_ranks'][yy, xx] > 1 and sim['fss_ranks'][yy, xx] < 6:
-                rcol = fss_rank_cols[sim['fss_ranks'][yy, xx]]
+            elif args.fss_mode == 'ranks' and ranks[yy, xx] > 1 and ranks[yy, xx] < 6:
+                rcol = fss_rank_cols[ranks[yy, xx]]
                 radius = 0.25 if args.greens else 0.45
                 ax.fill(xedge_rank, yedge_rank, facecolor=rcol, zorder=999)
                 # circle = mpl.patches.Circle((xx, yy), radius, color=rcol, zorder=999)
                 # ax.add_patch(circle)
-            if sim['fss_ranks'][yy, xx] == 1: # and yy < 9: #only for bad but not nan
-                bias = sim['fss_overestimated'].to_numpy()[yy, xx]
+            if ranks[yy, xx] == 1: # and yy < 9: #only for bad but not nan
+                bias = ovest[yy, xx]
                 if doing_percentile:
                     bias = 0 # workaround for bug
                 xedget, yedget = make_triangle(xx, yy, np.clip(-bias / 0.22, -1., 1.)) # <-- needs scaled bias to have .22 mapped to 1. for max triangle
                 col = cmapBR(rb_norm(bias)) # <-- needs no scaled bias because norm scales the interval to [-1, 1]
-            if yaxis_value > 90000 or sim['fss_ranks'][yy, xx] == 0:
+            if ranks[yy, xx] == 0:
                 ax.plot(xedge[[0, 2]], yedge[[0, 2]], 'gray', lw=0.5, zorder=999)
                 ax.plot(xedge[[1, 3]], yedge[[1, 3]], 'gray', lw=0.5, zorder=999)
                 # col = 'black' # fix red separation line for fiels that contain nans
             else:
                 ax.fill(xedge, yedge, facecolor=col, zorder=777)
-            if sim['fss_ranks'][yy, xx] == 1 and not doing_percentile: #only for bad but not nan
+            if ranks[yy, xx] == 1 and not doing_percentile: #only for bad but not nan
                 ax.fill(xedget, yedget, facecolor='white', zorder=999)
 
 
     make_fss_rank_plot_axes(ax, args)
     ax.set_xlim([-0.5, nx-0.5])
     ax.set_ylim([ny-0.5, -0.5])
-    add_skill_outline(ax, sim)
+    add_skill_outline(ax, ranks)
             
 
 def add_fss_plot(ax, sim, rank_vmax, jj, args):
