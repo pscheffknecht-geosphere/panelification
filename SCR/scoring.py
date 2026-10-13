@@ -383,6 +383,15 @@ def write_scores_to_csv(data_list, start_date, end_date, args, verification_subd
             score_writer.writerow(write_data)
 
 
+def zero_percentiles(fcst, obs, percs):
+    """ percentile thresholds which are 0 in the forecast or the observation. The
+    threshold then selects the whole wet area instead of (100 - p) % of the field, so
+    the two areas differ and the FSS is no longer free of the bias. """
+    with np.errstate(invalid='ignore'):
+        return [p for p in percs
+                if np.nanpercentile(np.copy(fcst), p) == 0. or np.nanpercentile(np.copy(obs), p) == 0.]
+
+
 def prep_windows(ww, mode, nx, ny, fss_method="default"):
     """ (y, x) window sizes. With the legacy FFT method and mode valid_adaptive, windows
     larger than the field are clipped to it, the SAT method handles any window size """
@@ -459,6 +468,12 @@ def calc_scores(sim, obs, args):
             np.copy(obs["precip_data_resampled"]), # circumvent numpy issue #21524
             windows,percs,percentiles=True, mode=args.fss_calc_mode.replace("_adaptive", ""),
             threshold_mode=threshold_mode, tolerance=tolerance)
+        # percentile thresholds of 0 are missing, for this forecast only
+        omitted = zero_percentiles(sim["precip_data_resampled"], obs["precip_data_resampled"], percs)
+        if omitted:
+            logger.debug(f"{sim['name']}: percentile thresholds {omitted} are 0, their FSS is missing")
+            for frame in (fssp_num, fssp_den, fssp, ovestp):
+                frame.loc[omitted] = np.nan
         fssf = pd.concat((fss, fssp), axis=0)
         ovestf = pd.concat((ovest, ovestp), axis=0)
     else:

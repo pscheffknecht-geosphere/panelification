@@ -248,6 +248,24 @@ class TestCalcScores:
         assert sim["fssp"] is None
         assert sim["fssf"].shape[0] == len(parameter_settings.get_fss_thresholds(args))
 
+    def test_zero_percentiles_are_missing(self, make_test_args):
+        """ percentile thresholds of 0 in either field are missing, the others are scored """
+        args = make_test_args(d_windows=[3, 5, 11])
+        y, x = np.mgrid[0:50, 0:50]
+        obs_f = np.where(x < 20, 5. + 0.1 * y, 0.)   # 60 % dry: p25 and p50 are 0
+        fcst_f = np.where(x < 45, 5. + 0.1 * y, 0.)  # 10 % dry: all percentiles > 0
+        obs = self._make_sim_dict(obs_f, entry_type="obs")
+        sim = self._make_sim_dict(fcst_f)
+        scoring.calc_scores(sim, obs, args)
+        missing = [p for p in sim["fssp"].index if sim["fssp"].loc[p].isna().all()]
+        assert missing == [25, 50]
+        assert sim["fssp_num"].loc[[25, 50]].isna().all().all()
+        assert sim["fssp"].loc[[75, 90, 95]].notna().all().all()
+        # the forecast decides as well
+        sim = self._make_sim_dict(obs_f)
+        scoring.calc_scores(sim, self._make_sim_dict(fcst_f, entry_type="obs"), args)
+        assert [p for p in sim["fssp"].index if sim["fssp"].loc[p].isna().all()] == [25, 50]
+
 
 # =====================================================================
 # rank_scores
