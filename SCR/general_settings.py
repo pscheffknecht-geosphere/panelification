@@ -13,7 +13,11 @@ MODIFY AT YOUR OWN RISK!!!
 
 # RESAMPLING ONTO THE VERIFICATION SUBDOMAIN
 # nearest neighbour search radius in m; subdomain points without a source
-# point within this distance are missing (NaN)
+# point within this distance are missing (NaN). 25 km still covers source grids
+# up to ~35 km spacing, but for high-resolution grids it fills a strip of up to
+# 25 km outside the source domain with the values at its edge, which are then
+# scored. Missing values inside a source grid (e.g. OPERA outside radar
+# coverage) stay missing.
 RESAMPLING_RADIUS = 25000.
 
 # IMPLAUSIBLE VALUES
@@ -27,7 +31,12 @@ OPERA_MAX_ACCUMULATION = 2000.
 # FSS
 # skill threshold f0: FSS values up to f0 count as no skill, values from f0
 # to 1 are mapped to 0 ... 1 in the condensed FSS and the cwFSS, and the
-# FSS rank plot only ranks forecasts above f0
+# FSS rank plot only ranks forecasts above f0. Fixed instead of 0.5 + f_obs/2
+# (Roberts & Lean 2008) on purpose: that threshold reaches 1 when the
+# observation exceeds the threshold everywhere, so a single missed grid point
+# makes the forecast unskillful, which happens on small domains. The FSS is
+# used to compare and colour forecasts, so this is the accepted trade-off for
+# being too lenient at low thresholds with widespread rain.
 FSS_SKILL_THRESHOLD = 0.5
 # FSS windows, unless --d_windows is set
 DEFAULT_WINDOWS = [10, 20, 30, 40, 60, 80, 100, 120, 140, 160, 180, 200]
