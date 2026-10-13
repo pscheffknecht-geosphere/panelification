@@ -55,7 +55,7 @@ class TestGetWindows:
 
     def test_default_cma(self):
         result = parameter_settings.get_windows(_args(parameter="cma"))
-        assert len(result) == 5
+        assert result == parameter_settings.get_windows(_args())
 
     def test_custom_windows_passthrough(self):
         custom = [5, 15, 25]

@@ -109,8 +109,7 @@ class Ensemble:
         self.lat = data_list[0]['lat_resampled']
         logger.info(f"Created ensemble {self.name} with {self.member_count} members")
         self.thresholds = parameter_settings.get_fss_thresholds(args)
-        ww = [10,20,30,40,60,80,100,120,140,160,180,200]
-        self.windows = prep_windows(ww, args.fss_calc_mode, nx, ny, args.fss_method)
+        self.windows = prep_windows(parameter_settings.get_windows(args), args.fss_calc_mode, nx, ny, args.fss_method)
         self.fss_method = args.fss_method
         self.threads = args.threads
         self.collect_member_scores(data_list)
