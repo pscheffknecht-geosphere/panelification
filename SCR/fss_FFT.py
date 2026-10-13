@@ -35,7 +35,8 @@ def fourier_fss(fcst, obs, threshold, window, percentiles, mode):
         ohat = fourier_filter(obs > threshold, window, mode)
     num = np.nanmean(np.power(fhat - ohat, 2))
     denom = np.nanmean(np.power(fhat,2) + np.power(ohat,2))
-    ovest = (np.sum(fcst > threshold) - np.sum(obs >= threshold)) / fcst.size
+    # the percentiles give both fields the same area
+    ovest = np.nan if percentiles else (np.sum(fcst > threshold) - np.sum(obs >= threshold)) / fcst.size
     with np.errstate(divide='ignore', invalid='ignore'):
        fss_ret = 1.-num/denom
     return num, denom, fss_ret, ovest
@@ -60,7 +61,8 @@ def fourier_fss_eps(fcst, obs, threshold, window, percentiles, mode):
       ohat = fourier_filter_eps(obs > threshold, window, mode)
     num = np.nanmean(np.power(fhat - ohat, 2))
     denom = np.nanmean(np.power(fhat,2) + np.power(ohat,2))
-    ovest = (np.sum(fcst > threshold) - np.sum(obs > threshold)) / fcst.size
+    # the percentiles give both fields the same area
+    ovest = np.nan if percentiles else (np.sum(fcst > threshold) - np.sum(obs > threshold)) / fcst.size
     with np.errstate(divide='ignore', invalid='ignore'):
        fss_ret = 1.-num/denom
     return num, denom, fss_ret, ovest

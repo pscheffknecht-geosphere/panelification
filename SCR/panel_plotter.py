@@ -178,10 +178,7 @@ def add_fss_plot_new(ax, sim, rank_vmax, jj, args):
     rb_norm = bnorm(np.arange(-.22, .221, .04), ncolors=mpl.colormaps['RdBu'].N)
     cmapG = mpl.colormaps['Greens']
     cmapBR = mpl.colormaps['RdBu']
-    doing_percentile = False
     for yy in range(ny):
-        if yy == separator:
-            doing_percentile = True
         for xx in range(nx):
             xedge = -0.5 + np.array([xx+pad, xx+pad, xx+1-pad, xx+1-pad, xx+pad])
             yedge = -0.5 + np.array([yy+pad, yy+1-pad, yy+1-pad, yy+pad, yy+pad])
@@ -203,8 +200,8 @@ def add_fss_plot_new(ax, sim, rank_vmax, jj, args):
                 # ax.add_patch(circle)
             if ranks[yy, xx] == 1: # and yy < 9: #only for bad but not nan
                 bias = ovest[yy, xx]
-                if doing_percentile:
-                    bias = 0 # workaround for bug
+                if not np.isfinite(bias):
+                    bias = 0 # no overestimation for percentile thresholds
                 xedget, yedget = make_triangle(xx, yy, np.clip(-bias / 0.22, -1., 1.)) # <-- needs scaled bias to have .22 mapped to 1. for max triangle
                 col = cmapBR(rb_norm(bias)) # <-- needs no scaled bias because norm scales the interval to [-1, 1]
             if ranks[yy, xx] == 0:

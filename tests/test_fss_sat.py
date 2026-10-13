@@ -258,6 +258,17 @@ class TestFssThreshold:
         ovest = result[3]
         assert ovest.shape == windows.shape
 
+    def test_no_overestimation_for_percentiles(self, small_fields):
+        """ the percentiles give both fields the same area, with and without missing values """
+        obs, fcst = small_fields
+        windows = np.array([5])
+        gappy_obs = obs.copy()
+        gappy_obs[:5, :5] = np.nan
+        for o in (obs, gappy_obs):
+            result = fss_SAT.fss_threshold(fcst, o, 25., None, windows, percentiles=True)
+            assert np.isnan(result[3]).all()
+            assert np.isfinite(result[2]).all()
+
 
 # =====================================================================
 # fss_cumsum_frame

@@ -222,6 +222,8 @@ def fss_threshold(fcst, obs, t1, t2, windows, percentiles=False, threshold_mode=
         nvalid = mask.sum()
         with np.errstate(invalid='ignore'):
             ovest_val = (np.sum((fcst > t1f) & mask) - np.sum((obs > t1o) & mask)) / nvalid
+    if percentiles:
+        ovest_val = np.nan  # the percentiles give both fields the same area
 
     ovest = np.full(windows.shape, ovest_val)
     return [num_t, den_t, fss_t, ovest]
@@ -319,6 +321,8 @@ def fss_threshold_eps(fcst, obs, t1, t2, windows, percentiles=False, threshold_m
                                                     threshold_mode=threshold_mode,
                                                     invalid_cache=invalid_sat)
         ovest_val = (p_f.sum() - obs_b.sum()) / mask.sum()
+    if percentiles:
+        ovest_val = np.nan  # the percentiles give both fields the same area
 
     ovest = np.full(windows.shape, ovest_val)
     return [num_t, den_t, fss_t, ovest]

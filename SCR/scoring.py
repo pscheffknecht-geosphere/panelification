@@ -472,7 +472,7 @@ def calc_scores(sim, obs, args):
         omitted = zero_percentiles(sim["precip_data_resampled"], obs["precip_data_resampled"], percs)
         if omitted:
             logger.debug(f"{sim['name']}: percentile thresholds {omitted} are 0, their FSS is missing")
-            for frame in (fssp_num, fssp_den, fssp, ovestp):
+            for frame in (fssp_num, fssp_den, fssp):
                 frame.loc[omitted] = np.nan
         fssf = pd.concat((fss, fssp), axis=0)
         ovestf = pd.concat((ovest, ovestp), axis=0)
