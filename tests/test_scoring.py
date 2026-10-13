@@ -300,6 +300,19 @@ class TestRankScores:
         assert perfect["rank_mae"] < displaced["rank_mae"]
         assert perfect["rank_fss_condensed_weighted"] < displaced["rank_fss_condensed_weighted"]
 
+    def test_missing_values_ranked_last(self, make_test_args, identical_fields):
+        """Missing d90 values (NaN) rank behind all defined ones, which keep their order."""
+        obs_f, _ = identical_fields
+        fields = [obs_f, obs_f.copy(), np.roll(obs_f, 5, axis=1), np.roll(obs_f, 10, axis=1)]
+        data_list = self._make_scored_list(make_test_args, fields)
+        assert np.isnan(data_list[0]["d90"])  # the observation has no d90
+        for sim, d90 in zip(data_list[1:], [np.nan, 5., 2.]):
+            sim["d90"] = d90
+        scoring.rank_scores(data_list)
+        undefined, worse, better = data_list[1:]
+        assert better["rank_d90"] < worse["rank_d90"] < undefined["rank_d90"]
+        assert worse["rank_d90"] < data_list[0]["rank_d90"]
+
 
 # =====================================================================
 # fss_d90

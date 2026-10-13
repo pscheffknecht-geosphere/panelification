@@ -29,9 +29,6 @@ logger = logging.getLogger(__name__)
 
 SCHEMA_VERSION = "1.1"
 
-# value returned by scoring.fss_d90 when no displacement can be determined
-D90_UNDEFINED = 9999.
-
 # percentiles of the forecast and observation fields, 0 ... 100 with --save_percentiles
 DEFAULT_PERCENTILES = [50, 75, 90, 95, 99]
 
@@ -154,7 +151,6 @@ def build_run_dataset(data_list, start_date, end_date, subdomain, args):
                 values[ii, jj] = sim[key]
         attrs = {"long_name": long_name, "units": units if var_units == "parameter" else var_units}
         if name == "d90":
-            values[values == D90_UNDEFINED] = np.nan
             attrs["comment"] = ("half window width in grid points of the ~1 km verification grid, "
                                 "NaN where no displacement could be determined")
         data_vars[name] = (SCORE_DIMS, values[np.newaxis, :, np.newaxis, :], attrs)

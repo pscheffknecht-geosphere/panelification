@@ -289,12 +289,14 @@ def rank_scores(data_list):
         rank=1
         rank_name='rank_'+metric
         if metric == 'bias':
-            data_list_metric = sorted(data_list, key=lambda k: np.abs(k[metric]))
+            sort_value = lambda k: np.abs(k[metric])
         elif metric == 'corr' or metric == 'fss_success_rate_abs' or metric == 'fss_success_rate_rel' \
              or metric == 'fss_condensed' or metric == 'fss_condensed_weighted':
-            data_list_metric = sorted(data_list, key=lambda k: -k[metric])
+            sort_value = lambda k: -k[metric]
         else:
-            data_list_metric = sorted(data_list, key=lambda k: k[metric])
+            sort_value = lambda k: k[metric]
+        # missing values (NaN) are ranked last, sorted() cannot order them
+        data_list_metric = sorted(data_list, key=lambda k: (np.isnan(sort_value(k)), sort_value(k)))
         for data_entry in data_list_metric:
             data_list[namelist.index(data_entry['name'])][rank_name] = rank
             rank = rank + 1
@@ -396,7 +398,7 @@ def calc_scores(sim, obs, args):
         sim['mae'] = 999
         sim['rms'] = 999
         sim['corr'] = -999
-        sim['d90'] = 9999.
+        sim['d90'] = np.nan
         sim['fss_total_abs_score'] = -999
         sim['fss_total_rel_score'] = -999
         sim['fss_success_rate_abs'] = -999
@@ -497,8 +499,8 @@ def fss_d90(rrm, rro, args):
     binary p90 fields at increasing window sizes, and finds the half-window
     at which the FSS reaches 0.5 via linear interpolation.
 
-    Returns the displacement in km (half-window size), or 9999. / np.nan
-    for degenerate cases.
+    Returns the displacement in km (half-window size), or np.nan if no
+    displacement can be determined.
     """
     fss_calc_func = fss_SAT.fss_cumsum_frame
     if args.fss_method == 'legacy':
@@ -552,7 +554,7 @@ def fss_d90(rrm, rro, args):
     for ii in range(1, len(arr)):
         if arr[ii] - arr[ii-1] < -0.01:
             logger.info("non-monotonous FSS array in D90, returning no d90!")
-            return 9999.
+            return np.nan
     if arr[0] >= 0.5:
         return 0.
     # find where the array exceeds 0.5 and interpolate
@@ -561,7 +563,7 @@ def fss_d90(rrm, rro, args):
         ii += 1
         if ii == len(arr) - 1:
             logger.info("FSS never reaches 0.5, returning no d90!")
-            return 9999.
+            return np.nan
     t = (0.5 - arr[ii-1]) / (arr[ii] - arr[ii-1])
     d = windows[ii-1] + t * float(windows[ii] - windows[ii-1])
     if d < 0:

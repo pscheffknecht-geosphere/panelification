@@ -74,7 +74,7 @@ def add_scores(ax, sim, rank_colors):
     ax.fill([0.07, 0.85, 0.85, 0.07], [0.48, 0.48, 0.35, 0.35], color=rank_colors[sim['rank_corr']],
             transform=ax.transAxes, zorder=5)
     
-    if sim['d90'] < 9999.:
+    if np.isfinite(sim['d90']):
         ax.text(0.1, 0.30, "D$_{{90}}$: {:.1f} km ({})".format(sim['d90'], sim['rank_d90']), va='top', ha='left',
                 rotation='horizontal', rotation_mode='anchor', zorder=6, transform=ax.transAxes, size=8)
         ax.fill([0.07, 0.85, 0.85, 0.07], [0.33, 0.33, 0.2, 0.2], color=rank_colors[sim['rank_d90']],
@@ -515,8 +515,6 @@ def score_time_series(data_list, r, tmp_string, args):
                 score[sim['conf']] = []
                 init[sim['conf']] = []
             score[sim['conf']].append(sim[s])
-            if score[sim['conf']][-1] == 9999 and s == 'd90':
-                score[sim['conf']][-1] = np.nan
             init[sim['conf']].append(sim['init'])
         dt_min = dt.datetime(2100, 1, 1)
         dt_max = dt.datetime(1970, 1, 1)

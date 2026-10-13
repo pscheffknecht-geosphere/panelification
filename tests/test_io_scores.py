@@ -162,7 +162,7 @@ class TestValues:
 
     def test_undefined_d90_is_nan(self, scored_run):
         data_list, args = scored_run
-        data_list[1]["d90"] = io_scores.D90_UNDEFINED
+        data_list[1]["d90"] = np.nan
         ds = _build(data_list, args)
         assert np.isnan(_at(ds, "d90", "M0", 3))
 
