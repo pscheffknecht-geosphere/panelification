@@ -71,11 +71,10 @@ RANKING_CHECK_THRESHOLD_LIMITS = (0.1, 100.)
 D90_PERCENTILE = 90
 # windows of the FSS between the non-overlapping parts of these areas
 D90_WINDOWS = [3, 5, 7, 11, 21, 31, 41, 51, 61, 81, 101, 121, 141, 181, 251, 351, 501, 701]
-# the displacement is half the window at which this FSS is reached
+# the displacement is half the window at which this FSS is reached. FIXED BY
+# THE METHOD, DO NOT CHANGE: for two equal areas displaced by d the FSS reaches
+# 0.5 at a window of about 2 d (Skok & Roberts 2018), which is why d90 is half
+# the window; any other value breaks that relation
 D90_FSS = 0.5
 # the FSS has to increase with the window size, decreases up to this are numerical noise
 D90_MONOTONICITY_TOLERANCE = 0.01
-
-# SCORE FILES
-# percentiles of the forecast and observation fields, 0 ... 100 with --save_percentiles
-STATISTICS_PERCENTILES = [50, 75, 90, 95, 99]

@@ -13,7 +13,7 @@ def _make_scored_data_list(obs_field, model_fields):
     args = argparse.Namespace(
         parameter="precip", d_windows=[], fss_calc_mode="same",
         fss_method="default", duration=1, name="TEST_",
-        save_percentiles=False, mode="normal",
+        mode="normal",
         rank_by_fss_metric="fss_condensed_weighted",
         threads=1, fss_threshold_mode="over", fss_tolerance=0.1,
     )

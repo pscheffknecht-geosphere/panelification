@@ -366,22 +366,21 @@ def write_scores_to_csv(data_list, start_date, end_date, args, verification_subd
                 percs.append(np.percentile(sim["precip_data_resampled"], p))
             init, lead, scores, ranks = legacy_csv_row(sim, data_list[1:])
             score_writer.writerow([sim['conf'], init, lead, sim['name'], *percs, *scores, *ranks])
-    if args.save_percentiles:
-        csv_file = f"{PAN_DIR_SCORES}/{args.name}RR_percentiles_{name_part}score_{start_date_str}UTC_{args.duration:02d}h_acc_{verification_subdomain}.csv"
-        logging.info("Saving percentiles to {csv_file}")
-        with open(csv_file, 'w') as f:
-            score_writer = csv.writer(f, delimiter=';')
-            col_labels = ["conf", "init", "lead", "name"]
+    csv_file = f"{PAN_DIR_SCORES}/{args.name}RR_percentiles_{name_part}score_{start_date_str}UTC_{args.duration:02d}h_acc_{verification_subdomain}.csv"
+    logging.info("Saving percentiles to {csv_file}")
+    with open(csv_file, 'w') as f:
+        score_writer = csv.writer(f, delimiter=';')
+        col_labels = ["conf", "init", "lead", "name"]
+        for p in range(0, 101):
+            col_labels.append(f"{p:d}th")
+        score_writer.writerow(col_labels)
+        for sim in data_list:
+            percs = []
             for p in range(0, 101):
-                col_labels.append(f"{p:d}th")
-            score_writer.writerow(col_labels)
-            for sim in data_list:
-                percs = []
-                for p in range(0, 101):
-                    percs.append(np.percentile(sim["precip_data_resampled"], p))
-                init, lead, _, _ = legacy_csv_row(sim, data_list[1:])
-                write_data = [sim['conf'], init, lead, sim['name'], *percs]
-                score_writer.writerow(write_data)
+                percs.append(np.percentile(sim["precip_data_resampled"], p))
+            init, lead, _, _ = legacy_csv_row(sim, data_list[1:])
+            write_data = [sim['conf'], init, lead, sim['name'], *percs]
+            score_writer.writerow(write_data)
 
 
 def prep_windows(ww, mode, nx, ny, fss_method="default"):

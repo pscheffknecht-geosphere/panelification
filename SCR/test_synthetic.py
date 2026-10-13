@@ -90,7 +90,6 @@ def make_args(region, **overrides):
         fss_method="default",
         duration=1,
         name="TEST_",
-        save_percentiles=False,
         mode="normal",
         rank_by_fss_metric="fss_condensed_weighted",
         threads=8,

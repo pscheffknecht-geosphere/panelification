@@ -561,9 +561,10 @@ class TestWriteScoresToCsv:
             scoring.write_scores_to_csv(
                 data_list, start, end, args, "TestDom", windows, thresholds)
 
-        csv_files = list(tmp_path.glob("*.csv"))
-        assert len(csv_files) == 1
-        assert csv_files[0].stat().st_size > 0
+        # the scores and the percentiles of the fields
+        csv_files = sorted(tmp_path.glob("*.csv"))
+        assert ["RR_percentiles_" in f.name for f in csv_files] == [True, False]
+        assert all(f.stat().st_size > 0 for f in csv_files)
 
     def test_legacy_obs_row(self, make_test_args):
         """The observation keeps the placeholder row of the old output: it was ranked

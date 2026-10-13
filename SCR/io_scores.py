@@ -21,7 +21,6 @@ import numpy as np
 import xarray as xr
 
 import parameter_settings
-import general_settings
 import weather_regimes
 from paths import PAN_DIR_SCORES, PAN_DIR_SCR
 
@@ -134,7 +133,7 @@ def build_run_dataset(data_list, start_date, end_date, subdomain, args):
     obs = data_list[0]
     forecasts = data_list[1:]
     units = parameter_settings.get_units(args)
-    percentiles = list(range(101)) if getattr(args, "save_percentiles", False) else general_settings.STATISTICS_PERCENTILES
+    percentiles = list(range(101))  # all percentiles of the forecast and observation fields
 
     confs, leads, indices = forecast_grid(forecasts, start_date)
     grid_shape = (len(confs), len(leads))

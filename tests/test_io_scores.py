@@ -84,14 +84,8 @@ class TestStructure:
         np.testing.assert_array_equal(ds["window"].values, sim["fss"].columns)
         np.testing.assert_array_equal(ds["pct_threshold"].values, sim["fssp"].index)
 
-    def test_default_percentiles(self, scored_run):
-        ds = _build(*scored_run)
-        assert ds["percentile"].values.tolist() == [50, 75, 90, 95, 99]
-
     def test_all_percentiles(self, scored_run):
-        data_list, args = scored_run
-        args.save_percentiles = True
-        ds = _build(data_list, args)
+        ds = _build(*scored_run)
         assert ds["percentile"].values.tolist() == list(range(101))
 
     def test_run_metadata(self, scored_run):
@@ -156,7 +150,7 @@ class TestValues:
         assert ds["obs_max"].item() == np.nanmax(obs_field)
         assert ds["obs_mean"].item() == pytest.approx(np.nanmean(obs_field))
         np.testing.assert_allclose(ds["obs_percentile"].values.ravel(),
-                                   np.nanpercentile(obs_field, [50, 75, 90, 95, 99]))
+                                   np.nanpercentile(obs_field, range(101)))
         sim = data_list[3]
         assert _at(ds, "forecast_max", "M1", 3) == np.nanmax(sim["precip_data_resampled"])
 
