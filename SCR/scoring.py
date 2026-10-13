@@ -283,7 +283,7 @@ def rank_scores(data_list):
     BIAS .......... lowest absolute is best
     CORRELATION ... highest is best
     """
-    namelist = [d['name'] for d in data_list]
+    forecasts = data_list[1:]
     logging.info("Ranking")
     for metric in ['mae', 'bias', 'rms', 'corr', 'd90', 'fss_condensed', 'fss_condensed_weighted']:
         rank=1
@@ -296,12 +296,12 @@ def rank_scores(data_list):
         else:
             sort_value = lambda k: k[metric]
         # missing values (NaN) are ranked last, sorted() cannot order them
-        data_list_metric = sorted(data_list, key=lambda k: (np.isnan(sort_value(k)), sort_value(k)))
+        data_list_metric = sorted(forecasts, key=lambda k: (np.isnan(sort_value(k)), sort_value(k)))
         for data_entry in data_list_metric:
-            data_list[namelist.index(data_entry['name'])][rank_name] = rank
+            data_entry[rank_name] = rank
             rank = rank + 1
     fss_list = []
-    for sim in data_list[1:]:
+    for sim in forecasts:
         fss_list.append(np.asarray(sim['fssf'].values, dtype=float))
     fss = np.asarray(fss_list, dtype=float)
     fss_order = np.zeros(fss.shape, dtype = int)
@@ -310,14 +310,32 @@ def rank_scores(data_list):
         for jj in range(fss.shape[2]):
             fss_order[:,ii,jj] = rank_array(fss[:,ii,jj], sim['fssf_thresholds'][ii])
             fss_rel[:,ii,jj] = array_minus_avg(fss[:,ii,jj], sim['fssf_thresholds'][ii])
-    bogus_fss = np.empty((fss.shape[1],fss.shape[2]))
-    bogus_fss[:,:] = -999
-    sim['fss_ranks'] = bogus_fss
     data_list[0]['max_rank'] = np.max(fss_order)
     for idx in range(1, fss.shape[0]+1):
         data_list[idx]['fss_ranks'] = fss_order[idx-1,:,:]
         data_list[idx]['fss_rel'] = fss_rel[idx-1,:,:]
     return data_list
+
+
+# legacy CSV row of the observation, which was scored with these placeholder values
+LEGACY_OBS_INIT, LEGACY_OBS_LEAD = "1900-01-01 00:00:00", -1
+LEGACY_OBS_SCORES = {'bias_real': 999, 'mae': 999, 'rms': 999, 'corr': -999, 'd90': np.nan,
+                     'fss_condensed': -999, 'fss_condensed_weighted': -999}
+# legacy CSV columns: scores, and ranks with the score they were ranked by
+LEGACY_SCORES = ['bias_real', 'mae', 'rms', 'corr', 'd90', 'fss_condensed', 'fss_condensed_weighted']
+LEGACY_RANKS = [('rank_mae', 'mae'), ('rank_bias', 'bias_real'), ('rank_rms', 'rms'), ('rank_corr', 'corr'),
+                ('rank_d90', 'd90'), ('rank_fss_condensed', 'fss_condensed'),
+                ('rank_fss_condensed_weighted', 'fss_condensed_weighted')]
+
+
+def legacy_csv_row(sim, forecasts):
+    """ init, lead, scores and ranks of an entry as the old code wrote them. It also ranked
+    the observation, behind all forecasts with a defined score and ahead of missing ones."""
+    if sim['type'] == 'obs':
+        ranks = [1 + sum(np.isfinite(f[key]) for f in forecasts) for _, key in LEGACY_RANKS]
+        return LEGACY_OBS_INIT, LEGACY_OBS_LEAD, [LEGACY_OBS_SCORES[key] for key in LEGACY_SCORES], ranks
+    ranks = [sim[rank] + (0 if np.isfinite(sim[key]) else 1) for rank, key in LEGACY_RANKS]
+    return sim['init'], sim['lead'], [sim[key] for key in LEGACY_SCORES], ranks
 
 
 def write_scores_to_csv(data_list, start_date, end_date, args, verification_subdomain, windows, thresholds):
@@ -339,13 +357,8 @@ def write_scores_to_csv(data_list, start_date, end_date, args, verification_subd
             percs = [sim["precip_data_resampled"].max(), sim["precip_data_resampled"].mean()]
             for p in [99., 95., 90., 75., 50.]:
                 percs.append(np.percentile(sim["precip_data_resampled"], p))
-            score_writer.writerow([
-                sim['conf'], sim['init'], sim['lead'], sim['name'], 
-                percs[0], percs[1], percs[2], percs[3], percs[4], percs[5], percs[6],
-                sim['bias_real'], sim['mae'], sim['rms'], sim['corr'], sim['d90'], 
-                sim['fss_condensed'], sim['fss_condensed_weighted'], 
-                sim['rank_mae'], sim['rank_bias'], sim['rank_rms'], sim['rank_corr'], sim['rank_d90'], 
-                sim['rank_fss_condensed'], sim['rank_fss_condensed_weighted']])
+            init, lead, scores, ranks = legacy_csv_row(sim, data_list[1:])
+            score_writer.writerow([sim['conf'], init, lead, sim['name'], *percs, *scores, *ranks])
     if args.save_percentiles:
         csv_file = f"{PAN_DIR_SCORES}/{args.name}RR_percentiles_{name_part}score_{start_date_str}UTC_{args.duration:02d}h_acc_{verification_subdomain}.csv"
         logging.info("Saving percentiles to {csv_file}")
@@ -359,7 +372,8 @@ def write_scores_to_csv(data_list, start_date, end_date, args, verification_subd
                 percs = []
                 for p in range(0, 101):
                     percs.append(np.percentile(sim["precip_data_resampled"], p))
-                write_data = [sim['conf'], sim['init'], sim['lead'], sim['name'], *percs]
+                init, lead, _, _ = legacy_csv_row(sim, data_list[1:])
+                write_data = [sim['conf'], init, lead, sim['name'], *percs]
                 score_writer.writerow(write_data)
 
 
@@ -378,9 +392,10 @@ def calc_scores(sim, obs, args):
     """
     calculate verification metrics MAE, RMSE, BIAS and CORRELATION COEFFICIENT
 
-    INCA is perfect, so it gets assinged really bad values manually to exclude it from
-    the ranking later on
+    The observation is the reference, it is returned without scores.
     """
+    if sim['type'] == 'obs':
+        return sim
     logger.info('Calculating scores for '+sim['name'])
     percs = parameter_settings.get_fss_percentiles(args)
     levels = parameter_settings.get_fss_thresholds(args)
@@ -392,102 +407,78 @@ def calc_scores(sim, obs, args):
     if args.fss_method == 'legacy':
         logger.info("FSS method is set to legacy, using old FFT approximation!")
         fss_calc_func = fss_FFT.fss_frame
-    if sim['type'] == 'obs':
-        sim['bias'] = 999
-        sim['bias_real'] = 999
-        sim['mae'] = 999
-        sim['rms'] = 999
-        sim['corr'] = -999
-        sim['d90'] = np.nan
-        sim['fss_total_abs_score'] = -999
-        sim['fss_total_rel_score'] = -999
-        sim['fss_success_rate_abs'] = -999
-        sim['fss_success_rate_rel'] = -999
-        sim['fss_condensed'] = -999
-        sim['fss_condensed_weighted'] = -999
-        sim['fss_condensed_weighted_rect'] = -999
-        sim['fss'] = None
-        sim['fssp'] = None
-        sim['fss_num'] = None
-        sim['fssp_num'] = None
-        sim['fss_den'] = None
-        sim['fssp_den'] = None
-        # also add bogus init and lead for csv output
-        sim['init'] = "1900-01-01 00:00:00"
-        sim['lead'] = -1
+    thresholds = []
+    thresholds_percs = []
+    for level in levels:
+        thresholds.append(0.5)
+        # thresholds.append((1+float((obs["precip_data_resampled"] > level).sum())/float(obs["precip_data_resampled"].size)))
+    for perc in percs:
+        thresholds_percs.append(0.5)
+        # thresholds_percs.append(0.5*(1+perc/100.))
+    sim['fss_thresholds'] = thresholds
+    sim['fss_thresholds_percs'] = thresholds_percs
+    sim['fssf_thresholds'] = thresholds + thresholds_percs
+    # NaN-aware over jointly-valid pixels: observation fields (e.g. OPERA)
+    # may carry NaN where there is no radar coverage. Restrict every
+    # point statistic to pixels valid in *both* fields so a single NaN
+    # does not poison the whole score.
+    _mod = sim["precip_data_resampled"]
+    _obs = obs["precip_data_resampled"]
+    valid = ~(np.isnan(_mod) | np.isnan(_obs))
+    n_valid = int(valid.sum())
+    if n_valid < 2:
+        logger.warning("%s: fewer than 2 jointly-valid pixels vs obs, "
+                       "point scores set to NaN", sim['name'])
+        bias = mae = rms = corr = np.nan
     else:
-        thresholds = []
-        thresholds_percs = []
-        for level in levels:
-            thresholds.append(0.5)
-            # thresholds.append((1+float((obs["precip_data_resampled"] > level).sum())/float(obs["precip_data_resampled"].size)))
-        for perc in percs:
-            thresholds_percs.append(0.5)
-            # thresholds_percs.append(0.5*(1+perc/100.))
-        sim['fss_thresholds'] = thresholds
-        sim['fss_thresholds_percs'] = thresholds_percs
-        sim['fssf_thresholds'] = thresholds + thresholds_percs
-        # NaN-aware over jointly-valid pixels: observation fields (e.g. OPERA)
-        # may carry NaN where there is no radar coverage. Restrict every
-        # point statistic to pixels valid in *both* fields so a single NaN
-        # does not poison the whole score.
-        _mod = sim["precip_data_resampled"]
-        _obs = obs["precip_data_resampled"]
-        valid = ~(np.isnan(_mod) | np.isnan(_obs))
-        n_valid = int(valid.sum())
-        if n_valid < 2:
-            logger.warning("%s: fewer than 2 jointly-valid pixels vs obs, "
-                           "point scores set to NaN", sim['name'])
-            bias = mae = rms = corr = np.nan
-        else:
-            _diff = _mod[valid] - _obs[valid]
-            bias = np.mean(_diff)
-            mae = np.mean(np.abs(_diff))
-            rms = np.sqrt(np.mean(np.square(_diff)))
-            corr = np.corrcoef(_mod[valid], _obs[valid])[0, 1]
-            if n_valid < _mod.size:
-                logger.debug("%s: point scores over %d/%d valid pixels (%.1f%% masked)",
-                             sim['name'], n_valid, _mod.size,
-                             100.0 * (1.0 - n_valid / _mod.size))
-        threshold_mode = getattr(args, 'fss_threshold_mode', 'over')
-        tolerance = getattr(args, 'fss_tolerance', 0.1)
-        fss_num, fss_den, fss, ovest = fss_calc_func(
-            sim["precip_data_resampled"],
-            obs["precip_data_resampled"],
-            windows,levels,percentiles=False, mode=args.fss_calc_mode.replace("_adaptive", ""),
+        _diff = _mod[valid] - _obs[valid]
+        bias = np.mean(_diff)
+        mae = np.mean(np.abs(_diff))
+        rms = np.sqrt(np.mean(np.square(_diff)))
+        corr = np.corrcoef(_mod[valid], _obs[valid])[0, 1]
+        if n_valid < _mod.size:
+            logger.debug("%s: point scores over %d/%d valid pixels (%.1f%% masked)",
+                         sim['name'], n_valid, _mod.size,
+                         100.0 * (1.0 - n_valid / _mod.size))
+    threshold_mode = getattr(args, 'fss_threshold_mode', 'over')
+    tolerance = getattr(args, 'fss_tolerance', 0.1)
+    fss_num, fss_den, fss, ovest = fss_calc_func(
+        sim["precip_data_resampled"],
+        obs["precip_data_resampled"],
+        windows,levels,percentiles=False, mode=args.fss_calc_mode.replace("_adaptive", ""),
+        threshold_mode=threshold_mode, tolerance=tolerance)
+    if percs:
+        fssp_num, fssp_den, fssp, ovestp = fss_calc_func(
+            np.copy(sim["precip_data_resampled"]), # circumvent numpy issue #21524
+            np.copy(obs["precip_data_resampled"]), # circumvent numpy issue #21524
+            windows,percs,percentiles=True, mode=args.fss_calc_mode.replace("_adaptive", ""),
             threshold_mode=threshold_mode, tolerance=tolerance)
-        if percs:
-            fssp_num, fssp_den, fssp, ovestp = fss_calc_func(
-                np.copy(sim["precip_data_resampled"]), # circumvent numpy issue #21524
-                np.copy(obs["precip_data_resampled"]), # circumvent numpy issue #21524
-                windows,percs,percentiles=True, mode=args.fss_calc_mode.replace("_adaptive", ""),
-                threshold_mode=threshold_mode, tolerance=tolerance)
-            fssf = pd.concat((fss, fssp), axis=0)
-            ovestf = pd.concat((ovest, ovestp), axis=0)
-        else:
-            fssp_num, fssp_den, fssp = None, None, None
-            fssf, ovestf = fss, ovest
-        sim['bias'] = np.abs(bias)
-        sim['bias_real'] = bias
-        sim['mae'] = mae
-        sim['rms'] = rms
-        sim['corr'] = corr
-        sim['fss_windows'] = windows
-        sim['fss'] = fss
-        sim['fssp'] = fssp
-        sim['fss_num'] = fss_num
-        sim['fssp_num'] = fssp_num
-        sim['fss_den'] = fss_den
-        sim['fssp_den'] = fssp_den
-        sim['fssf'] = fssf
-        sim['fss_overestimated'] = ovestf
-        sim['fss_condensed'], sim['fss_normalized_arr'] = fss_condensed(sim)
-        sim['fss_condensed_weighted'], sim['fss_normalized_weighted_arr'] = weighted_fss_condensed(sim, levels)
-        sim['fss_condensed_weighted_rect'], sim['fss_normalized_weighted_rect_arr'] = weighted_fss_condensed_rect(sim, obs, levels)
-        logger.debug(
-            f"{sim['name']}: fss_condensed_weighted = {sim['fss_condensed_weighted']:.4f} (sum), "
-            f"fss_condensed_weighted_rect = {sim['fss_condensed_weighted_rect']:.4f} (cwFSS in [0, 1])")
-        sim['d90'] = fss_d90(sim["precip_data_resampled"], obs["precip_data_resampled"], args)
+        fssf = pd.concat((fss, fssp), axis=0)
+        ovestf = pd.concat((ovest, ovestp), axis=0)
+    else:
+        fssp_num, fssp_den, fssp = None, None, None
+        fssf, ovestf = fss, ovest
+    sim['bias'] = np.abs(bias)
+    sim['bias_real'] = bias
+    sim['mae'] = mae
+    sim['rms'] = rms
+    sim['corr'] = corr
+    sim['fss_windows'] = windows
+    sim['fss'] = fss
+    sim['fssp'] = fssp
+    sim['fss_num'] = fss_num
+    sim['fssp_num'] = fssp_num
+    sim['fss_den'] = fss_den
+    sim['fssp_den'] = fssp_den
+    sim['fssf'] = fssf
+    sim['fss_overestimated'] = ovestf
+    sim['fss_condensed'], sim['fss_normalized_arr'] = fss_condensed(sim)
+    sim['fss_condensed_weighted'], sim['fss_normalized_weighted_arr'] = weighted_fss_condensed(sim, levels)
+    sim['fss_condensed_weighted_rect'], sim['fss_normalized_weighted_rect_arr'] = weighted_fss_condensed_rect(sim, obs, levels)
+    logger.debug(
+        f"{sim['name']}: fss_condensed_weighted = {sim['fss_condensed_weighted']:.4f} (sum), "
+        f"fss_condensed_weighted_rect = {sim['fss_condensed_weighted_rect']:.4f} (cwFSS in [0, 1])")
+    sim['d90'] = fss_d90(sim["precip_data_resampled"], obs["precip_data_resampled"], args)
     return(sim)
 
 

@@ -324,8 +324,7 @@ def validate(data_list, meta):
     # --- obs sanity ---
     obs = data_list[0]
     v.check(obs["type"] == "obs", "obs type is 'obs'")
-    v.check(obs["bias"] == 999, "obs bias placeholder is 999")
-    v.check(obs["fss"] is None, "obs fss is None")
+    v.check("bias" not in obs and "fss" not in obs, "obs is not scored")
     v.check("max_rank" in obs, "max_rank set on obs dict")
 
     # --- For each model: basic consistency ---

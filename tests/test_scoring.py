@@ -207,13 +207,13 @@ class TestCalcScores:
             "color": None, "ensemble": None,
         }
 
-    def test_obs_gets_sentinels(self, make_test_args):
+    def test_obs_is_not_scored(self, make_test_args):
         args = make_test_args()
         field = np.ones((64, 64))
         obs = self._make_sim_dict(field, entry_type="obs")
+        keys = set(obs)
         scoring.calc_scores(obs, obs, args)
-        assert obs["bias"] == 999
-        assert obs["fss"] is None
+        assert set(obs) == keys
 
     def test_model_gets_all_keys(self, make_test_args, identical_fields):
         args = make_test_args()
@@ -305,13 +305,17 @@ class TestRankScores:
         obs_f, _ = identical_fields
         fields = [obs_f, obs_f.copy(), np.roll(obs_f, 5, axis=1), np.roll(obs_f, 10, axis=1)]
         data_list = self._make_scored_list(make_test_args, fields)
-        assert np.isnan(data_list[0]["d90"])  # the observation has no d90
         for sim, d90 in zip(data_list[1:], [np.nan, 5., 2.]):
             sim["d90"] = d90
         scoring.rank_scores(data_list)
         undefined, worse, better = data_list[1:]
-        assert better["rank_d90"] < worse["rank_d90"] < undefined["rank_d90"]
-        assert worse["rank_d90"] < data_list[0]["rank_d90"]
+        assert (better["rank_d90"], worse["rank_d90"], undefined["rank_d90"]) == (1, 2, 3)
+
+    def test_obs_is_not_ranked(self, make_test_args, identical_fields):
+        obs_f, _ = identical_fields
+        data_list = self._make_scored_list(make_test_args, [obs_f, obs_f.copy(), np.roll(obs_f, 5, axis=1)])
+        assert not any(key.startswith("rank_") for key in data_list[0])
+        assert sorted(sim["rank_mae"] for sim in data_list[1:]) == [1, 2]
 
 
 # =====================================================================
@@ -560,3 +564,22 @@ class TestWriteScoresToCsv:
         csv_files = list(tmp_path.glob("*.csv"))
         assert len(csv_files) == 1
         assert csv_files[0].stat().st_size > 0
+
+    def test_legacy_obs_row(self, make_test_args):
+        """The observation keeps the placeholder row of the old output: it was ranked
+        behind all forecasts with a defined score and ahead of the missing ones."""
+        forecasts = [
+            {"type": "model", "init": "2024-01-01", "lead": 1, "bias_real": 0.1, "mae": 1., "rms": 1.5,
+             "corr": 0.9, "d90": 10., "fss_condensed": 5., "fss_condensed_weighted": 7.,
+             "rank_mae": 1, "rank_bias": 1, "rank_rms": 1, "rank_corr": 1, "rank_d90": 1,
+             "rank_fss_condensed": 1, "rank_fss_condensed_weighted": 1},
+            {"type": "model", "init": "2024-01-01", "lead": 2, "bias_real": 0.2, "mae": 2., "rms": 2.5,
+             "corr": 0.8, "d90": np.nan, "fss_condensed": 4., "fss_condensed_weighted": 6.,
+             "rank_mae": 2, "rank_bias": 2, "rank_rms": 2, "rank_corr": 2, "rank_d90": 2,
+             "rank_fss_condensed": 2, "rank_fss_condensed_weighted": 2}]
+        init, lead, scores, ranks = scoring.legacy_csv_row({"type": "obs"}, forecasts)
+        assert (init, lead) == ("1900-01-01 00:00:00", -1)
+        assert scores[:4] == [999, 999, 999, -999] and np.isnan(scores[4]) and scores[5:] == [-999, -999]
+        assert ranks == [3, 3, 3, 3, 2, 3, 3]
+        # the forecast without d90 ranked behind the observation
+        assert scoring.legacy_csv_row(forecasts[1], forecasts)[3][4] == 3
