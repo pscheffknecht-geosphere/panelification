@@ -24,6 +24,7 @@ import read_esp as esp
 import panel_plotter
 import ens_plotter
 import io_main as io
+import io_fields
 import io_scores
 import scan_obs
 import regions
@@ -182,7 +183,9 @@ def parse_arguments():
     parser.add_argument('--fix_nans', nargs='?', default=False, const=True, type=str2bool,
         help = 'Fix NaNs in OBS and Model fields by setting them to 0.')
     parser.add_argument('--save', nargs='?', default=False, const=True, type=str2bool,
-        help = 'save full fields to pickle files')
+        help = 'save the fields resampled to the verification subdomain to a NetCDF file in DATA')
+    parser.add_argument('--save_native', nargs='?', default=False, const=True, type=str2bool,
+        help = 'with --save, also store the fields on their native grids')
     parser.add_argument('--fss_mode', type=str, default='ranks')
     parser.add_argument('--fss_calc_mode', type=str, default='same')
     parser.add_argument('--fss_method', type=str, default='default')
@@ -199,7 +202,7 @@ def parse_arguments():
     parser.add_argument('--save_full_fss', nargs='?', default=True, const=True, type=str2bool,
         help = 'include the full FSS arrays (score, numerator, denominator) in the NetCDF score file')
     parser.add_argument('--legacy_output', nargs='?', default=False, const=True, type=str2bool,
-        help = 'also write the old CSV score file and FSS pickle (deprecated)')
+        help = 'also write the old CSV score file, FSS pickle and with --save the data pickle (deprecated)')
     parser.add_argument('--hidden', nargs='?', default=False, const=True, type=str2bool,
         help = 'clean panels, with names hidden and numbers used instead')
     parser.add_argument('--panel_rows_columns', nargs='+', default=None, type=int,
@@ -416,6 +419,8 @@ def main():
             logging.info("Skipping "+dom['name']+", nothing is requested.")
         if dom['score']:
             io_scores.save_scores(data_list, start_date, end_date, subdomain_name, args)
+            if args.save:
+                io_fields.save_fields(data_list, start_date, end_date, subdomain_name, args)
             if args.legacy_output:
                 scoring.write_scores_to_csv(data_list, start_date, end_date, args, subdomain_name, windows, thresholds)
         if dom['draw']:
@@ -442,7 +447,7 @@ def main():
             logging.info("Plotting "+str(len(data_list))+" panels took "+str(plot_duration))
             logging.info("File saved to: " + os.path.abspath(outfilename))
         if dom['score']:
-            if args.save:
+            if args.save and args.legacy_output:
                 io.save_data(data_list, subdomain_name, start_date, end_date, args)
             if args.save_full_fss and args.legacy_output:
                 io.save_fss(data_list, subdomain_name, start_date, end_date, args)

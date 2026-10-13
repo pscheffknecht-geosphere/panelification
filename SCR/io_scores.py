@@ -96,13 +96,9 @@ def score_file_path(args, start_date, subdomain):
 
 
 def save_scores(data_list, start_date, end_date, subdomain, args):
-    """ Write the scores of all forecasts in data_list for one subdomain to a NetCDF file.
-
-    The file is written under a temporary name and renamed once it is complete,
-    so parallel or aborted runs never leave partially written score files."""
+    """ Write the scores of all forecasts in data_list for one subdomain to a NetCDF file. """
     ds = build_run_dataset(data_list, start_date, end_date, subdomain, args)
     path = score_file_path(args, start_date, subdomain)
-    os.makedirs(os.path.dirname(path), exist_ok=True)
     fss_variables = {name for name, _, _ in FSS_ARRAYS + FSSP_ARRAYS}
     encoding = {}
     for name in ds.data_vars:
@@ -115,16 +111,27 @@ def save_scores(data_list, start_date, end_date, subdomain, args):
     for name in ds.coords:
         if ds[name].dtype.kind == "f":
             encoding[name] = {"_FillValue": None}
+    write_netcdf(path, [(None, ds, encoding)])
+    logger.info(f"Scores written to {path}")
+    return path
+
+
+def write_netcdf(path, groups):
+    """ Write (group, dataset, encoding) tuples to one NetCDF file, group None is the root.
+
+    The file is written under a temporary name and renamed once it is complete,
+    so parallel or aborted runs never leave partially written files."""
+    os.makedirs(os.path.dirname(path), exist_ok=True)
     tmp_path = f"{path}.tmp{os.getpid()}"
     try:
-        ds.to_netcdf(tmp_path, format="NETCDF4", engine="netcdf4", encoding=encoding)
+        for ii, (group, ds, encoding) in enumerate(groups):
+            ds.to_netcdf(tmp_path, mode="w" if ii == 0 else "a", group=group,
+                         format="NETCDF4", engine="netcdf4", encoding=encoding)
         os.replace(tmp_path, path)
     except BaseException:
         if os.path.exists(tmp_path):
             os.remove(tmp_path)
         raise
-    logger.info(f"Scores written to {path}")
-    return path
 
 
 def build_run_dataset(data_list, start_date, end_date, subdomain, args):
@@ -138,15 +145,7 @@ def build_run_dataset(data_list, start_date, end_date, subdomain, args):
     units = parameter_settings.get_units(args)
     percentiles = list(range(101)) if getattr(args, "save_percentiles", False) else DEFAULT_PERCENTILES
 
-    positions = [(_output_conf(sim), _lead_hours(sim, start_date)) for sim in forecasts]
-    duplicates = [pos for pos, count in Counter(positions).items() if count > 1]
-    if duplicates:
-        names = [sim['name'] for sim, pos in zip(forecasts, positions) if pos in duplicates]
-        raise ValueError(f"Several forecasts have the same conf and lead time, "
-                         f"their scores cannot be stored: {names}")
-    confs = sorted({conf for conf, _ in positions})
-    leads = sorted({lead for _, lead in positions})
-    indices = [(confs.index(conf), leads.index(lead)) for conf, lead in positions]
+    confs, leads, indices = forecast_grid(forecasts, start_date)
     grid_shape = (len(confs), len(leads))
 
     data_vars = {}
@@ -218,13 +217,32 @@ def build_run_dataset(data_list, start_date, end_date, subdomain, args):
                 "long_name": "FSS percentile threshold", "units": "%"})
             data_vars.update(fssp_vars)
 
+    attrs = {"title": "Panelification verification scores", "schema_version": SCHEMA_VERSION,
+             **run_attrs(start_date, end_date, subdomain, args)}
+    return xr.Dataset(data_vars, coords=coords, attrs=_netcdf_attrs(attrs))
+
+
+def forecast_grid(forecasts, start_date):
+    """ Sorted confs and lead times of the forecasts and the (conf, lead_hours) index of each forecast """
+    positions = [(_output_conf(sim), _lead_hours(sim, start_date)) for sim in forecasts]
+    duplicates = [pos for pos, count in Counter(positions).items() if count > 1]
+    if duplicates:
+        names = [sim['name'] for sim, pos in zip(forecasts, positions) if pos in duplicates]
+        raise ValueError(f"Several forecasts have the same conf and lead time, "
+                         f"they cannot be stored: {names}")
+    confs = sorted({conf for conf, _ in positions})
+    leads = sorted({lead for _, lead in positions})
+    indices = [(confs.index(conf), leads.index(lead)) for conf, lead in positions]
+    return confs, leads, indices
+
+
+def run_attrs(start_date, end_date, subdomain, args):
+    """ Global attributes describing the verification run """
     created = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    attrs = {
-        "title": "Panelification verification scores",
-        "schema_version": SCHEMA_VERSION,
+    return {
         "experiment_name": args.name.rstrip("_"),
         "parameter": args.parameter,
-        "parameter_units": units,
+        "parameter_units": parameter_settings.get_units(args),
         "verif_dataset": getattr(args, "verif_dataset", None),
         "region": _region_name(args),
         "subdomain": subdomain,
@@ -242,7 +260,6 @@ def build_run_dataset(data_list, start_date, end_date, subdomain, args):
         "history": f"{created} {' '.join(sys.argv)}",
         "created": created,
     }
-    return xr.Dataset(data_vars, coords=coords, attrs=_netcdf_attrs(attrs))
 
 
 def _weather_regime_vars(start_date, end_date, args):

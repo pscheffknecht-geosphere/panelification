@@ -34,6 +34,12 @@ The file contains
 
 Combining and aggregating score files is left to downstream tools. The old CSV score files and FSS pickles can still be written with `--legacy_output`.
 
+With `--save` the verified fields of each scored subdomain are written to
+
+`DATA/{name}{parameter}_fields_{YYYYMMDD_HH}UTC_{DD}h_acc_{region}_{subdomain}.nc`
+
+with the same run metadata. The root group holds the fields resampled to the verification grid, `forecast_field` on `(valid_time, conf, subdomain, lead_hours, y, x)` and `obs_field` on `(valid_time, subdomain, y, x)`, with `lon` and `lat` on `(y, x)`. With `--save_native` the fields on their original grids are stored as well, in the groups `native_obs` and `native_forecasts/<conf>` (`forecast_field` on `(lead_hours, y, x)`), e.g. `xr.open_dataset(path, group="native_forecasts/ICON-D2")`. All fields are compressed float32, quantized to a precision of 0.01 in the units of the parameter (`least_significant_digit = 2`). The old pickle of the full data is only written with `--save --legacy_output`.
+
 Existing legacy output (score CSV files and FSS pickles) can be converted to NetCDF score files with the standalone script `convert_legacy_output.py`. It uses no other panelification module and keeps its own copy of the score file layout, which is not updated with `io_scores.py`. Parameter and region are not stored in the legacy files and have to be given:
 
 `python convert_legacy_output.py --region Austria --name INCAOptAndSAMOS --scores_dir /path/to/SCORES --data_dir /path/to/DATA`

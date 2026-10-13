@@ -649,7 +649,8 @@ def get_sims_and_file_list(data_list, args):
 ################################################################################
 ### SAVING DATA AND VERIFICATION RESULTS
 def save_data(data_list, verification_subdomain, start_date, end_date, args):
-    """ write all data to a pickle file """
+    """ legacy pickle output of all data, only written with --save and --legacy_output,
+    replaced by io_fields.save_fields """
     start_date_str = start_date.strftime("%Y%m%d_%HUTC_")
     outfilename = f"{PAN_DIR_DATA}/{args.name}RR_data_{start_date_str}{args.duration:02d}h_acc_{verification_subdomain}.p"
     with open(outfilename, 'wb') as f:
