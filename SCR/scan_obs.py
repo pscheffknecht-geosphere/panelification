@@ -32,8 +32,8 @@ def get_interesting_subdomains(obs_data, args):
         RR_means.append(RR_obs_subdomain_mean)
         RR_maxes.append(RR_obs_subdomain_max)
         RR_names.append(subdomain_name)
-        # the thresholds are meant for precipitation, clouds are always scored and drawn if requested
-        no_thresholds = args.parameter == 'cma'
+        # the thresholds are precipitation amounts, all other parameters are always scored and drawn if requested
+        no_thresholds = "precip" not in args.parameter
         if ((no_thresholds or RR_obs_subdomain_mean >  draw_avg or RR_obs_subdomain_max > draw_max) and args.draw) or args.forcedraw:
             RR_draw.append(True)
         else:
