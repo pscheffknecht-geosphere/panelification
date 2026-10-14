@@ -56,7 +56,10 @@ experiment_configurations = {
         "output_interval"  : 1,
         "max_leadtime"     : 12, 
         "accumulated"      : True,
-        "path_template"    : "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/aromeruc_%H+%LLLL.00.grb",
+        "path_template"    : {'cma' : ["/data/cloud_arch_trial/CLOUD_ARCH/%Y%m%d/aromeruc_%H+%LLLL.00.grb"],
+                              'else': "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/aromeruc_%H+%LLLL.00.grb"},
+        "grib_handles"     : {'precip': None,
+                              'cma'   : [{"indicatorOfParameter": 171}]},
         "color"            : "navy"
         },
     "deode500": {
@@ -250,18 +253,26 @@ experiment_configurations = {
     "icond2": {
         "web_form_entry"   : True,
         "base_experiment"  : "arome",
-        "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/icond2_%H+%LLLL.grb",
-                              "/mnt/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/icond2_%H+%LLLL.grb"],
-        "grib_handles"     : {'precip': [{'shortName': 'tp', 'forecastTime': 0}]},
+        "path_template"    : {'cma' : ["/data/cloud_arch_trial/CLOUD_ARCH/%Y%m%d/icond2_%H+%LLLL.grb"],
+                              'else': ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/icond2_%H+%LLLL.grb",
+                                       "/mnt/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/icond2_%H+%LLLL.grb"]},
+        "unit_factor"      : {'cma': 0.01, # cloud cover in %
+                              'else': 1.},
+        "grib_handles"     : {'precip': [{'shortName': 'tp', 'forecastTime': 0}],
+                              'cma'   : [{'discipline': 0, 'parameterCategory': 6, 'parameterNumber': 1}]},
         "color"            : "orange",
     "lagged_ensemble"  : True
     },
     "icon1e": {
         "web_form_entry"   : True,
         "base_experiment"  : "arome",
-        "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/icon1e_%H+%LLLL.grb2",
-                              "/ment_arch2/pscheff/arch_precip_test/%Y%m%d/icon1e_%H+%LLLL.grb2"], # archive testing path
-        "grib_handles"     : {'precip': [{'parameterNumber': 52}]},
+        "path_template"    : {'cma' : ["/data/cloud_arch_trial/CLOUD_ARCH/%Y%m%d/icon1e_%H+%LLLL.grb2"],
+                              'else': ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/icon1e_%H+%LLLL.grb2",
+                                       "/ment_arch2/pscheff/arch_precip_test/%Y%m%d/icon1e_%H+%LLLL.grb2"]}, # archive testing path
+        "unit_factor"      : {'cma': 0.01, # cloud cover in %
+                              'else': 1.},
+        "grib_handles"     : {'precip': [{'parameterNumber': 52}],
+                              'cma'   : [{'discipline': 0, 'parameterCategory': 6, 'parameterNumber': 1}]},
         "accumulated"      : False,
         "color"            : "khaki"
     },
@@ -293,15 +304,19 @@ experiment_configurations = {
         "web_form_entry"   : True,
         "output_interval"  : 1,
         "init_interval"    : 3,
-        "unit_factor"      : 1.,
+        "unit_factor"      : {'cma': 0.01, # cloud cover in %
+                              'else': 1.},
         "max_leadtime"     : 60,
         "accumulated"      : True,
         "base_experiment"  : "arome",
-        "path_template"    : ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_%H+%LLLL.grb",
-                              "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_00_%H+%LLLL.grb2",
-                              "/mnt/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_00_%H+%LLLL.grb2",
-                              "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_%H+%LLLL.grb2"],
-        # "grib_handles"     : {'precip': [{'shortName': 'tp', 'forecastTime': 0}]},
+        "path_template"    : {
+			"cma":  ["/data/cloud_arch_trial/CLOUD_ARCH/%Y%m%d/claef_1k_%H+%LLLL.grb2"],
+			"else": ["/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_%H+%LLLL.grb",
+                     "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_00_%H+%LLLL.grb2",
+                     "/mnt/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_00_%H+%LLLL.grb2",
+                     "/ment_arch3/aladin/PRECIP_ARCH/%Y%m%d/claef_1k_%H+%LLLL.grb2"]},
+        "grib_handles"     : {'precip': None,
+		                      'cma': [{'discipline':0, "parameterCategory": 6, 'parameterNumber': 1}]},
         "ensemble"         : "claef1k",
         "color"            : "dodgerblue"
     },
