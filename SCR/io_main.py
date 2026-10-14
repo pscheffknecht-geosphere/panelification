@@ -398,6 +398,8 @@ class ModelConfiguration:
             n_missing = np.isnan(tmp_data).sum()
             if n_missing > 0:
                 logger.warning(f"{self.experiment_name} {self.init}: {n_missing} missing cloud cover values, these are kept as missing")
+            # unit_factor converts the cloud cover to a fraction (e.g. 0.01 for %) before the cutoff, cloud hours are not scaled
+            tmp_data = self.unit_factor * tmp_data
             tmp_data = np.where(np.isnan(tmp_data), np.nan, np.where(tmp_data >= parameter_settings.CLOUD_FRACTION_THRESHOLD, 1., 0.))
             logger.debug(f"tmp_data has shape {tmp_data.shape} before summing cloud fraction")
             if tmp_data.ndim == 2:
@@ -405,6 +407,7 @@ class ModelConfiguration:
             else: 
                 tmp_data = np.sum(tmp_data, axis=2)
                 logger.debug(f"CMA data is between {tmp_data.min()} and {tmp_data.max()}")
+            return lon, lat, tmp_data
         return lon, lat, self.unit_factor * tmp_data
         
     
