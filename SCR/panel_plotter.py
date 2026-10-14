@@ -163,6 +163,11 @@ def fss_plot_rows(sim):
             separator)
 
 
+# number of rows that fill the FSS axes with (nearly) square cells, fewer rows keep that
+# cell height, more rows are squeezed into the axes
+FSS_PLOT_MIN_ROWS = 12
+
+
 def add_fss_plot_new(ax, sim, rank_vmax, jj, args):
     fss_rank_cols = ['white']*rank_vmax
     fss_rank_cols[0:5] = ['black', 'firebrick', 'limegreen', 'gold', 'silver', 'darkorange']
@@ -210,13 +215,18 @@ def add_fss_plot_new(ax, sim, rank_vmax, jj, args):
                 # col = 'black' # fix red separation line for fiels that contain nans
             else:
                 ax.fill(xedge, yedge, facecolor=col, zorder=777)
-            if ranks[yy, xx] == 1 and not doing_percentile: #only for bad but not nan
+            if ranks[yy, xx] == 1 and np.isfinite(ovest[yy, xx]): #only for bad but not nan, no triangle without overestimation (percentiles)
                 ax.fill(xedget, yedget, facecolor='white', zorder=999)
 
 
     make_fss_rank_plot_axes(ax, args)
     ax.set_xlim([-0.5, nx-0.5])
-    ax.set_ylim([ny-0.5, -0.5])
+    # rows sit at the bottom of the axes, next to the window labels, the empty space is on top
+    ax.set_ylim([ny-0.5, ny-0.5-max(ny, FSS_PLOT_MIN_ROWS)])
+    if ny < FSS_PLOT_MIN_ROWS: # frame only around the rows
+        ax.spines['top'].set_visible(False)
+        ax.spines['left'].set_bounds(ny-0.5, -0.5)
+        ax.spines['right'].set_bounds(ny-0.5, -0.5)
     add_skill_outline(ax, ranks)
             
 
