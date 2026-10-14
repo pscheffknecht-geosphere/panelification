@@ -221,7 +221,7 @@ def parse_arguments():
         help = """Draw line plots of model performance, init on x axis, score on y axis""")
     parser.add_argument('--check_ranking', nargs='?', default=False, const=True, type=str2bool,
         help = 'Use random sampling and bootstrapping to test the robustness of the suggested ranking')
-    parser.add_argument('--highlight_threshold', '-u', type=int, default=[], nargs='+',
+    parser.add_argument('--highlight_threshold', type=int, default=[], nargs='+',
         help = """Highlight specific precipitation contour line""")
     parser.add_argument('--time_series_panel_width', default=0.66, type=float,
         help = """Move the default width of the score time series panel, can be sued
