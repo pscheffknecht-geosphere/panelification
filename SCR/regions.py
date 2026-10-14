@@ -93,6 +93,9 @@ regions = {
             "CarinthiaEastL": {
                 "central_longitude": 14.8, "central_latitude": 47.0,
                 "x_size": 150., "y_size": 140.},
+            "Klagenfurter_Becken": { # basin (Villach to Jauntal, Karawanken foothills to Zollfeld) plus 15 km on each side
+                "central_longitude": 14.33, "central_latitude": 46.665,
+                "x_size": 110., "y_size": 70.},
             "TyrolNorth": {
                 "central_longitude": 11.67, "central_latitude": 47.6,
                 "x_size": 160., "y_size": 80.},
