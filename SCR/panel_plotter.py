@@ -224,9 +224,11 @@ def add_fss_plot_new(ax, sim, rank_vmax, jj, args):
     # rows sit at the bottom of the axes, next to the window labels, the empty space is on top
     ax.set_ylim([ny-0.5, ny-0.5-max(ny, FSS_PLOT_MIN_ROWS)])
     if ny < FSS_PLOT_MIN_ROWS: # frame only around the rows
-        ax.spines['top'].set_visible(False)
+        ax.spines['top'].set_position(('data', -0.5))
         ax.spines['left'].set_bounds(ny-0.5, -0.5)
         ax.spines['right'].set_bounds(ny-0.5, -0.5)
+    for spine in ax.spines.values():
+        spine.set_zorder(1000) # frame on top of the cells
     add_skill_outline(ax, ranks)
             
 
